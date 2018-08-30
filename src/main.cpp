@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
   GtkWidget *window;
   gtk_init(&argc, &argv);
   builder = gtk_builder_new();
-  gtk_builder_add_from_file (builder, "window_main.glade", NULL);
+  gtk_builder_add_from_file (builder, "src/window_main.glade", NULL);
   window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
   gtk_builder_connect_signals(builder, NULL);
   g_object_unref(builder);
