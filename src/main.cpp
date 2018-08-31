@@ -2,7 +2,7 @@
 
 int main(int argc, char *argv[])
 {
-	GtkBuilder *builder;
+  GtkBuilder *builder;
   GtkWidget *window;
   gtk_init(&argc, &argv);
   builder = gtk_builder_new();
