@@ -1,12 +1,10 @@
 #include <gtk/gtk.h>
 
-void on_window_main_destroy()
-{
+void on_window_main_destroy() {
   gtk_main_quit();
 }
 
-void on_btn_render_clicked()
-{
+void on_btn_render_clicked() {
   g_print("Render\n");
 }
 
@@ -17,8 +15,7 @@ GtkWidget *sbtn_rdtheta;
 GtkWidget *sbtn_rphi;
 GtkWidget *sbtn_rdphi;
 
-void on_btn_ring_clicked()
-{
+void on_btn_ring_clicked() {
   double rr = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
   double rdr = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
   double rtheta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
@@ -28,8 +25,7 @@ void on_btn_ring_clicked()
   g_print("Create Ring\n");
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   GtkBuilder *builder;
   GtkWidget *window;
   GtkWidget *btn_render;
