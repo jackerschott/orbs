@@ -4,3 +4,8 @@
 
 /.vs
 /CppProperties.json
+/BlackHoleSimulation/BlackHoleSimulation.sln
+/BlackHoleSimulation/BlackHoleSimulation/BlackHoleSimulation.vcxproj.user
+/BlackHoleSimulation/BlackHoleSimulation/BlackHoleSimulation.vcxproj.filters
+/BlackHoleSimulation/BlackHoleSimulation/BlackHoleSimulation.vcxproj
+/BlackHoleSimulation/.vs/BlackHoleSimulation/v15
