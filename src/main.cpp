@@ -7,12 +7,25 @@ void on_window_main_destroy()
 
 void on_btn_render_clicked()
 {
-  g_print ("Render\n");
+  g_print("Render\n");
 }
+
+GtkWidget *sbtn_rr;
+GtkWidget *sbtn_rdr;
+GtkWidget *sbtn_rtheta;
+GtkWidget *sbtn_rdtheta;
+GtkWidget *sbtn_rphi;
+GtkWidget *sbtn_rdphi;
 
 void on_btn_ring_clicked()
 {
-  g_print ("Create Ring\n");
+  double rr = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
+  double rdr = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
+  double rtheta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
+  double rdtheta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
+  double rphi = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
+  double rdphi = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
+  g_print("Create Ring\n");
 }
 
 int main(int argc, char *argv[])
@@ -30,6 +43,12 @@ int main(int argc, char *argv[])
   g_signal_connect(btn_render, "clicked", G_CALLBACK(on_btn_render_clicked), NULL);
   btn_ring = GTK_WIDGET(gtk_builder_get_object(builder, "btn_ring"));
   g_signal_connect(btn_ring, "clicked", G_CALLBACK(on_btn_ring_clicked), NULL);
+  sbtn_rr = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rr"));
+  sbtn_rdr = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rdr"));
+  sbtn_rtheta = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rtheta"));
+  sbtn_rdtheta = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rdtheta"));
+  sbtn_rphi = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rphi"));
+  sbtn_rdphi = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rdphi"));
   gtk_widget_show(window);
   gtk_main();
   return 0;
