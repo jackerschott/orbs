@@ -14,3 +14,8 @@ int main(int argc, char *argv[])
   gtk_main();
   return 0;
 }
+
+void on_window_main_destroy()
+{
+    gtk_main_quit();
+}
