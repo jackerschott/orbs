@@ -1,7 +1,6 @@
 #ifndef RENDER_H
 #define RENDER_H
 
-#include <iostream>
 #include <random>
 
 typedef unsigned char byte;
@@ -19,7 +18,7 @@ struct particle {
   double vr;
   double vtheta;
   double vphi;
-  color color;
+  color pcolor;
   particle* children;
 };
 

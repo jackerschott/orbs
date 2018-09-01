@@ -3,12 +3,12 @@
 double rs;
 double gr;
 int nParticles;
-particle* particles;
+particle *particles;
 std::pair<color, double> *particleColorPalette;
 
 double getRandom(double d);
 template<typename T>
-T selectObject(std::pair<T, double> collection);
+T selectObject(unsigned int nObjects, std::pair<T, double> *collection);
 
 void initRender(double _rs, double _gr) {
   rs = _rs;
@@ -17,10 +17,12 @@ void initRender(double _rs, double _gr) {
 
 void createParticleRing(unsigned int rnParticles, double rr, double rtheta, double rphi,
   double rdr, double rdtheta, double rdphi,
-  std::pair<color, double> *rparticleColorPalette) {
+  unsigned int nColors, std::pair<color, double> *rparticleColorPalette) {
 
-  particle* newParticles = new particle[nParticles + rnParticles];
-  memcpy(newParticles, particles, nParticles);
+  particle *newParticles = new particle[nParticles + rnParticles];
+  for (int i = 0; i < nParticles; i++) {
+    newParticles[i] = particles[i];
+  }
   for (int i = nParticles; i < nParticles + rnParticles; i++) {
     newParticles[i].r = rr + getRandom(rdr / 2.0);
     newParticles[i].phi = rphi + getRandom(rdphi / 2.0);
@@ -28,6 +30,7 @@ void createParticleRing(unsigned int rnParticles, double rr, double rtheta, doub
     newParticles[i].vr = 0.0;
     newParticles[i].vphi = 1.0;
     newParticles[i].vtheta = 0.0;
+    newParticles[i].pcolor = selectObject(nColors, rparticleColorPalette);
   }
   delete[] particles;
   particles = newParticles;
@@ -44,13 +47,14 @@ double getRandom(double d) {
   return distribution(generator);
 }
 template<typename T>
-T selectObject(unsigned int nObjects, std::pair<T, double>* collection) {
+T selectObject(unsigned int nObjects, std::pair<T, double> *collection) {
   int rn = rand();
   int probLimit = 0;
   for (int i = 0; i < nObjects; i++) {
     probLimit += (RAND_MAX + 1) / collection[i].second;
     if (rn < probLimit) {
-
+      return collection[i];
     }
   }
+  throw collection;
 }

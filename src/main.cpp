@@ -1,4 +1,4 @@
-#define COMPILE_GTK FALSE
+#define COMPILE_GTK false
 
 #if COMPILE_GTK
 
@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
 
 #define _USE_MATH_DEFINES
 
+#include <iostream>
 #include <math.h>
 #include <random>
 
@@ -81,7 +82,7 @@ int main(int argc, char *argv[]) {
   initRender(rs, gr);
   createParticleRing(nParticles, 5 * rs, 0.0, M_PI_4, rs, 0.1, 0.1, colorPalette);
 
-
+  std::cin.get();
   return 0;
 }
 
