@@ -1,4 +1,5 @@
-#pragma once
+#ifndef RENDER_H
+#define RENDER_H
 
 #include <random>
 
@@ -27,3 +28,5 @@ void createParticleRing(int nParticles, double rr, double rphi, double rtheta,
   std::pair<color, double> *rparticleColorPalette);
 
 double getRandom(double d);
+
+#endif

@@ -1,4 +1,4 @@
-#include "render.h"
+#include "../hdr/render.h"
 
 double rs;
 double gr;
