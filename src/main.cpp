@@ -70,7 +70,7 @@ void on_btn_ring_clicked() {
   for (uint i = 0; i < nColors; i++) {
     colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, 0.2 };
   }
-  createParticleRing(nParticles, rr, rtheta, rphi, rdr, rdtheta, rdphi, nColors, colorPalette);
+  //createParticleRing(nParticles, rr, rtheta, rphi, rdr, rdtheta, rdphi, nColors, colorPalette);
   g_print("done creating Ring\n");
 }
 

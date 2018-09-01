@@ -4,6 +4,7 @@
 #define _USE_MATH_DEFINES
 
 #include <chrono>
+#include <climits>
 #include <iostream>
 #include <math.h>
 #include <random>
