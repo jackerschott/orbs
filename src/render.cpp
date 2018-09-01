@@ -45,12 +45,12 @@ double getRandom(double d) {
   std::normal_distribution<double> distribution(0, d);
   return distribution(generator);
 }
-template<typename T>
-T selectObject(uint nObjects, std::pair<T, double> *collection) {
-  int rn = rand();
-  int probLimit = 0;
-  for (int i = 0; i < nObjects; i++) {
-    probLimit += ((long)RAND_MAX + 1) / collection[i].second;
+
+template<typename T> T selectObject(uint nObjects, std::pair<T, double> *collection) {
+  uint rn = rand();
+  uint probLimit = 0;
+  for (uint i = 0; i < nObjects; i++) {
+    probLimit += ((uint)RAND_MAX + 1) / collection[i].second;
     if (rn < probLimit) {
       return collection[i].first;
     }

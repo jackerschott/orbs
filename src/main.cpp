@@ -32,8 +32,8 @@ void on_btn_ring_clicked() {
   double rs = 3000;
   double gr = 10 * rs;
   std::pair<color, double> *colorPalette = new std::pair<color, double>[nParticles];
-  for (uint i = 0; i < nParticles; i++) {
-    colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, (double)rand() / RAND_MAX };
+  for (uint i = 0; i < nColors; i++) {
+    colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, 0.2 };
   }
   initRender(rs, gr);
   createParticleRing(nParticles, 5 * rs, 0.0, 0.78, rs, 0.1, 0.1, nColors, colorPalette);
@@ -87,8 +87,8 @@ int main(int argc, char *argv[]) {
   const uint nParticles = 10;
   const uint nColors = 5;
   std::pair<color, double> *colorPalette = new std::pair<color, double>[nParticles];
-  for (uint i = 0; i < nParticles; i++) {
-    colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, (double)rand() / RAND_MAX };
+  for (uint i = 0; i < nColors; i++) {
+    colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, 0.2 };
   }
 
   initRender(rs, gr);
