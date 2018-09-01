@@ -1,5 +1,8 @@
  #include <gtk/gtk.h>
 
+#define COMPILE_GTK FALSE
+
+#if COMPILE_GTK
 void on_window_main_destroy() {
   gtk_main_quit();
 }
@@ -55,3 +58,10 @@ int main(int argc, char *argv[]) {
   gtk_main();
   return 0;
 }
+#else
+
+int main(int argc, char *argv[]) {
+
+}
+
+#endif
