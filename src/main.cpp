@@ -1,5 +1,4 @@
 #include <gtk/gtk.h>
-#include "../hdr/render.h"
 
 void on_window_main_destroy() {
    gtk_main_quit();
