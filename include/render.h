@@ -27,6 +27,6 @@ struct particle {
 void initRender(double _rs, double _gr);
 void createParticleRing(uint nParticles, double rr, double rphi, double rtheta,
   double rdr, double rdphi, double rdtheta,
-  std::pair<color, double>* rparticleColorPalette);
+  uint nColors, std::pair<color, double>* rparticleColorPalette);
 
 #endif
