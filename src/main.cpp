@@ -1,11 +1,11 @@
 #include <gtk/gtk.h>
 
 void on_window_main_destroy() {
-   gtk_main_quit();
+  gtk_main_quit();
 }
 
 void on_btn_render_clicked() {
-   g_print("Render\n");
+  g_print("Render\n");
 }
 
 GtkWidget *sbtn_rr;
@@ -30,16 +30,16 @@ int main(int argc, char *argv[]) {
   GtkWidget *window;
   GtkWidget *btn_render;
   GtkWidget *btn_ring;
-	GError *err = NULL;
-	gtk_init(&argc, &argv);
-	builder = gtk_builder_new();
-	gtk_builder_add_from_file(builder, "gui/window_main.glade", &err);
-	if (err != NULL) {
-		fprintf(stderr, "Error adding build from file. Error: %s\n", err->message);
-		g_error_free(err);
-		return 1;
-	}
-	window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
+  GError *err = NULL;
+  gtk_init(&argc, &argv);
+  builder = gtk_builder_new();
+  gtk_builder_add_from_file(builder, "gui/window_main.glade", &err);
+  if (err != NULL) {
+    fprintf(stderr, "Error adding build from file. Error: %s\n", err->message);
+    g_error_free(err);
+    return 1;
+  }
+  window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
   g_signal_connect(window, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
   btn_render = GTK_WIDGET(gtk_builder_get_object(builder, "btn_render"));
   g_signal_connect(btn_render, "clicked", G_CALLBACK(on_btn_render_clicked), NULL);
