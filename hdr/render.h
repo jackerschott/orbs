@@ -11,6 +11,16 @@ struct color {
 	byte b;
 };
 
+struct particle {
+	double r;
+	double theta;
+	double phi;
+	double vr;
+	double vtheta;
+	double vphi;
+	color pcolor;
+};
+
 double rs;
 double gr;
 std::pair<color, double> *particleColorPalette;
@@ -20,9 +30,11 @@ double *particlesY;
 double *particlesZ;
 color *particleColors;
 
-void initRender(double _rs, double _gr, std::pair<color, double> *_particleColorPalette);
-void createParticleRing(double r, double phi, double theta, double dr, double dPhi, double dTheta);
+void initRender(double _rs, double _gr);
+void createParticleRing(int nParticles, double rr, double rphi, double rtheta,
+	double rdr, double rdphi, double rdtheta,
+	std::pair<color, double> *rparticleColorPalette);
 
-double getRandomDouble(double lower, double upper);
+double getRandom(double lower, double upper);
 
 #endif

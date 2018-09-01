@@ -1,31 +1,16 @@
+#include "render.h"
 #include <random>
 
-struct color {
-  unsigned char r;
-  unsigned char g;
-  unsigned char b;
-};
+void initRender(double _rs, double _gr) {
 
-struct particle {
-  double r;
-  double theta;
-  double phi;
-  double vr;
-  double vtheta;
-  double vphi;
-  color pcolor;
-};
-
-double ranval(double d) {
-  //some code here
-  return d;
 }
 
-void createParticleRing(double rr, double rdr, double rtheta, double rdtheta, double rphi, double rdphi,
-                        unsigned int nop, color color1, color color2, color color3, color color4, color color5) {
-  particle particles[nop];
-  for(unsigned int n = 0; n < nop; n = n + 1)
-  {
-    particles[n].r = rr + ranval(rdr);
-  }
+void createParticleRing(int nParticles, double rr, double rtheta, double rphi,
+	double rdr, double rdtheta, double rdphi,
+	std::pair<color, double> *rparticleColorPalette) {
+  
+}
+
+double getRandom(double lower, double upper) {
+
 }

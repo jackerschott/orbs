@@ -1,11 +1,11 @@
 #include <gtk/gtk.h>
 
 void on_window_main_destroy() {
-  gtk_main_quit();
+   gtk_main_quit();
 }
 
 void on_btn_render_clicked() {
-  g_print("Render\n");
+   g_print("Render\n");
 }
 
 GtkWidget *sbtn_rr;
@@ -22,18 +22,36 @@ void on_btn_ring_clicked() {
   double rdtheta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
   double rphi = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
   double rdphi = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
-  g_print("Create Ring\n");
+   g_print("Create Ring\n");
 }
+
+//gulong g_signal_connect_data(gpointer	instance, const gchar	*detailed_signal, GCallback	c_handler, gpointer	data, GClosureNotify destroy_data, GConnectFlags connect_flags) {
+//	return 0;
+//}
+//
+//GTypeInstance* g_type_check_instance_cast(GTypeInstance *instance, GType iface_type) {
+//	return 0;
+//}
+//
+//void g_print(const gchar *format, ...) G_GNUC_PRINTF(1, 2) {
+//
+//}
 
 int main(int argc, char *argv[]) {
   GtkBuilder *builder;
   GtkWidget *window;
   GtkWidget *btn_render;
   GtkWidget *btn_ring;
-  gtk_init(&argc, &argv);
-  builder = gtk_builder_new();
-  gtk_builder_add_from_file (builder, "gui/window_main.glade", NULL);
-  window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
+	GError *err = NULL;
+	gtk_init(&argc, &argv);
+	builder = gtk_builder_new();
+	gtk_builder_add_from_file(builder, "gui/window_main.glade", &err);
+	if (err != NULL) {
+		fprintf(stderr, "Error adding build from file. Error: %s\n", err->message);
+		g_error_free(err);
+		return 1;
+	}
+	window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
   g_signal_connect(window, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
   btn_render = GTK_WIDGET(gtk_builder_get_object(builder, "btn_render"));
   g_signal_connect(btn_render, "clicked", G_CALLBACK(on_btn_render_clicked), NULL);
