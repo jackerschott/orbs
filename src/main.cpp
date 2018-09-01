@@ -4,14 +4,6 @@
 #include <gtk/gtk.h>
 #include "../include/render.h"
 
-void on_window_main_destroy() {
-  gtk_main_quit();
-}
-
-void on_btn_render_clicked() {
-  g_print("Render\n");
-}
-
 GtkWidget *sbtn_rs;
 GtkWidget *sbtn_rg;
 GtkWidget *sbtn_nParticles;
@@ -21,6 +13,18 @@ GtkWidget *sbtn_rphi;
 GtkWidget *sbtn_rdr;
 GtkWidget *sbtn_rdtheta;
 GtkWidget *sbtn_rdphi;
+GtkAdjustment *adj_rg;
+GtkAdjustment *adj_rs;
+GtkAdjustment *adj_rr;
+
+void on_window_main_destroy() {
+  g_print("Exit\n");
+  gtk_main_quit();
+}
+
+void on_btn_render_clicked() {
+  g_print("Render\n");
+}
 
 void on_btn_ring_clicked() {
   g_print("Creating Ring...\n");
@@ -38,6 +42,22 @@ void on_btn_ring_clicked() {
   }
   createParticleRing(nParticles, rr, rtheta, rphi, rdr, rdtheta, rdphi, nColors, colorPalette);
   g_print("done creating Ring\n");
+}
+
+void on_adj_rx_changed() {
+  double rg_value = gtk_adjustment_get_value(adj_rg);
+  double rs_value = gtk_adjustment_get_value(adj_rs);
+  double rr_value = gtk_adjustment_get_value(adj_rr);
+  gtk_adjustment_set_upper(adj_rs, rg_value);
+  gtk_adjustment_set_upper(adj_rr, rg_value);
+  gtk_adjustment_set_lower(adj_rg, rs_value);
+  gtk_adjustment_set_lower(adj_rr, rs_value);
+  if (rr_value < rs_value) {
+    gtk_adjustment_set_value(adj_rr, rs_value);
+  }
+  if (rr_value > rg_value) {
+    gtk_adjustment_set_value(adj_rr, rg_value);
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -69,6 +89,12 @@ int main(int argc, char *argv[]) {
   sbtn_rdtheta = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rdtheta"));
   sbtn_rphi = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rphi"));
   sbtn_rdphi = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rdphi"));
+  adj_rg = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rg"));
+  adj_rs = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rs"));
+  adj_rr = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rr"));
+  g_signal_connect(adj_rg, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
+  g_signal_connect(adj_rs, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
+  g_signal_connect(adj_rr, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
   gtk_widget_show(window);
   gtk_main();
   return 0;

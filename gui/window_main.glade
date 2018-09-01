@@ -27,9 +27,9 @@
     <property name="page_increment">0.10000000000000001</property>
   </object>
   <object class="GtkAdjustment" id="adj_rg">
-    <property name="lower">0.5</property>
+    <property name="lower">1</property>
     <property name="upper">1000</property>
-    <property name="value">1</property>
+    <property name="value">10</property>
     <property name="step_increment">0.5</property>
     <property name="page_increment">10</property>
   </object>
@@ -40,16 +40,16 @@
     <property name="page_increment">0.5</property>
   </object>
   <object class="GtkAdjustment" id="adj_rr">
-    <property name="lower">0.5</property>
-    <property name="upper">1000</property>
+    <property name="lower">1</property>
+    <property name="upper">10</property>
     <property name="value">5</property>
     <property name="step_increment">0.10000000000000001</property>
     <property name="page_increment">1</property>
   </object>
   <object class="GtkAdjustment" id="adj_rs">
     <property name="lower">0.5</property>
-    <property name="upper">1000</property>
-    <property name="value">10</property>
+    <property name="upper">10</property>
+    <property name="value">1</property>
     <property name="step_increment">0.5</property>
     <property name="page_increment">10</property>
   </object>
@@ -90,16 +90,16 @@
             <property name="orientation">vertical</property>
             <property name="spacing">2</property>
             <child>
-              <object class="GtkBox" id="hc_rs">
+              <object class="GtkBox" id="hc_rg">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="spacing">2</property>
                 <property name="homogeneous">True</property>
                 <child>
-                  <object class="GtkLabel" id="lbl_rs">
+                  <object class="GtkLabel" id="lbl_rg">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Sphere Radius</property>
+                    <property name="label" translatable="yes">Globe Radius</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -108,11 +108,11 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkSpinButton" id="sbtn_rs">
+                  <object class="GtkSpinButton" id="sbtn_rg">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="adjustment">adj_rs</property>
-                    <property name="climb_rate">0.10000000000000001</property>
+                    <property name="adjustment">adj_rg</property>
+                    <property name="climb_rate">0.5</property>
                     <property name="digits">1</property>
                     <property name="value">10</property>
                   </object>
@@ -130,13 +130,13 @@
               </packing>
             </child>
             <child>
-              <object class="GtkBox" id="hc_rg">
+              <object class="GtkBox" id="hc_rs">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="spacing">2</property>
                 <property name="homogeneous">True</property>
                 <child>
-                  <object class="GtkLabel" id="lbl_rg">
+                  <object class="GtkLabel" id="lbl_rs">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label" translatable="yes">Black Hole Radius</property>
@@ -148,11 +148,11 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkSpinButton" id="sbtn_rg">
+                  <object class="GtkSpinButton" id="sbtn_rs">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="adjustment">adj_rg</property>
-                    <property name="climb_rate">0.10000000000000001</property>
+                    <property name="adjustment">adj_rs</property>
+                    <property name="climb_rate">0.5</property>
                     <property name="digits">1</property>
                     <property name="value">1</property>
                   </object>
@@ -549,6 +549,9 @@
                 <property name="fill">True</property>
                 <property name="position">12</property>
               </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>
