@@ -1,8 +1,9 @@
- #include <gtk/gtk.h>
-
 #define COMPILE_GTK FALSE
 
 #if COMPILE_GTK
+
+#include <gtk/gtk.h>
+
 void on_window_main_destroy() {
   gtk_main_quit();
 }
@@ -61,7 +62,20 @@ int main(int argc, char *argv[]) {
 #else
 
 int main(int argc, char *argv[]) {
+  double rs = 3000;
+  double gr = 10 * rs;
 
+  unsigned int nParticles = 10;
+  std::pair<color, double> *colorPalette = new std::pair<color, double>[nParticles];
+  for (int i = 0; i < nParticles; ++i)
+  {
+    colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, (double)rand() / RAND_MAX };
+  }
+
+  initRender(rs, gr);
+  createParticleRing(nParticles, 5 * rs, 0.0, M_PI_4, rs, 0.1, 0.1, colorPalette);
+
+  return 0;
 }
 
 #endif
