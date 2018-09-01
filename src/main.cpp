@@ -4,8 +4,10 @@
 #include <gtk/gtk.h>
 #include "../include/render.h"
 
+GtkWidget *window_main;
 GtkAdjustment *adj_rg;
 GtkAdjustment *adj_rs;
+GtkWidget *btn_render;
 GtkAdjustment *adj_nParticles;
 GtkAdjustment *adj_rr;
 GtkAdjustment *adj_rtheta;
@@ -13,17 +15,44 @@ GtkAdjustment *adj_rphi;
 GtkAdjustment *adj_rdr;
 GtkAdjustment *adj_rdtheta;
 GtkAdjustment *adj_rdphi;
+GtkWidget *btn_rcolors;
+GtkWidget *btn_ring;
+
+GtkWidget *window_colorPalette;
+GtkWidget *cbt_select;
+GtkWidget *btn_delete;
+GtkAdjustment *adj_prob;
+GtkWidget *ccwidget_color;
+GtkWidget *btn_ok;
 
 void on_window_main_destroy() {
   g_print("Exit\n");
   gtk_main_quit();
 }
 
+void on_adj_rx_changed() {
+  double rg_value = gtk_adjustment_get_value(adj_rg);
+  double rs_value = gtk_adjustment_get_value(adj_rs);
+  double rr_value = gtk_adjustment_get_value(adj_rr);
+  gtk_adjustment_set_upper(adj_rs, rg_value);
+  gtk_adjustment_set_upper(adj_rr, rg_value);
+  gtk_adjustment_set_lower(adj_rg, rs_value);
+  gtk_adjustment_set_lower(adj_rr, rs_value);
+  if (rr_value < rs_value) {
+    gtk_adjustment_set_value(adj_rr, rs_value);
+  }
+  if (rr_value > rg_value) {
+    gtk_adjustment_set_value(adj_rr, rg_value);
+  }
+}
+
 void on_btn_render_clicked() {
   g_print("Render\n");
 }
 
-#include <string>
+void on_btn_rcolors_clicked() {
+  gtk_widget_show(window_colorPalette);
+}
 
 void on_btn_ring_clicked() {
   g_print("Creating Ring...\n");
@@ -43,44 +72,22 @@ void on_btn_ring_clicked() {
   g_print("done creating Ring\n");
 }
 
-void on_adj_rx_changed() {
-  double rg_value = gtk_adjustment_get_value(adj_rg);
-  double rs_value = gtk_adjustment_get_value(adj_rs);
-  double rr_value = gtk_adjustment_get_value(adj_rr);
-  gtk_adjustment_set_upper(adj_rs, rg_value);
-  gtk_adjustment_set_upper(adj_rr, rg_value);
-  gtk_adjustment_set_lower(adj_rg, rs_value);
-  gtk_adjustment_set_lower(adj_rr, rs_value);
-  if (rr_value < rs_value) {
-    gtk_adjustment_set_value(adj_rr, rs_value);
-  }
-  if (rr_value > rg_value) {
-    gtk_adjustment_set_value(adj_rr, rg_value);
-  }
+void on_btn_ok_clicked() {
+  gtk_widget_hide(window_colorPalette);
 }
 
 int main(int argc, char *argv[]) {
   GtkBuilder *builder;
-  GtkWidget *window;
-  GtkWidget *btn_render;
-  GtkWidget *btn_ring;
   GError *err = NULL;
   gtk_init(&argc, &argv);
   builder = gtk_builder_new();
   gtk_builder_add_from_file(builder, "gui/window_main.glade", &err);
-  if (err != NULL) {
-    fprintf(stderr, "Error adding build from file. Error: %s\n", err->message);
-    g_error_free(err);
-    return 1;
-  }
-  window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
-  g_signal_connect(window, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
-  btn_render = GTK_WIDGET(gtk_builder_get_object(builder, "btn_render"));
-  g_signal_connect(btn_render, "clicked", G_CALLBACK(on_btn_render_clicked), NULL);
-  btn_ring = GTK_WIDGET(gtk_builder_get_object(builder, "btn_ring"));
-  g_signal_connect(btn_ring, "clicked", G_CALLBACK(on_btn_ring_clicked), NULL);
+  gtk_builder_add_from_file(builder, "gui/window_colorPalette.glade", &err);
+  
+  window_main = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
   adj_rg = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rg"));
   adj_rs = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rs"));
+  btn_render = GTK_WIDGET(gtk_builder_get_object(builder, "btn_render"));
   adj_nParticles = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_nParticles"));
   adj_rr = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rr"));
   adj_rtheta = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rtheta"));
@@ -88,10 +95,31 @@ int main(int argc, char *argv[]) {
   adj_rdr = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rdr"));
   adj_rdtheta = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rdtheta"));
   adj_rdphi = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rdphi"));
+  btn_rcolors = GTK_WIDGET(gtk_builder_get_object(builder, "btn_rcolors"));
+  btn_ring = GTK_WIDGET(gtk_builder_get_object(builder, "btn_ring"));
+  g_signal_connect(window_main, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
   g_signal_connect(adj_rg, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
   g_signal_connect(adj_rs, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
   g_signal_connect(adj_rr, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
-  gtk_widget_show(window);
+  g_signal_connect(btn_render, "clicked", G_CALLBACK(on_btn_render_clicked), NULL);
+  g_signal_connect(btn_rcolors, "clicked", G_CALLBACK(on_btn_rcolors_clicked), NULL);
+  g_signal_connect(btn_ring, "clicked", G_CALLBACK(on_btn_ring_clicked), NULL);
+  
+  window_colorPalette = GTK_WIDGET(gtk_builder_get_object(builder, "window_colorPalette"));
+  cbt_select = GTK_WIDGET(gtk_builder_get_object(builder, "cbt_select"));
+  btn_delete = GTK_WIDGET(gtk_builder_get_object(builder, "btn_delete"));
+  adj_prob = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_prob"));
+  ccwidget_color = GTK_WIDGET(gtk_builder_get_object(builder, "ccwidget_color"));
+  btn_ok = GTK_WIDGET(gtk_builder_get_object(builder, "btn_ok"));
+  g_signal_connect(window_colorPalette, "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+  //g_signal_connect(cbt_select, "changed", G_CALLBACK(on_cbt_select_changed), NULL);
+  //g_signal_connect(btn_delete, "clicked", G_CALLBACK(on_btn_delete_clicked), NULL);
+  //g_signal_connect(adj_prob, "value-changed", G_CALLBACK(on_adj_prob_changed), NULL);
+  //g_signal_connect(ccwidget_color, "color-activated", G_CALLBACK(), NULL);
+  g_signal_connect(btn_ok, "clicked", G_CALLBACK(on_btn_ok_clicked), NULL);
+  gtk_window_set_transient_for(GTK_WINDOW(window_colorPalette), GTK_WINDOW(window_main));
+  
+  gtk_widget_show(window_main);
   gtk_main();
   return 0;
 }
