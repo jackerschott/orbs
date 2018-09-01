@@ -1,5 +1,6 @@
-#ifndef RENDER_H
-#define RENDER_H
+#pragma once
+
+#include <random>
 
 typedef unsigned char byte;
 
@@ -17,17 +18,8 @@ struct particle {
   double vtheta;
   double vphi;
   color pcolor;
+  particle* children;
 };
-
-struct ring {
-  particle* particles;
-};
-
-double rs;
-double gr;
-int nRings;
-ring* rings;
-std::pair<color, double> *particleColorPalette;
 
 void initRender(double _rs, double _gr);
 void createParticleRing(int nParticles, double rr, double rphi, double rtheta,
@@ -35,5 +27,3 @@ void createParticleRing(int nParticles, double rr, double rphi, double rtheta,
   std::pair<color, double> *rparticleColorPalette);
 
 double getRandom(double d);
-
-#endif

@@ -1,28 +1,32 @@
-#include <random>
-#include "../hdr/render.h"
+#include "render.h"
+
+double rs;
+double gr;
+int nParticles;
+particle* particles;
+std::pair<color, double> *particleColorPalette;
 
 void initRender(double _rs, double _gr) {
-  //
+
 }
 
-void createParticleRing(int nParticles, double rr, double rtheta, double rphi,
+void createParticleRing(int rnParticles, double rr, double rtheta, double rphi,
   double rdr, double rdtheta, double rdphi,
   std::pair<color, double> *rparticleColorPalette) {
-  particle* particles;
-  for (int i = 0; i < nParticles; ++i)
-  {
-    particles[i].r = rr + getRandom(rdr / 2.0);
-    particles[i].phi = rphi + getRandom(rdphi / 2.0);
-    particles[i].theta = rtheta + getRandom(rdtheta / 2.0);
-  }
 
-  ring r = { particles };
-  ring* newRings = new ring[nRings + 1];
-  memcpy(newRings, rings, nRings);
-  newRings[nRings] = r;
-  delete[] rings;
-  rings = newRings;
-  nRings++;
+  particle* newParticles = new particle[nParticles + rnParticles];
+  memcpy(newParticles, particles, nParticles);
+  for (int i = nParticles; i < nParticles + rnParticles; ++i)
+  {
+    newParticles[i].r = rr + getRandom(rdr / 2.0);
+    newParticles[i].phi = rphi + getRandom(rdphi / 2.0);
+    newParticles[i].theta = rtheta + getRandom(rdtheta / 2.0);
+  }
+  delete[] particles;
+  particles = newParticles;
+  nParticles += rnParticles;
+
+
 }
 
 double getRandom(double d) {
