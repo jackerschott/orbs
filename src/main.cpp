@@ -25,18 +25,6 @@ void on_btn_ring_clicked() {
    g_print("Create Ring\n");
 }
 
-//gulong g_signal_connect_data(gpointer	instance, const gchar	*detailed_signal, GCallback	c_handler, gpointer	data, GClosureNotify destroy_data, GConnectFlags connect_flags) {
-//	return 0;
-//}
-//
-//GTypeInstance* g_type_check_instance_cast(GTypeInstance *instance, GType iface_type) {
-//	return 0;
-//}
-//
-//void g_print(const gchar *format, ...) G_GNUC_PRINTF(1, 2) {
-//
-//}
-
 int main(int argc, char *argv[]) {
   GtkBuilder *builder;
   GtkWidget *window;

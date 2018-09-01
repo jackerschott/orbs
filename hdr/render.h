@@ -21,20 +21,21 @@ struct particle {
 	color pcolor;
 };
 
+struct ring {
+	particle* particles;
+};
+
 double rs;
 double gr;
+int nRings;
+ring* rings;
 std::pair<color, double> *particleColorPalette;
-
-double *particlesX;
-double *particlesY;
-double *particlesZ;
-color *particleColors;
 
 void initRender(double _rs, double _gr);
 void createParticleRing(int nParticles, double rr, double rphi, double rtheta,
 	double rdr, double rdphi, double rdtheta,
 	std::pair<color, double> *rparticleColorPalette);
 
-double getRandom(double lower, double upper);
+double getRandom(double d);
 
 #endif
