@@ -61,19 +61,26 @@ int main(int argc, char *argv[]) {
 }
 #else
 
+#include "../hdr/render.h"
+
+#define _USE_MATH_DEFINES
+
+#include <math.h>
+#include <random>
+
 int main(int argc, char *argv[]) {
   double rs = 3000;
   double gr = 10 * rs;
 
   unsigned int nParticles = 10;
   std::pair<color, double> *colorPalette = new std::pair<color, double>[nParticles];
-  for (int i = 0; i < nParticles; ++i)
-  {
+  for (int i = 0; i < nParticles; i++) {
     colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, (double)rand() / RAND_MAX };
   }
 
   initRender(rs, gr);
   createParticleRing(nParticles, 5 * rs, 0.0, M_PI_4, rs, 0.1, 0.1, colorPalette);
+
 
   return 0;
 }

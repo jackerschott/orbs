@@ -6,31 +6,51 @@ int nParticles;
 particle* particles;
 std::pair<color, double> *particleColorPalette;
 
-void initRender(double _rs, double _gr) {
+double getRandom(double d);
+template<typename T>
+T selectObject(std::pair<T, double> collection);
 
+void initRender(double _rs, double _gr) {
+  rs = _rs;
+  gr = _gr;
 }
 
-void createParticleRing(int rnParticles, double rr, double rtheta, double rphi,
+void createParticleRing(unsigned int rnParticles, double rr, double rtheta, double rphi,
   double rdr, double rdtheta, double rdphi,
   std::pair<color, double> *rparticleColorPalette) {
 
   particle* newParticles = new particle[nParticles + rnParticles];
   memcpy(newParticles, particles, nParticles);
-  for (int i = nParticles; i < nParticles + rnParticles; ++i)
-  {
+  for (int i = nParticles; i < nParticles + rnParticles; i++) {
     newParticles[i].r = rr + getRandom(rdr / 2.0);
     newParticles[i].phi = rphi + getRandom(rdphi / 2.0);
     newParticles[i].theta = rtheta + getRandom(rdtheta / 2.0);
+    newParticles[i].vr = 0.0;
+    newParticles[i].vphi = 1.0;
+    newParticles[i].vtheta = 0.0;
   }
   delete[] particles;
   particles = newParticles;
   nParticles += rnParticles;
 
-
+  //for (int i = 0; i < nParticles; i++) {
+  //  std::cout << particles[i].color.r << std::endl;
+  //}
 }
 
 double getRandom(double d) {
   std::default_random_engine generator;
   std::normal_distribution<double> distribution(0, d);
   return distribution(generator);
+}
+template<typename T>
+T selectObject(unsigned int nObjects, std::pair<T, double>* collection) {
+  int rn = rand();
+  int probLimit = 0;
+  for (int i = 0; i < nObjects; i++) {
+    probLimit += (RAND_MAX + 1) / collection[i].second;
+    if (rn < probLimit) {
+
+    }
+  }
 }
