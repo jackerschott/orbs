@@ -1,7 +1,7 @@
 #include "../include/render.h"
 
 double rs;
-double gr;
+double rg;
 uint nParticles;
 particle* particles;
 std::pair<color, double> *particleColorPalette;
@@ -9,9 +9,9 @@ std::pair<color, double> *particleColorPalette;
 double getRandom(double d);
 template<typename T> T selectObject(uint nObjects, std::pair<T, double> *collection);
 
-void initRender(double _rs, double _gr) {
+void initRender(double _rs, double _rg) {
   rs = _rs;
-  gr = _gr;
+  rg = _rg;
 }
 
 void createParticleRing(uint rnParticles, double rr, double rtheta, double rphi,

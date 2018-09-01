@@ -12,31 +12,32 @@ void on_btn_render_clicked() {
   g_print("Render\n");
 }
 
+GtkWidget *sbtn_rs;
+GtkWidget *sbtn_rg;
+GtkWidget *sbtn_nParticles;
 GtkWidget *sbtn_rr;
-GtkWidget *sbtn_rdr;
 GtkWidget *sbtn_rtheta;
-GtkWidget *sbtn_rdtheta;
 GtkWidget *sbtn_rphi;
+GtkWidget *sbtn_rdr;
+GtkWidget *sbtn_rdtheta;
 GtkWidget *sbtn_rdphi;
 
 void on_btn_ring_clicked() {
+  g_print("Creating Ring...\n");
+  uint nParticles = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(sbtn_nParticles));
   double rr = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
   double rdr = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
   double rtheta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
   double rdtheta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
   double rphi = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
   double rdphi = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
-  g_print("Create Ring\n");
-  const uint nParticles = 10;
   const uint nColors = 5;
-  double rs = 3000;
-  double gr = 10 * rs;
   std::pair<color, double> *colorPalette = new std::pair<color, double>[nParticles];
   for (uint i = 0; i < nColors; i++) {
     colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, 0.2 };
   }
-  initRender(rs, gr);
-  createParticleRing(nParticles, 5 * rs, 0.0, 0.78, rs, 0.1, 0.1, nColors, colorPalette);
+  createParticleRing(nParticles, rr, rtheta, rphi, rdr, rdtheta, rdphi, nColors, colorPalette);
+  g_print("done creating Ring\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -59,6 +60,9 @@ int main(int argc, char *argv[]) {
   g_signal_connect(btn_render, "clicked", G_CALLBACK(on_btn_render_clicked), NULL);
   btn_ring = GTK_WIDGET(gtk_builder_get_object(builder, "btn_ring"));
   g_signal_connect(btn_ring, "clicked", G_CALLBACK(on_btn_ring_clicked), NULL);
+  sbtn_rs = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rs"));
+  sbtn_rg = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rg"));
+  sbtn_nParticles = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_nParticles"));
   sbtn_rr = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rr"));
   sbtn_rdr = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rdr"));
   sbtn_rtheta = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rtheta"));
@@ -81,8 +85,8 @@ int main(int argc, char *argv[]) {
 #include <random>
 
 int main(int argc, char *argv[]) {
-  double rs = 3000;
-  double gr = 10 * rs;
+  double rs = 1.0;
+  double rg = 10.0;
 
   const uint nParticles = 10;
   const uint nColors = 5;
@@ -91,7 +95,7 @@ int main(int argc, char *argv[]) {
     colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, 0.2 };
   }
 
-  initRender(rs, gr);
+  initRender(rs, rg);
   createParticleRing(nParticles, 5 * rs, 0.0, M_PI_4, rs, 0.1, 0.1, nColors, colorPalette);
 
   std::cin.get();
