@@ -4,18 +4,15 @@
 #include <gtk/gtk.h>
 #include "../include/render.h"
 
-GtkWidget *sbtn_rs;
-GtkWidget *sbtn_rg;
-GtkWidget *sbtn_nParticles;
-GtkWidget *sbtn_rr;
-GtkWidget *sbtn_rtheta;
-GtkWidget *sbtn_rphi;
-GtkWidget *sbtn_rdr;
-GtkWidget *sbtn_rdtheta;
-GtkWidget *sbtn_rdphi;
 GtkAdjustment *adj_rg;
 GtkAdjustment *adj_rs;
+GtkAdjustment *adj_nParticles;
 GtkAdjustment *adj_rr;
+GtkAdjustment *adj_rtheta;
+GtkAdjustment *adj_rphi;
+GtkAdjustment *adj_rdr;
+GtkAdjustment *adj_rdtheta;
+GtkAdjustment *adj_rdphi;
 
 void on_window_main_destroy() {
   g_print("Exit\n");
@@ -26,15 +23,17 @@ void on_btn_render_clicked() {
   g_print("Render\n");
 }
 
+#include <string>
+
 void on_btn_ring_clicked() {
   g_print("Creating Ring...\n");
-  uint nParticles = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(sbtn_nParticles));
-  double rr = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
-  double rdr = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
-  double rtheta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
-  double rdtheta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
-  double rphi = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
-  double rdphi = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
+  uint nParticles = (uint)gtk_adjustment_get_value(adj_nParticles);
+  double rr = gtk_adjustment_get_value(adj_rr);
+  double rtheta = gtk_adjustment_get_value(adj_rtheta);
+  double rphi = gtk_adjustment_get_value(adj_rphi);
+  double rdr = gtk_adjustment_get_value(adj_rdr);
+  double rdtheta = gtk_adjustment_get_value(adj_rdtheta);
+  double rdphi = gtk_adjustment_get_value(adj_rdphi);
   const uint nColors = 5;
   std::pair<color, double> *colorPalette = new std::pair<color, double>[nParticles];
   for (uint i = 0; i < nColors; i++) {
@@ -80,18 +79,15 @@ int main(int argc, char *argv[]) {
   g_signal_connect(btn_render, "clicked", G_CALLBACK(on_btn_render_clicked), NULL);
   btn_ring = GTK_WIDGET(gtk_builder_get_object(builder, "btn_ring"));
   g_signal_connect(btn_ring, "clicked", G_CALLBACK(on_btn_ring_clicked), NULL);
-  sbtn_rs = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rs"));
-  sbtn_rg = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rg"));
-  sbtn_nParticles = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_nParticles"));
-  sbtn_rr = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rr"));
-  sbtn_rdr = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rdr"));
-  sbtn_rtheta = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rtheta"));
-  sbtn_rdtheta = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rdtheta"));
-  sbtn_rphi = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rphi"));
-  sbtn_rdphi = GTK_WIDGET(gtk_builder_get_object(builder, "sbtn_rdphi"));
   adj_rg = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rg"));
   adj_rs = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rs"));
+  adj_nParticles = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_nParticles"));
   adj_rr = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rr"));
+  adj_rtheta = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rtheta"));
+  adj_rphi = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rphi"));
+  adj_rdr = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rdr"));
+  adj_rdtheta = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rdtheta"));
+  adj_rdphi = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rdphi"));
   g_signal_connect(adj_rg, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
   g_signal_connect(adj_rs, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
   g_signal_connect(adj_rr, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
