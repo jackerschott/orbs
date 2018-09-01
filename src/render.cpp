@@ -1,8 +1,8 @@
-#include "render.h"
 #include <random>
+#include "../hdr/render.h"
 
 void initRender(double _rs, double _gr) {
-
+  //
 }
 
 void createParticleRing(int nParticles, double rr, double rtheta, double rphi,

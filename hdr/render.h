@@ -1,8 +1,6 @@
 #ifndef RENDER_H
 #define RENDER_H
 
-#include <iostream>
-
 typedef unsigned char byte;
 
 struct color {

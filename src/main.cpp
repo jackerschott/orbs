@@ -22,7 +22,7 @@ void on_btn_ring_clicked() {
   double rdtheta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
   double rphi = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
   double rdphi = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
-   g_print("Create Ring\n");
+  g_print("Create Ring\n");
 }
 
 int main(int argc, char *argv[]) {
