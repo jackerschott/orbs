@@ -1,4 +1,4 @@
-#define COMPILE_GTK true
+#define COMPILE_GTK false
 #if COMPILE_GTK
 
 #include <gtk/gtk.h>
@@ -77,24 +77,45 @@ int main(int argc, char *argv[]) {
 #define _USE_MATH_DEFINES
 
 #include <iostream>
+#include <fstream>
 #include <math.h>
 #include <random>
+#include <libpng16/png.h>
+#include <libpng16/pngconf.h>
+#include <libpng16/pnglibconf.h>
 
 int main(int argc, char *argv[]) {
-  double rs = 3000;
-  double gr = 10 * rs;
+  double rs = 1.0;
+  double rg = 10 * rs;
 
-  const uint nParticles = 10;
+  const uint nParticles = 1000;
   const uint nColors = 5;
   std::pair<color, double> *colorPalette = new std::pair<color, double>[nParticles];
   for (uint i = 0; i < nParticles; i++) {
-    colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, (double)rand() / RAND_MAX };
+    colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, 0.2 };
   }
 
-  initRender(rs, gr);
-  createParticleRing(nParticles, 5 * rs, 0.0, M_PI_4, rs, 0.1, 0.1, nColors, colorPalette);
+  perspectiveCamera camera;
+  camera.pos = { 9.0, -4.0, 8.0 };
+  camera.lookDir = { -9.0, 4.0, -8.0 };
+  camera.upDir = { 0.0, 0.0, 1.0 };
+  camera.fov = 60.0;
 
-  std::cin.get();
+  initRender(rs, rg);
+  createParticleRing(nParticles, 5 * rs, { 0.0, -1.0, 1.0 }, 0.1 * rs, 0.1, nColors, colorPalette);
+  setCamera(camera);
+  renderConfig(1280, 720);
+  byte* pixels = render();
+
+  //int w = 1280;
+  //int h = 720;
+  //std::ofstream out;
+  //out.open("E:\\Zwischenspeicher\\out");
+  //for (int i = 0; i < w * h * bpp / 8; i++) {
+  //  out << pixels[i];
+  //}
+  //out.close();
+
   return 0;
 }
 
