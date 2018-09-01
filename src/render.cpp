@@ -2,7 +2,7 @@
 
 double rs;
 double gr;
-int nParticles;
+uint nParticles;
 particle* particles;
 std::pair<color, double> *particleColorPalette;
 
@@ -15,13 +15,13 @@ void initRender(double _rs, double _gr) {
   gr = _gr;
 }
 
-void createParticleRing(unsigned int rnParticles, double rr, double rtheta, double rphi,
+void createParticleRing(uint rnParticles, double rr, double rtheta, double rphi,
   double rdr, double rdtheta, double rdphi,
   std::pair<color, double> *rparticleColorPalette) {
 
   particle* newParticles = new particle[nParticles + rnParticles];
-  memcpy(newParticles, particles, nParticles);
-  for (int i = nParticles; i < nParticles + rnParticles; i++) {
+  //memcpy(newParticles, particles, nParticles);
+  for (uint i = nParticles; i < nParticles + rnParticles; ++i) {
     newParticles[i].r = rr + getRandom(rdr / 2.0);
     newParticles[i].phi = rphi + getRandom(rdphi / 2.0);
     newParticles[i].theta = rtheta + getRandom(rdtheta / 2.0);
