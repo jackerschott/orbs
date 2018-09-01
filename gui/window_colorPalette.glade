@@ -22,12 +22,25 @@
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
-          <object class="GtkButtonBox" id="bbc_ok">
+          <object class="GtkButtonBox" id="bbc_buttons">
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <object class="GtkButton" id="btn_ok">
-                <property name="label" translatable="yes">Ok</property>
+              <object class="GtkButton" id="btn_save">
+                <property name="label" translatable="yes">Save</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_close">
+                <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="can_default">True</property>
@@ -36,7 +49,7 @@
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
           </object>
@@ -61,10 +74,10 @@
                   <object class="GtkComboBoxText" id="cbt_select">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="active">0</property>
+                    <property name="active">1</property>
                     <items>
-                      <item translatable="yes">Color 1</item>
                       <item translatable="yes">New Color</item>
+                      <item translatable="yes">Color 1</item>
                     </items>
                   </object>
                   <packing>
@@ -139,7 +152,8 @@
               <object class="GtkColorChooserWidget" id="ccwidget_color">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="rgba">rgb(255,255,255)</property>
+                <property name="rgba">rgb(114,159,207)</property>
+                <property name="use_alpha">False</property>
               </object>
               <packing>
                 <property name="expand">True</property>

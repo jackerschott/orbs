@@ -189,7 +189,7 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="btn_simg">
-                    <property name="label" translatable="yes">default</property>
+                    <property name="label" translatable="yes">Select</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
@@ -509,7 +509,7 @@
                   <object class="GtkLabel" id="lbl_rcolors">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Color Menu</property>
+                    <property name="label" translatable="yes">Colors</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -519,7 +519,7 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="btn_rcolors">
-                    <property name="label" translatable="yes">default</property>
+                    <property name="label" translatable="yes">Color Palette</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
