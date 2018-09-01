@@ -17,8 +17,9 @@ struct particle {
 };
 
 double ranval(double d) {
-  //some code here
-  return d;
+  std::default_random_engine generator;
+  std::normal_distribution<double> distribution(0, d);
+  return distribution(generator);
 }
 
 void createParticleRing(double rr, double rdr, double rtheta, double rdtheta, double rphi, double rdphi,
