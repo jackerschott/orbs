@@ -1,4 +1,4 @@
-#define COMPILE_GTK FALSE
+#define COMPILE_GTK true
 #if COMPILE_GTK
 
 #include <gtk/gtk.h>
@@ -27,15 +27,15 @@ void on_btn_ring_clicked() {
   double rphi = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rr));
   double rdphi = gtk_spin_button_get_value(GTK_SPIN_BUTTON(sbtn_rdr));
   g_print("Create Ring\n");
-  unsigned int nParticles = 10;
+  uint nParticles = 10;
   double rs = 3000;
   double gr = 10 * rs;
   std::pair<color, double> *colorPalette = new std::pair<color, double>[nParticles];
-  for (int i = 0; i < nParticles; i++) {
+  for (uint i = 0; i < nParticles; i++) {
     colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, (double)rand() / RAND_MAX };
   }
   initRender(rs, gr);
-  createParticleRing(nParticles, 5 * rs, 0.0, 0.78, rs, 0.1, 0.1, colorPalette);
+  createParticleRing(nParticles, 5 * rs, 0.0, 0.78, rs, 0.1, 0.1, 5, colorPalette);
 }
 
 int main(int argc, char *argv[]) {
@@ -83,14 +83,14 @@ int main(int argc, char *argv[]) {
   double rs = 3000;
   double gr = 10 * rs;
 
-  unsigned int nParticles = 10;
+  uint nParticles = 10;
   std::pair<color, double> *colorPalette = new std::pair<color, double>[nParticles];
-  for (int i = 0; i < nParticles; i++) {
+  for (uint i = 0; i < nParticles; i++) {
     colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, (double)rand() / RAND_MAX };
   }
 
   initRender(rs, gr);
-  createParticleRing(nParticles, 5 * rs, 0.0, M_PI_4, rs, 0.1, 0.1, colorPalette);
+  createParticleRing(nParticles, 5 * rs, 0.0, M_PI_4, rs, 0.1, 0.1, 5, colorPalette);
 
   std::cin.get();
   return 0;
