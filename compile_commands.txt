@@ -1,0 +1,3 @@
+cd E:/Benutzerdateien/Documents/GitHub/black-hole-simulation
+
+g++ src/main.cpp src/render.cpp -o black_hole_simulation.exe -IE:/Benutzerdateien/Documents/GitHub/black-hole-simulation/include `pkg-config --cflags --libs gtk+-3.0`

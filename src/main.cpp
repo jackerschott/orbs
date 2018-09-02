@@ -2,7 +2,7 @@
 #if COMPILE_GTK
 
 #include <gtk/gtk.h>
-#include "../include/render.h"
+#include "render.h"
 
 GtkWidget *window_main;
 GtkAdjustment *adj_rg;
@@ -153,7 +153,7 @@ int main(int argc, char *argv[]) {
 
 #else
 
-#include "../include/render.h"
+#include "render.h"
 
 #define _USE_MATH_DEFINES
 
@@ -164,36 +164,36 @@ int main(int argc, char *argv[]) {
 
 
 int main(int argc, char *argv[]) {
-  double rs = 3000;
+  double rs = 1.0;
   double gr = 10.0 * rs;
 
   const uint nParticles = 1000;
   const uint nColors = 5;
   std::pair<color, double> *colorPalette = new std::pair<color, double>[nParticles];
   for (uint i = 0; i < nColors; i++) {
-    colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, (double)rand() / RAND_MAX };
+    colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, 0.2 };
   }
 
   perspectiveCamera camera;
-  camera.pos = { 9.0, -4.0, 8.0 };
-  camera.lookDir = { -9.0, 4.0, -8.0 };
+  camera.pos = { 15.0, -30.0, 15.0 };
+  camera.lookDir = { -1.0, 2.0, -1.0 };
   camera.upDir = { 0.0, 0.0, 1.0 };
   camera.fov = 60.0;
 
   initRender(rs, rg);
-  createParticleRing(nParticles, 5 * rs, { 0.0, -1.0, 1.0 }, 0.1 * rs, 0.1, nColors, colorPalette);
+  createParticleRing(nParticles, 5.0 * rs, { 0.0, -1.0, 1.0 }, 0.1 * rs, 0.1, nColors, colorPalette);
   setCamera(camera);
   renderConfig(1280, 720);
   byte* pixels = render();
 
-  //int w = 1280;
-  //int h = 720;
-  //std::ofstream out;
-  //out.open("E:\\Zwischenspeicher\\out");
-  //for (int i = 0; i < w * h * bpp / 8; i++) {
-  //  out << pixels[i];
-  //}
-  //out.close();
+  int w = 1280;
+  int h = 720;
+  std::ofstream out;
+  out.open("E:\\Zwischenspeicher\\out");
+  for (int i = 0; i < w * h * bpp / 8; i++) {
+    out << pixels[i];
+  }
+  out.close();
 
   return 0;
 }

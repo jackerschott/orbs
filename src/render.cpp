@@ -1,4 +1,4 @@
-#include "../include/render.h"
+#include "render.h"
 
 uint nParticles;
 particle* particles;
@@ -55,11 +55,15 @@ void createParticleRing(uint rnParticles, double rr, vector rn,
   for (uint i = nParticles; i < nParticles + rnParticles; i++) {
     newParticles[i].r = rr + normPdf(rdr / 2.0);
     newParticles[i].phi = randDouble(2.0 * M_PI);
-    newParticles[i].theta = normPdf(rdAngle / 2.0) - rn.z / (rn.x * cos(newParticles[i].phi) + rn.y * sin(newParticles[i].phi));
+    newParticles[i].theta = normPdf(rdAngle / 2.0) - atan(rn.z / (rn.x * cos(newParticles[i].phi) + rn.y * sin(newParticles[i].phi))) + M_PI_2;
     newParticles[i].vr = 0.0;
     newParticles[i].vphi = 1.0;
     newParticles[i].vtheta = 0.0;
     newParticles[i].pcolor = selectObject(nColors, rparticleColorPalette);
+
+    //if (newParticles[i].phi > 0 && newParticles[i].phi < M_PI && newParticles[i].theta > 0 && newParticles[i].theta < M_PI_2) {
+    //  std::cout << "1" << std::endl;
+    //}
   }
   delete[] particles;
   particles = newParticles;
