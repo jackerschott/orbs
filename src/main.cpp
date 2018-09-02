@@ -75,13 +75,35 @@ void on_btn_ring_clicked() {
 }
 
 void on_cbt_select_changed() {
-  uint active = gtk_combo_box_get_active(GTK_COMBO_BOX(cbt_select));
-  if (active == 0) { //new color
-    //append text, change array, add new index, check delete-btn sensitive
-  }
-  else {
-    //load color and prob, check delete-btn sensitive
-  }
+  byte active = gtk_combo_box_get_active(GTK_COMBO_BOX(cbt_select));
+    if (active == 1) {
+      gtk_widget_set_sensitive(btn_delete, false);
+    }
+    else {
+      gtk_widget_set_sensitive(btn_delete, true);
+    }
+    if (active == 0) {
+      nColors++;
+      gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(cbt_select), ("Color " + std::to_string(nColors)).c_str());
+      active = nColors;
+      gtk_combo_box_set_active(GTK_COMBO_BOX(cbt_select), active);
+      std::pair<color, double> _colorPalette[nColors];
+      for (uint i = 0; i < nColors-1; i++) {
+        _colorPalette[i] = colorPalette[i];
+      }
+      _colorPalette[nColors-1] = { {0, 0, 0}, 0.1}; //random here
+      delete[] colorPalette;
+      colorPalette = new std::pair<color, double>[nColors];
+      colorPalette = _colorPalette;
+      delete[] _colorPalette;
+    }
+    color _color = colorPalette[active-1].first;
+    GdkRGBA _gcolor;
+    _gcolor.red = _color.r / 255;
+    _gcolor.green = _color.g / 255;
+    _gcolor.blue = _color.b / 255;
+    gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &_gcolor);
+    gtk_adjustment_set_value(adj_prob, colorPalette[active-1].second);
 }
 
 void on_btn_save_clicked() {
@@ -91,10 +113,9 @@ void on_btn_save_clicked() {
   _color.r = (byte)255*_gcolor.red;
   _color.g = (byte)255*_gcolor.red;
   _color.b = (byte)255*_gcolor.red;
-  
   uint active = gtk_combo_box_get_active(GTK_COMBO_BOX(cbt_select));
-  colorPalette[active].first = _color;
-  colorPalette[active].second = gtk_adjustment_get_value(adj_prob);
+  colorPalette[active-1].first = _color;
+  colorPalette[active-1].second = gtk_adjustment_get_value(adj_prob);
 }
 
 void on_btn_close_clicked() {
