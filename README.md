@@ -2,5 +2,5 @@
 
 compile with
 ```
-g++ src/main.cpp src/render.cpp -o black_hole_simulation `pkg-config --cflags --libs gtk+-3.0`
+g++ src/main.cpp src/render.cpp -Iinclude -o black_hole_simulation `pkg-config --cflags --libs gtk+-3.0`
 ```
