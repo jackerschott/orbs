@@ -26,7 +26,7 @@ GtkWidget *ccwidget_color;
 GtkWidget *btn_save;
 GtkWidget *btn_close;
 
-const uint nColors = 1;
+uint nColors = 1;
 std::pair<color, double> *colorPalette = new std::pair<color, double>[nColors];
 
 void on_window_main_destroy() {
