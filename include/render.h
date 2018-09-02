@@ -5,9 +5,10 @@
 
 #include <chrono>
 #include <climits>
+#include <cmath>
 #include <iostream>
-#include <math.h>
 #include <random>
+#include <string>
 #include <utility>
 
 typedef unsigned char byte;
