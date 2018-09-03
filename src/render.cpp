@@ -7,6 +7,8 @@ perspectiveCamera camera;
 
 std::chrono::high_resolution_clock::time_point rngRefTime;
 
+int randInt(int max);
+int randInt(int min, int max);
 double randDouble(double max);
 double randDouble(double min, double max);
 double normPdf(double d);
@@ -56,15 +58,17 @@ void createParticleRing(uint rnParticles, double rr, vector rn,
     newParticles[i].r = rr + normPdf(rdr / 2.0);
     if (rn.z == 0.0) {
       newParticles[i].theta = randDouble(M_PI);
-      newParticles[i].phi = rand
+      if (rn.y == 0) {
+        newParticles[i].phi = normPdf(rdAngle / 2.0) + randInt(0, 1) * M_PI_2;
+      }
+      else {
+        newParticles[i].phi = normPdf(rdAngle / 2.0) - atan(rn.x / rn.y) + M_PI_2;
+      }
     }
     else {
       newParticles[i].phi = randDouble(2.0 * M_PI);
       if (rn.x * cos(newParticles[i].phi) + rn.y * sin(newParticles[i].phi) == 0) {
         newParticles[i].theta = normPdf(rdAngle / 2.0) + M_PI_2;
-      }
-      else if () {
-        newParticles[i].theta = normPdf(rdAngle / 2.0) + ;
       }
       else {
         newParticles[i].theta = normPdf(rdAngle / 2.0) - atan(rn.z / (rn.x * cos(newParticles[i].phi) + rn.y * sin(newParticles[i].phi))) + M_PI_2;
@@ -123,10 +127,18 @@ byte* render()
   return pixels;
 }
 
-double randInt(double max) {
-
+int randInt(int max) {
+  std::default_random_engine generator;
+  generator.seed(generateSeed());
+  std::uniform_int_distribution<int> distribution(0, max);
+  return distribution(generator);
 }
-double randInt
+int randInt(int min, int max) {
+  std::default_random_engine generator;
+  generator.seed(generateSeed());
+  std::uniform_int_distribution<int> distribution(min, max);
+  return distribution(generator);
+}
 double randDouble(double max) {
 
   std::default_random_engine generator;

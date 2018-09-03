@@ -109,8 +109,8 @@ void on_btn_save_clicked() {
   color _color;
   gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &_gcolor);
   _color.r = (byte)255 * _gcolor.red;
-  _color.g = (byte)255 * _gcolor.red;
-  _color.b = (byte)255 * _gcolor.red;
+  _color.g = (byte)255 * _gcolor.green;
+  _color.b = (byte)255 * _gcolor.blue;
   uint active = gtk_combo_box_get_active(GTK_COMBO_BOX(cbt_select));
   colorPalette[active - 1].first = _color;
   colorPalette[active - 1].second = gtk_adjustment_get_value(adj_prob);
