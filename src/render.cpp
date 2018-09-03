@@ -5,7 +5,7 @@ particle* particles;
 std::pair<color, double> *particleColorPalette;
 perspectiveCamera camera;
 
-std::chrono::high_resolution_clock::time_point rngRefTime;
+int refIndex = 0;
 
 int randInt(int max);
 int randInt(int min, int max);
@@ -41,13 +41,12 @@ vector vector::operator-() {
   return { -x, -y, -z };
 }
 
-void initRender(double _rs, double _rg) {
-  rngRefTime = std::chrono::high_resolution_clock::now();
+void renderInit(double _rs, double _rg) {
   rs = _rs;
   rg = _rg;
 }
 void createParticleRing(uint rnParticles, double rr, vector rn, 
-  double rdr, double rdAngle,
+  double rdr, double rdtheta, double rdphi,
   uint nColors, std::pair<color, double> *rparticleColorPalette) {
 
   particle* newParticles = new particle[nParticles + rnParticles];
@@ -59,19 +58,19 @@ void createParticleRing(uint rnParticles, double rr, vector rn,
     if (rn.z == 0.0) {
       newParticles[i].theta = randDouble(M_PI);
       if (rn.y == 0) {
-        newParticles[i].phi = normPdf(rdAngle / 2.0) + randInt(0, 1) * M_PI;
+        newParticles[i].phi = normPdf(rdphi / 2.0) + randInt(0, 1) * M_PI;
       }
       else {
-        newParticles[i].phi = normPdf(rdAngle / 2.0) - atan(rn.x / rn.y) + M_PI_2 + randInt(0, 1) * M_PI;
+        newParticles[i].phi = normPdf(rdphi / 2.0) - atan(rn.x / rn.y) + M_PI_2 + randInt(0, 1) * M_PI;
       }
     }
     else {
       newParticles[i].phi = randDouble(2.0 * M_PI);
       if (rn.x * cos(newParticles[i].phi) + rn.y * sin(newParticles[i].phi) == 0.0) {
-        newParticles[i].theta = normPdf(rdAngle / 2.0) + M_PI_2;
+        newParticles[i].theta = normPdf(rdtheta / 2.0) + M_PI_2;
       }
       else {
-        newParticles[i].theta = normPdf(rdAngle / 2.0) - atan(rn.z / (rn.x * cos(newParticles[i].phi) + rn.y * sin(newParticles[i].phi))) + M_PI;
+        newParticles[i].theta = normPdf(rdtheta / 2.0) - atan(rn.z / (rn.x * cos(newParticles[i].phi) + rn.y * sin(newParticles[i].phi))) + M_PI;
         if (newParticles[i].theta > M_PI) {
           newParticles[i].theta -= M_PI;
         }
@@ -80,8 +79,13 @@ void createParticleRing(uint rnParticles, double rr, vector rn,
     newParticles[i].vr = 0.0;
     newParticles[i].vphi = 1.0;
     newParticles[i].vtheta = 0.0;
-    newParticles[i].pcolor = selectObject(nColors, rparticleColorPalette);
+    newParticles[i].pcolor = selectObject<color>(nColors, rparticleColorPalette);
   }
+
+  //for (uint i = 0; i < rnParticles; i++) {
+  //  std::cout << newParticles[i].phi << std::endl;
+  //}
+
   delete[] particles;
   particles = newParticles;
   nParticles += rnParticles;
@@ -99,7 +103,7 @@ byte* render()
 {
   uint nPixelBytes = pWidth * pHeight * bpp / 8;
   byte* pixels = new byte[nPixelBytes];
-  for (int i = 0; i < nPixelBytes; i++) {
+  for (uint i = 0; i < nPixelBytes; i++) {
     pixels[i] = 0;
   }
   for (uint i = 0; i < nParticles; i++) {
@@ -173,10 +177,10 @@ template<typename T> T selectObject(uint nObjects, std::pair<T, double> *collect
       return collection[i].first;
     }
   }
-  throw collection;
+  throw "test";
 }
 uint generateSeed() {
-  std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
-  std::chrono::high_resolution_clock::duration diff = now - rngRefTime;
-  return std::chrono::duration_cast<std::chrono::nanoseconds>(diff).count();
+  int r = refIndex;
+  refIndex++;
+  return r;
 }

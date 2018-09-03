@@ -57,9 +57,9 @@ static uint pWidth;
 static uint pHeight;
 const int bpp = 24;
 
-void initRender(double _rs, double _rg);
+void renderInit(double _rs, double _rg);
 void createParticleRing(uint nParticles, double rr, vector rn,
-  double rdr, double rdangle,
+  double rdr, double rdtheta, double rdphi,
   uint nColors, std::pair<color, double>* rparticleColorPalette);
 void setCamera(perspectiveCamera _camera);
 void renderConfig(uint _pWidth, uint _pHeight);
