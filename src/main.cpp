@@ -36,6 +36,44 @@ void on_window_main_destroy() {
   gtk_main_quit();
 }
 
+void on_key_press(GtkWidget *widget, GdkEventKey *event) {
+  switch (event->keyval) {
+    case GDK_KEY_w: case GDK_KEY_Up:
+      g_print("forward\n");
+      break;
+    case GDK_KEY_a: case GDK_KEY_Left:
+      g_print("left\n");
+      break;
+    case GDK_KEY_s: case GDK_KEY_Down:
+      g_print("backward\n");
+      break;
+    case GDK_KEY_d: case GDK_KEY_Right:
+      g_print("right\n");
+      break;
+    default:
+      g_print("else\n");
+  }
+}
+
+void on_key_release(GtkWidget *widget, GdkEventKey *event) {
+  switch (event->keyval) {
+    case GDK_KEY_w: case GDK_KEY_Up:
+      g_print("stop forward\n");
+      break;
+    case GDK_KEY_a: case GDK_KEY_Left:
+      g_print("stop left\n");
+      break;
+    case GDK_KEY_s: case GDK_KEY_Down:
+      g_print("stop backward\n");
+      break;
+    case GDK_KEY_d: case GDK_KEY_Right:
+      g_print("stop right\n");
+      break;
+    default:
+      g_print("released else\n");
+    }
+}
+
 void on_adj_rx_changed() {
   double rg_value = gtk_adjustment_get_value(adj_rg);
   double rs_value = gtk_adjustment_get_value(adj_rs);
@@ -107,25 +145,29 @@ void on_cbt_select_changed() {
     gtk_widget_set_sensitive(btn_delete, true);
   }
   if (active == 0) {
+    nColors++;
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(cbt_select), ("Color " + std::to_string(nColors)).c_str());
-    active = nColors + 1;
+    active = nColors;
     gtk_combo_box_set_active(GTK_COMBO_BOX(cbt_select), active);
     std::pair<color, double> *newColorPalette = new std::pair<color, double>[nColors];
-    for (uint i = 0; i < nColors; i++) {
+    for (uint i = 0; i < nColors - 1; i++) {
       newColorPalette[i] = colorPalette[i];
     }
-    newColorPalette[nColors] = { {0, 0, 0}, 0.1 }; //random here
+    newColorPalette[nColors - 1] = { {0, 0, 0}, 0.1 }; //random here
     delete[] colorPalette;
     colorPalette = newColorPalette;
-    nColors++;
+  } else {
+    color _color = colorPalette[active - 1].first;
+    GdkRGBA _gcolor;
+    _gcolor.red = _color.r / 255;
+    _gcolor.green = _color.g / 255;
+    _gcolor.blue = _color.b / 255;
+    _gcolor.alpha = 1.0;
+    gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &_gcolor);
+    gtk_adjustment_set_value(adj_prob, colorPalette[active - 1].second);
+    std::string s = std::to_string(active) + " loaded: " + std::to_string(_color.r) + " " + std::to_string(_color.g) + " " + std::to_string(_color.b) + "\n";
+    g_print(s.c_str());
   }
-  color _color = colorPalette[active - 1].first;
-  GdkRGBA _gcolor;
-  _gcolor.red = _color.r / 255;
-  _gcolor.green = _color.g / 255;
-  _gcolor.blue = _color.b / 255;
-  gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &_gcolor);
-  gtk_adjustment_set_value(adj_prob, colorPalette[active - 1].second);
 }
 void on_btn_save_clicked() {
   GdkRGBA _gcolor;
@@ -137,6 +179,8 @@ void on_btn_save_clicked() {
   uint active = gtk_combo_box_get_active(GTK_COMBO_BOX(cbt_select));
   colorPalette[active - 1].first = _color;
   colorPalette[active - 1].second = gtk_adjustment_get_value(adj_prob);
+  std::string s = std::to_string(active) + " saved: " + std::to_string(_color.r) + " " + std::to_string(_color.g) + " " + std::to_string(_color.b) + "\n";
+  g_print(s.c_str());
 }
 void on_btn_close_clicked() {
   //get save here, change delete-event and delete save-btn
@@ -166,6 +210,8 @@ int main(int argc, char *argv[]) {
   btn_rcolors = GTK_WIDGET(gtk_builder_get_object(builder, "btn_rcolors"));
   btn_ring = GTK_WIDGET(gtk_builder_get_object(builder, "btn_ring"));
   g_signal_connect(window_main, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
+  g_signal_connect(window_main, "key-press-event", G_CALLBACK(on_key_press), NULL);
+  g_signal_connect(window_main, "key-release-event", G_CALLBACK(on_key_release), NULL);
   g_signal_connect(adj_rg, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
   g_signal_connect(adj_rs, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
   g_signal_connect(adj_rr, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
@@ -180,13 +226,13 @@ int main(int argc, char *argv[]) {
   ccwidget_color = GTK_WIDGET(gtk_builder_get_object(builder, "ccwidget_color"));
   btn_save = GTK_WIDGET(gtk_builder_get_object(builder, "btn_save"));
   btn_close = GTK_WIDGET(gtk_builder_get_object(builder, "btn_close"));
+  gtk_window_set_transient_for(GTK_WINDOW(window_colorPalette), GTK_WINDOW(window_main));
   g_signal_connect(window_colorPalette, "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
   g_signal_connect(cbt_select, "changed", G_CALLBACK(on_cbt_select_changed), NULL);
   //g_signal_connect(btn_delete, "clicked", G_CALLBACK(on_btn_delete_clicked), NULL);
   //g_signal_connect(adj_prob, "value-changed", G_CALLBACK(on_adj_prob_changed), NULL);
   g_signal_connect(btn_save, "clicked", G_CALLBACK(on_btn_save_clicked), NULL);
   g_signal_connect(btn_close, "clicked", G_CALLBACK(on_btn_close_clicked), NULL);
-  gtk_window_set_transient_for(GTK_WINDOW(window_colorPalette), GTK_WINDOW(window_main));
 
   renderInit(1.0, 10.0);
 
@@ -197,15 +243,13 @@ int main(int argc, char *argv[]) {
 
 #else
 
+#include <cmath>
+#include <iostream>
+#include <fstream>
+#include <random>
 #include "render.h"
 
 #define _USE_MATH_DEFINES
-
-#include <iostream>
-#include <fstream>
-#include <math.h>
-#include <random>
-
 
 int main(int argc, char *argv[]) {
   int w = 640;
