@@ -35,14 +35,42 @@ void on_window_main_destroy() {
   gtk_main_quit();
 }
 
-void on_key_press(GdkEventKey *event) {
-  g_print(gdk_keyval_name(event->keyval));
-  g_print(" key pressed\n");
+void on_key_press(GtkWidget *widget, GdkEventKey *event) {
+  switch (event->keyval) {
+    case GDK_KEY_w: case GDK_KEY_Up:
+      g_print("forward\n");
+      break;
+    case GDK_KEY_a: case GDK_KEY_Left:
+      g_print("left\n");
+      break;
+    case GDK_KEY_s: case GDK_KEY_Down:
+      g_print("backward\n");
+      break;
+    case GDK_KEY_d: case GDK_KEY_Right:
+      g_print("right\n");
+      break;
+    default:
+      g_print("else\n");
+  }
 }
 
-void on_key_release(GdkEventKey *event) {
-  g_print(gdk_keyval_name(event->keyval));
-  g_print(" key released\n");
+void on_key_release(GtkWidget *widget, GdkEventKey *event) {
+  switch (event->keyval) {
+    case GDK_KEY_w: case GDK_KEY_Up:
+      g_print("stop forward\n");
+      break;
+    case GDK_KEY_a: case GDK_KEY_Left:
+      g_print("stop left\n");
+      break;
+    case GDK_KEY_s: case GDK_KEY_Down:
+      g_print("stop backward\n");
+      break;
+    case GDK_KEY_d: case GDK_KEY_Right:
+      g_print("stop right\n");
+      break;
+    default:
+      g_print("released else\n");
+    }
 }
 
 void on_adj_rx_changed() {
@@ -156,7 +184,6 @@ int main(int argc, char *argv[]) {
   adj_rdphi = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rdphi"));
   btn_rcolors = GTK_WIDGET(gtk_builder_get_object(builder, "btn_rcolors"));
   btn_ring = GTK_WIDGET(gtk_builder_get_object(builder, "btn_ring"));
-  gtk_widget_add_events(window_main, GDK_KEY_RELEASE_MASK);
   g_signal_connect(window_main, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
   g_signal_connect(window_main, "key-press-event", G_CALLBACK(on_key_press), NULL);
   g_signal_connect(window_main, "key-release-event", G_CALLBACK(on_key_release), NULL);
