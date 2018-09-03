@@ -1,10 +1,11 @@
-#define COMPILE_GTK false
+#define COMPILE_GTK true
 #if COMPILE_GTK
 
 #include <gtk/gtk.h>
 #include "render.h"
 
 GtkWidget *window_main;
+GtkWidget *img_main;
 GtkAdjustment *adj_rg;
 GtkAdjustment *adj_rs;
 GtkWidget *btn_render;
@@ -32,6 +33,16 @@ std::pair<color, double> *colorPalette = new std::pair<color, double>[nColors];
 void on_window_main_destroy() {
   g_print("Exit\n");
   gtk_main_quit();
+}
+
+void on_key_press(GdkEventKey *event) {
+  g_print(gdk_keyval_name(event->keyval));
+  g_print(" key pressed\n");
+}
+
+void on_key_release(GdkEventKey *event) {
+  g_print(gdk_keyval_name(event->keyval));
+  g_print(" key released\n");
 }
 
 void on_adj_rx_changed() {
@@ -67,10 +78,6 @@ void on_btn_ring_clicked() {
   double rdr = gtk_adjustment_get_value(adj_rdr);
   double rdtheta = gtk_adjustment_get_value(adj_rdtheta);
   double rdphi = gtk_adjustment_get_value(adj_rdphi);
-  for (uint i = 0; i < nColors; i++) {
-    colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, 0.2 };
-  }
-  //createParticleRing(nParticles, rr, rtheta, rphi, rdr, rdtheta, rdphi, nColors, colorPalette);
   g_print("done creating Ring\n");
 }
 
@@ -136,6 +143,7 @@ int main(int argc, char *argv[]) {
   gtk_builder_add_from_file(builder, "gui/window_colorPalette.glade", &err);
 
   window_main = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
+  img_main = GTK_WIDGET(gtk_builder_get_object(builder, "img_main"));
   adj_rg = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rg"));
   adj_rs = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rs"));
   btn_render = GTK_WIDGET(gtk_builder_get_object(builder, "btn_render"));
@@ -148,7 +156,10 @@ int main(int argc, char *argv[]) {
   adj_rdphi = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rdphi"));
   btn_rcolors = GTK_WIDGET(gtk_builder_get_object(builder, "btn_rcolors"));
   btn_ring = GTK_WIDGET(gtk_builder_get_object(builder, "btn_ring"));
+  gtk_widget_add_events(window_main, GDK_KEY_RELEASE_MASK);
   g_signal_connect(window_main, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
+  g_signal_connect(window_main, "key-press-event", G_CALLBACK(on_key_press), NULL);
+  g_signal_connect(window_main, "key-release-event", G_CALLBACK(on_key_release), NULL);
   g_signal_connect(adj_rg, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
   g_signal_connect(adj_rs, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
   g_signal_connect(adj_rr, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
@@ -163,13 +174,13 @@ int main(int argc, char *argv[]) {
   ccwidget_color = GTK_WIDGET(gtk_builder_get_object(builder, "ccwidget_color"));
   btn_save = GTK_WIDGET(gtk_builder_get_object(builder, "btn_save"));
   btn_close = GTK_WIDGET(gtk_builder_get_object(builder, "btn_close"));
+  gtk_window_set_transient_for(GTK_WINDOW(window_colorPalette), GTK_WINDOW(window_main));
   g_signal_connect(window_colorPalette, "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
   g_signal_connect(cbt_select, "changed", G_CALLBACK(on_cbt_select_changed), NULL);
   //g_signal_connect(btn_delete, "clicked", G_CALLBACK(on_btn_delete_clicked), NULL);
   //g_signal_connect(adj_prob, "value-changed", G_CALLBACK(on_adj_prob_changed), NULL);
   g_signal_connect(btn_save, "clicked", G_CALLBACK(on_btn_save_clicked), NULL);
   g_signal_connect(btn_close, "clicked", G_CALLBACK(on_btn_close_clicked), NULL);
-  gtk_window_set_transient_for(GTK_WINDOW(window_colorPalette), GTK_WINDOW(window_main));
 
   gtk_widget_show(window_main);
   gtk_main();
