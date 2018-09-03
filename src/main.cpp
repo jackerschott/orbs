@@ -1,4 +1,4 @@
-#define COMPILE_GTK true
+#define COMPILE_GTK false
 #if COMPILE_GTK
 
 #include <gtk/gtk.h>

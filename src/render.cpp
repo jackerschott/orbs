@@ -59,19 +59,22 @@ void createParticleRing(uint rnParticles, double rr, vector rn,
     if (rn.z == 0.0) {
       newParticles[i].theta = randDouble(M_PI);
       if (rn.y == 0) {
-        newParticles[i].phi = normPdf(rdAngle / 2.0) + randInt(0, 1) * M_PI_2;
+        newParticles[i].phi = normPdf(rdAngle / 2.0) + randInt(0, 1) * M_PI;
       }
       else {
-        newParticles[i].phi = normPdf(rdAngle / 2.0) - atan(rn.x / rn.y) + M_PI_2;
+        newParticles[i].phi = normPdf(rdAngle / 2.0) - atan(rn.x / rn.y) + M_PI_2 + randInt(0, 1) * M_PI;
       }
     }
     else {
       newParticles[i].phi = randDouble(2.0 * M_PI);
-      if (rn.x * cos(newParticles[i].phi) + rn.y * sin(newParticles[i].phi) == 0) {
+      if (rn.x * cos(newParticles[i].phi) + rn.y * sin(newParticles[i].phi) == 0.0) {
         newParticles[i].theta = normPdf(rdAngle / 2.0) + M_PI_2;
       }
       else {
-        newParticles[i].theta = normPdf(rdAngle / 2.0) - atan(rn.z / (rn.x * cos(newParticles[i].phi) + rn.y * sin(newParticles[i].phi))) + M_PI_2;
+        newParticles[i].theta = normPdf(rdAngle / 2.0) - atan(rn.z / (rn.x * cos(newParticles[i].phi) + rn.y * sin(newParticles[i].phi))) + M_PI;
+        if (newParticles[i].theta > M_PI) {
+          newParticles[i].theta -= M_PI;
+        }
       }
     }
     newParticles[i].vr = 0.0;
