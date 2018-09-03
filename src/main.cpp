@@ -93,9 +93,11 @@ void on_adj_rx_changed() {
 void on_btn_render_clicked() {
   g_print("Render\n");
 }
+
 void on_btn_rcolors_clicked() {
   gtk_widget_show(window_colorPalette);
 }
+
 void on_btn_ring_clicked() {
   g_print("Creating Ring...\n");
   uint nParticles = (uint)gtk_adjustment_get_value(adj_nParticles);
@@ -109,8 +111,8 @@ void on_btn_ring_clicked() {
     colorPalette[i] = { { 255, 255, 255 }, 1.0 / nColors };
   }
 
-  int w = 640;
-  int h = 480;
+  uint w = 640;
+  uint h = 480;
 
   perspectiveCamera camera;
   camera.pos = { 15.0, -30.0, 15.0 };
@@ -124,8 +126,8 @@ void on_btn_ring_clicked() {
     sin(rtheta) * sin(rphi),
     cos(rtheta)
   };
+  
   createParticleRing(nParticles, rr, rn, rdr, rdtheta, rdphi, 5, colorPalette);
-  g_print(&std::to_string(nParticles)[0]);
 
   delete[] pixels;
   renderConfig(w, h);
@@ -257,12 +259,7 @@ int main(int argc, char *argv[]) {
   double rs = 1.0;
   double gr = 10.0 * rs;
 
-  const uint nParticles = 1000;
-  const uint nColors = 5;
-  //std::pair<color, double> *colorPalette = new std::pair<color, double>[nParticles];
-  //for (uint i = 0; i < nColors; i++) {
-  //  colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, 0.2 };
-  //}
+  const uint nParticles = 5000;
 
   perspectiveCamera camera;
   camera.pos = { 15.0, -30.0, 15.0 };
@@ -272,7 +269,7 @@ int main(int argc, char *argv[]) {
 
   std::pair<color, double> *colorPalette = new std::pair<color, double>[nColors];
   for (uint i = 0; i < nColors; i++) {
-    colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, 0.2 };
+    colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, 1.0 };
   }
   renderInit(rs, rg);
   createParticleRing(nParticles, 5.0 * rs, { 0.0, -1.0, 1.0 }, 0.1 * rs, 0.1, 0.1, nColors, colorPalette);
