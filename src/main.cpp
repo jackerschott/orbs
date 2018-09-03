@@ -83,25 +83,29 @@ void on_cbt_select_changed() {
     gtk_widget_set_sensitive(btn_delete, true);
   }
   if (active == 0) {
+    nColors++;
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(cbt_select), ("Color " + std::to_string(nColors)).c_str());
-    active = nColors + 1;
+    active = nColors;
     gtk_combo_box_set_active(GTK_COMBO_BOX(cbt_select), active);
     std::pair<color, double> *newColorPalette = new std::pair<color, double>[nColors];
-    for (uint i = 0; i < nColors; i++) {
+    for (uint i = 0; i < nColors - 1; i++) {
       newColorPalette[i] = colorPalette[i];
     }
-    newColorPalette[nColors] = { {0, 0, 0}, 0.1 }; //random here
+    newColorPalette[nColors - 1] = { {0, 0, 0}, 0.1 }; //random here
     delete[] colorPalette;
     colorPalette = newColorPalette;
-    nColors++;
+  } else {
+    color _color = colorPalette[active - 1].first;
+    GdkRGBA _gcolor;
+    _gcolor.red = _color.r / 255;
+    _gcolor.green = _color.g / 255;
+    _gcolor.blue = _color.b / 255;
+    _gcolor.alpha = 1.0;
+    gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &_gcolor);
+    gtk_adjustment_set_value(adj_prob, colorPalette[active - 1].second);
+    std::string s = std::to_string(active) + " loaded: " + std::to_string(_color.r) + " " + std::to_string(_color.g) + " " + std::to_string(_color.b) + "\n";
+    g_print(s.c_str());
   }
-  color _color = colorPalette[active - 1].first;
-  GdkRGBA _gcolor;
-  _gcolor.red = _color.r / 255;
-  _gcolor.green = _color.g / 255;
-  _gcolor.blue = _color.b / 255;
-  gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &_gcolor);
-  gtk_adjustment_set_value(adj_prob, colorPalette[active - 1].second);
 }
 
 void on_btn_save_clicked() {
@@ -114,6 +118,8 @@ void on_btn_save_clicked() {
   uint active = gtk_combo_box_get_active(GTK_COMBO_BOX(cbt_select));
   colorPalette[active - 1].first = _color;
   colorPalette[active - 1].second = gtk_adjustment_get_value(adj_prob);
+  std::string s = std::to_string(active) + " saved: " + std::to_string(_color.r) + " " + std::to_string(_color.g) + " " + std::to_string(_color.b) + "\n";
+  g_print(s.c_str());
 }
 
 void on_btn_close_clicked() {
@@ -172,15 +178,13 @@ int main(int argc, char *argv[]) {
 
 #else
 
+#include <cmath>
+#include <iostream>
+#include <fstream>
+#include <random>
 #include "render.h"
 
 #define _USE_MATH_DEFINES
-
-#include <iostream>
-#include <fstream>
-#include <math.h>
-#include <random>
-
 
 int main(int argc, char *argv[]) {
   double rs = 1.0;
