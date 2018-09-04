@@ -28,7 +28,8 @@ GtkWidget *btn_save;
 GtkWidget *btn_close;
 
 byte* pixels;
-uint nColors = 5;
+bool rendering = false;
+uint nColors = 1;
 std::pair<color, double> *colorPalette = new std::pair<color, double>[nColors];
 
 void on_window_main_destroy() {
@@ -91,7 +92,15 @@ void on_adj_rx_changed() {
 }
 
 void on_btn_render_clicked() {
-  g_print("Render\n");
+  char* btn_lbl;
+  if (rendering) {
+    gtk_button_set_label(GTK_BUTTON(btn_render), "Render");
+    rendering = false;
+  }
+  else {
+    gtk_button_set_label(GTK_BUTTON(btn_render), "Reset");
+    rendering = true;
+  }
 }
 
 void on_btn_rcolors_clicked() {
@@ -111,8 +120,8 @@ void on_btn_ring_clicked() {
     colorPalette[i] = { { 255, 255, 255 }, 1.0 / nColors };
   }
 
-  uint w = 640;
-  uint h = 480;
+  uint w = 920;
+  uint h = 690;
 
   perspectiveCamera camera;
   camera.pos = { 15.0, -30.0, 15.0 };
@@ -171,6 +180,7 @@ void on_cbt_select_changed() {
     g_print(s.c_str());
   }
 }
+
 void on_btn_save_clicked() {
   GdkRGBA _gcolor;
   color _color;
@@ -184,6 +194,7 @@ void on_btn_save_clicked() {
   std::string s = std::to_string(active) + " saved: " + std::to_string(_color.r) + " " + std::to_string(_color.g) + " " + std::to_string(_color.b) + "\n";
   g_print(s.c_str());
 }
+
 void on_btn_close_clicked() {
   //get save here, change delete-event and delete save-btn
   gtk_widget_hide(window_colorPalette);
@@ -254,8 +265,8 @@ int main(int argc, char *argv[]) {
 #define _USE_MATH_DEFINES
 
 int main(int argc, char *argv[]) {
-  int w = 640;
-  int h = 480;
+  uint w = 920;
+  uint h = 690;
   double rs = 1.0;
   double gr = 10.0 * rs;
 
