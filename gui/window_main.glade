@@ -85,6 +85,10 @@
           <object class="GtkBox" id="vc_main">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="margin_left">2</property>
+            <property name="margin_right">2</property>
+            <property name="margin_top">2</property>
+            <property name="margin_bottom">2</property>
             <property name="orientation">vertical</property>
             <property name="spacing">2</property>
             <property name="homogeneous">True</property>

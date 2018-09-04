@@ -27,8 +27,8 @@ GtkWidget *ccwidget_color;
 GtkWidget *btn_save;
 GtkWidget *btn_close;
 
-const uint w = 640;
-const uint h = 480;
+uint w = 920;
+uint h = 690;
 byte* pixels;
 bool rendering = false;
 uint nColors = 1;
