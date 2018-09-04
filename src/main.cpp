@@ -27,6 +27,8 @@ GtkWidget *ccwidget_color;
 GtkWidget *btn_save;
 GtkWidget *btn_close;
 
+const uint w = 640;
+const uint h = 480;
 byte* pixels;
 uint nColors = 5;
 std::pair<color, double> *colorPalette = new std::pair<color, double>[nColors];
@@ -108,9 +110,6 @@ void on_btn_ring_clicked() {
   for (uint i = 0; i < nColors; i++) {
     colorPalette[i] = { { 255, 255, 255 }, 1.0 / nColors };
   }
-
-  int w = 640;
-  int h = 480;
 
   perspectiveCamera camera;
   camera.pos = { 15.0, -30.0, 15.0 };
@@ -233,6 +232,15 @@ int main(int argc, char *argv[]) {
   //g_signal_connect(adj_prob, "value-changed", G_CALLBACK(on_adj_prob_changed), NULL);
   g_signal_connect(btn_save, "clicked", G_CALLBACK(on_btn_save_clicked), NULL);
   g_signal_connect(btn_close, "clicked", G_CALLBACK(on_btn_close_clicked), NULL);
+
+  pixels = new byte[w * h * bpp / 8];
+  for (uint i = 0; i < w * h * bpp / 8; i++) {
+    pixels[i] = 0;
+  }
+  GBytes* gPixels = g_bytes_new(pixels, w * h * bpp / 8);
+  GdkPixbuf* pixbuf = gdk_pixbuf_new_from_bytes(gPixels, GDK_COLORSPACE_RGB, false, 8, w, h, w * bpp / 8);
+  gtk_image_set_from_pixbuf(img_main, pixbuf);
+  renderInit(1.0, 10.0);
 
   renderInit(1.0, 10.0);
 
