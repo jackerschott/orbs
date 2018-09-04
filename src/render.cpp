@@ -57,7 +57,7 @@ void createParticleRing(uint rnParticles, double rr, vector rn,
     newParticles[i].r = rr + normPdf(rdr / 2.0);
     if (rn.z == 0.0) {
       newParticles[i].theta = randDouble(M_PI);
-      if (rn.y == 0) {
+      if (rn.y == 0.0) {
         newParticles[i].phi = normPdf(rdphi / 2.0) + randInt(0, 1) * M_PI;
       }
       else {
@@ -81,10 +81,6 @@ void createParticleRing(uint rnParticles, double rr, vector rn,
     newParticles[i].vtheta = 0.0;
     newParticles[i].pcolor = selectObject<color>(nColors, rparticleColorPalette);
   }
-
-  //for (uint i = 0; i < rnParticles; i++) {
-  //  std::cout << newParticles[i].phi << std::endl;
-  //}
 
   delete[] particles;
   particles = newParticles;
