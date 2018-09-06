@@ -1,4 +1,4 @@
-#define COMPILE_GTK true
+#define COMPILE_GTK false
 #if COMPILE_GTK
 
 #include <gtk/gtk.h>
@@ -264,46 +264,47 @@ int main(int argc, char *argv[]) {
 
 #else
 
+#include "render.h"
+#include "randutils.h"
+
 #include <cmath>
 #include <iostream>
 #include <fstream>
 #include <random>
-#include "render.h"
 
 #define _USE_MATH_DEFINES
 
 int main(int argc, char *argv[]) {
-  uint w = 920;
-  uint h = 690;
-  double rs = 1.0;
-  double gr = 10.0 * rs;
 
-  const uint nParticles = 5000;
-
-  perspectiveCamera camera;
-  camera.pos = { 15.0, -30.0, 15.0 };
-  camera.lookDir = { -1.0, 2.0, -1.0 };
-  camera.upDir = { 0.0, 0.0, 1.0 };
-  camera.fov = 60.0;
-
-  std::pair<color, double> *colorPalette = new std::pair<color, double>[nColors];
-  for (uint i = 0; i < nColors; i++) {
-    colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, 1.0 };
+  for (int i = 0; i < 100; i++) {
+    std::cout << (double)rd() / UINT_MAX << std::endl;
   }
-  renderInit(rs, rg);
-  createParticleRing(nParticles, 5.0 * rs, { 0.0, -1.0, 1.0 }, 0.1 * rs, 0.1, 0.1, nColors, colorPalette);
-  setCamera(camera);
-  renderConfig(w, h);
-  byte* pixels = render();
+  std::cin.get();
 
-  //std::ofstream out;
-  //out.open("E:\\Zwischenspeicher\\out");
-  //for (int i = 0; i < w * h * bpp / 8; i++) {
-  //  out << pixels[i];
+  //uint w = 920;
+  //uint h = 690;
+  //double rs = 1.0;
+  //double gr = 10.0 * rs;
+
+  //const uint nParticles = 5000;
+
+  //perspectiveCamera camera;
+  //camera.pos = { 15.0, -30.0, 15.0 };
+  //camera.lookDir = { -1.0, 2.0, -1.0 };
+  //camera.upDir = { 0.0, 0.0, 1.0 };
+  //camera.fov = 60.0;
+
+  //std::pair<color, double> *colorPalette = new std::pair<color, double>[nColors];
+  //for (uint i = 0; i < nColors; i++) {
+  //  colorPalette[i] = { { (byte)(rand() % 256), (byte)(rand() % 256), (byte)(rand() % 256) }, 1.0 };
   //}
-  //out.close();
+  //renderInit(rs, rg);
+  //createParticleRing(nParticles, 5.0 * rs, { 0.0, -1.0, 1.0 }, 0.1 * rs, 0.1, 0.1, nColors, colorPalette);
+  //setCamera(camera);
+  //renderConfig(w, h);
+  //byte* pixels = render();
 
-  return 0;
+  //return 0;
 }
 
 #endif

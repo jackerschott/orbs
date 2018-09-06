@@ -13,7 +13,6 @@ double randDouble(double max);
 double randDouble(double min, double max);
 double normPdf(double d);
 template<typename T> T selectObject(uint nObjects, std::pair<T, double> *collection);
-uint generateSeed();
 
 double vector::getLength() {
   return sqrt(x * x + y * y + z * z);
@@ -130,40 +129,39 @@ byte* render()
   return pixels;
 }
 
-int randInt(int max) {
-  std::default_random_engine generator;
-  generator.seed(generateSeed());
-  std::uniform_int_distribution<int> distribution(0, max);
-  return distribution(generator);
+uint rng()
+{
+  static uint counter = 0;
+  randutils::seed_seq_fe256 seeder{ counter,0u,0u,0u };
+  ++counter;
+  uint out;
+  seeder.generate(&out, &out + 1);
+  return out;
+}
+uint randInt(uint max) {
+  return rng() % max + 1;
 }
 int randInt(int min, int max) {
-  std::default_random_engine generator;
-  generator.seed(generateSeed());
-  std::uniform_int_distribution<int> distribution(min, max);
-  return distribution(generator);
+  return rng() % (max - min) + min + 1;
+}
+double randDouble() {
+  return (double)rng() / UINT_MAX;
 }
 double randDouble(double max) {
-
-  std::default_random_engine generator;
-  generator.seed(generateSeed());
-  std::uniform_int_distribution<long> distribution(0, LONG_MAX - 1);
-  return (double)distribution(generator) / LONG_MAX * max;
+  return (double)rng() / UINT_MAX * max;
 }
 double randDouble(double min, double max) {
-  std::default_random_engine generator;
-  generator.seed(generateSeed());
-  std::uniform_int_distribution<long> distribution(0, LONG_MAX - 1);
-  return min + (double)distribution(generator) / LONG_MAX * (max - min);
+  return (double)rng() / UINT_MAX * (max - min) + min;
 }
 double normPdf(double d) {
   std::default_random_engine generator;
-  generator.seed(generateSeed());
+  generator.seed(rng());
   std::normal_distribution<double> distribution(0, d);
   return distribution(generator);
 }
 template<typename T> T selectObject(uint nObjects, std::pair<T, double> *collection) {
   std::default_random_engine generator;
-  generator.seed(generateSeed());
+  generator.seed(rng());
   std::uniform_int_distribution<uint> distribution(0, UINT_MAX - 1);
   uint selNumber = distribution(generator);
   uint probLimit = 0;
@@ -174,9 +172,4 @@ template<typename T> T selectObject(uint nObjects, std::pair<T, double> *collect
     }
   }
   throw "test";
-}
-uint generateSeed() {
-  int r = refIndex;
-  refIndex++;
-  return r;
 }

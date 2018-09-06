@@ -3,6 +3,8 @@
 
 #define _USE_MATH_DEFINES
 
+#include "randutils.h"
+
 #include <chrono>
 #include <climits>
 #include <cmath>
