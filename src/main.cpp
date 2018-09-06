@@ -21,6 +21,7 @@ GtkWidget *btn_ring;
 
 GtkWidget *window_colorPalette;
 GtkWidget *cbt_select;
+GtkWidget *btn_new;
 GtkWidget *btn_delete;
 GtkAdjustment *adj_prob;
 GtkWidget *ccwidget_color;
@@ -30,8 +31,8 @@ uint w = 920;
 uint h = 690;
 byte* pixels;
 bool rendering = false;
-byte activeColor = 1;
-uint nColors = 1;
+byte activeColor = 0;
+byte nColors = 1;
 probColor *colorPalette = new probColor[nColors];
 
 void on_window_main_destroy() {
@@ -109,27 +110,6 @@ void on_btn_rcolors_clicked() {
   gtk_widget_show(window_colorPalette);
 }
 
-void save_color(byte index) {
-  index--;
-  GdkRGBA gcolor;
-  gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &gcolor);
-  colorPalette[index].r = gcolor.red;
-  colorPalette[index].g = gcolor.green;
-  colorPalette[index].b = gcolor.blue;
-  colorPalette[index].p = gtk_adjustment_get_value(adj_prob);
-}
-
-void load_color(byte index) {
-  index--;
-  GdkRGBA gcolor;
-  gcolor.red = colorPalette[index].r;
-  gcolor.green = colorPalette[index].g;
-  gcolor.blue = colorPalette[index].b;
-  gcolor.alpha = 1.0;
-  gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &gcolor);
-  gtk_adjustment_set_value(adj_prob, colorPalette[index].p);
-}
-
 void on_btn_ring_clicked() {
   g_print("Creating Ring...\n");
   uint nParticles = (uint)gtk_adjustment_get_value(adj_nParticles);
@@ -156,25 +136,44 @@ void on_btn_ring_clicked() {
   g_print("done creating Ring\n");
 }
 
+void save_color(byte index) {
+  GdkRGBA gcolor;
+  gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &gcolor);
+  colorPalette[index].r = gcolor.red;
+  colorPalette[index].g = gcolor.green;
+  colorPalette[index].b = gcolor.blue;
+  colorPalette[index].p = gtk_adjustment_get_value(adj_prob);
+}
+
+void load_color(byte index) {
+  GdkRGBA gcolor;
+  gcolor.red = colorPalette[index].r;
+  gcolor.green = colorPalette[index].g;
+  gcolor.blue = colorPalette[index].b;
+  gcolor.alpha = 1.0;
+  gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &gcolor);
+  gtk_adjustment_set_value(adj_prob, colorPalette[index].p);
+}
+
 void on_cbt_select_changed() {
   save_color(activeColor);
   activeColor = gtk_combo_box_get_active(GTK_COMBO_BOX(cbt_select));
-  if (activeColor == 0) {
-    probColor *newColorPalette = new probColor[nColors + 1];
-    for (uint i = 0; i < nColors; i++) {
-      newColorPalette[i] = colorPalette[i];
-    }
-    newColorPalette[nColors] = { 1.0, 1.0, 1.0, 0.0 }; //random here
-    delete[] colorPalette;
-    colorPalette = newColorPalette;
-    activeColor = nColors++;
-    load_color(activeColor);
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(cbt_select), ("Color " + std::to_string(activeColor)).c_str());
-    gtk_combo_box_set_active(GTK_COMBO_BOX(cbt_select), activeColor);
+  load_color(activeColor);
+}
+
+void on_btn_new_clicked() {
+  save_color(activeColor);
+  probColor *newColorPalette = new probColor[nColors + 1];
+  for (uint i = 0; i < nColors; i++) {
+    newColorPalette[i] = colorPalette[i];
   }
-  else {
-    load_color(activeColor);
-  }
+  newColorPalette[nColors] = { 1.0, 1.0, 1.0, 0.0 };
+  delete[] colorPalette;
+  colorPalette = newColorPalette;
+  activeColor = ++nColors;
+  load_color(activeColor);
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(cbt_select), ("Color " + std::to_string(nColors)).c_str());
+  gtk_combo_box_set_active(GTK_COMBO_BOX(cbt_select), activeColor - 1);
 }
 
 void on_btn_close_clicked() {
@@ -216,6 +215,7 @@ int main(int argc, char *argv[]) {
 
   window_colorPalette = GTK_WIDGET(gtk_builder_get_object(builder, "window_colorPalette"));
   cbt_select = GTK_WIDGET(gtk_builder_get_object(builder, "cbt_select"));
+  btn_new = GTK_WIDGET(gtk_builder_get_object(builder, "btn_new"));
   btn_delete = GTK_WIDGET(gtk_builder_get_object(builder, "btn_delete"));
   adj_prob = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_prob"));
   ccwidget_color = GTK_WIDGET(gtk_builder_get_object(builder, "ccwidget_color"));
@@ -223,6 +223,7 @@ int main(int argc, char *argv[]) {
   gtk_window_set_transient_for(GTK_WINDOW(window_colorPalette), GTK_WINDOW(window_main));
   g_signal_connect(window_colorPalette, "delete-event", G_CALLBACK(on_btn_close_clicked), NULL);
   g_signal_connect(cbt_select, "changed", G_CALLBACK(on_cbt_select_changed), NULL);
+  g_signal_connect(btn_new, "clicked", G_CALLBACK(on_btn_new_clicked), NULL);
   //g_signal_connect(btn_delete, "clicked", G_CALLBACK(on_btn_delete_clicked), NULL);
   //g_signal_connect(adj_prob, "value-changed", G_CALLBACK(on_adj_prob_changed), NULL);
   g_signal_connect(btn_close, "clicked", G_CALLBACK(on_btn_close_clicked), NULL);
