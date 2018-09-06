@@ -7,7 +7,7 @@ perspectiveCamera camera;
 
 int refIndex = 0;
 
-int randInt(int max);
+uint randInt(uint max);
 int randInt(int min, int max);
 double randDouble(double max);
 double randDouble(double min, double max);
