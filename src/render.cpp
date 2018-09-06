@@ -2,7 +2,7 @@
 
 uint nParticles;
 particle* particles;
-std::pair<color, double> *particleColorPalette;
+probColor *particleColorPalette;
 perspectiveCamera camera;
 
 int refIndex = 0;
@@ -46,7 +46,7 @@ void renderInit(double _rs, double _rg) {
 }
 void createParticleRing(uint rnParticles, double rr, vector rn, 
   double rdr, double rdtheta, double rdphi,
-  uint nColors, std::pair<color, double> *rparticleColorPalette) {
+  uint nColors, probColor* rparticleColorPalette) {
 
   particle* newParticles = new particle[nParticles + rnParticles];
   for (uint i = 0; i < nParticles; i++) {
@@ -78,7 +78,7 @@ void createParticleRing(uint rnParticles, double rr, vector rn,
     newParticles[i].vr = 0.0;
     newParticles[i].vphi = 1.0;
     newParticles[i].vtheta = 0.0;
-    newParticles[i].pcolor = selectObject<color>(nColors, rparticleColorPalette);
+    newParticles[i].pcolor = {255, 255, 255};
   }
 
   delete[] particles;

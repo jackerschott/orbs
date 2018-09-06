@@ -24,15 +24,15 @@ GtkWidget *cbt_select;
 GtkWidget *btn_delete;
 GtkAdjustment *adj_prob;
 GtkWidget *ccwidget_color;
-GtkWidget *btn_save;
 GtkWidget *btn_close;
 
-const uint w = 640;
-const uint h = 480;
+uint w = 920;
+uint h = 690;
 byte* pixels;
 bool rendering = false;
+byte activeColor = 1;
 uint nColors = 1;
-std::pair<color, double> *colorPalette = new std::pair<color, double>[nColors];
+probColor *colorPalette = new probColor[nColors];
 
 void on_window_main_destroy() {
   g_print("Exit\n");
@@ -109,6 +109,27 @@ void on_btn_rcolors_clicked() {
   gtk_widget_show(window_colorPalette);
 }
 
+void save_color(byte index) {
+  index--;
+  GdkRGBA gcolor;
+  gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &gcolor);
+  colorPalette[index].r = gcolor.red;
+  colorPalette[index].g = gcolor.green;
+  colorPalette[index].b = gcolor.blue;
+  colorPalette[index].p = gtk_adjustment_get_value(adj_prob);
+}
+
+void load_color(byte index) {
+  index--;
+  GdkRGBA gcolor;
+  gcolor.red = colorPalette[index].r;
+  gcolor.green = colorPalette[index].g;
+  gcolor.blue = colorPalette[index].b;
+  gcolor.alpha = 1.0;
+  gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &gcolor);
+  gtk_adjustment_set_value(adj_prob, colorPalette[index].p);
+}
+
 void on_btn_ring_clicked() {
   g_print("Creating Ring...\n");
   uint nParticles = (uint)gtk_adjustment_get_value(adj_nParticles);
@@ -118,25 +139,14 @@ void on_btn_ring_clicked() {
   double rdr = gtk_adjustment_get_value(adj_rdr);
   double rdtheta = gtk_adjustment_get_value(adj_rdtheta);
   double rdphi = gtk_adjustment_get_value(adj_rdphi);
-  for (uint i = 0; i < nColors; i++) {
-    colorPalette[i] = { { 255, 255, 255 }, 1.0 / nColors };
-  }
-
   perspectiveCamera camera;
   camera.pos = { 15.0, -30.0, 15.0 };
   camera.lookDir = { -1.0, 2.0, -1.0 };
   camera.upDir = { 0.0, 0.0, 1.0 };
   camera.fov = 60.0;
   setCamera(camera);
-
-  vector rn = {
-    sin(rtheta) * cos(rphi),
-    sin(rtheta) * sin(rphi),
-    cos(rtheta)
-  };
-  
+  vector rn = { sin(rtheta) * cos(rphi), sin(rtheta) * sin(rphi), cos(rtheta) };
   createParticleRing(nParticles, rr, rn, rdr, rdtheta, rdphi, 5, colorPalette);
-
   delete[] pixels;
   renderConfig(w, h);
   pixels = render();
@@ -147,55 +157,28 @@ void on_btn_ring_clicked() {
 }
 
 void on_cbt_select_changed() {
-  byte active = gtk_combo_box_get_active(GTK_COMBO_BOX(cbt_select));
-  if (active == 1) {
-    gtk_widget_set_sensitive(btn_delete, false);
-  }
-  else {
-    gtk_widget_set_sensitive(btn_delete, true);
-  }
-  if (active == 0) {
-    nColors++;
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(cbt_select), ("Color " + std::to_string(nColors)).c_str());
-    active = nColors;
-    gtk_combo_box_set_active(GTK_COMBO_BOX(cbt_select), active);
-    std::pair<color, double> *newColorPalette = new std::pair<color, double>[nColors];
-    for (uint i = 0; i < nColors - 1; i++) {
+  save_color(activeColor);
+  activeColor = gtk_combo_box_get_active(GTK_COMBO_BOX(cbt_select));
+  if (activeColor == 0) {
+    probColor *newColorPalette = new probColor[nColors + 1];
+    for (uint i = 0; i < nColors; i++) {
       newColorPalette[i] = colorPalette[i];
     }
-    newColorPalette[nColors - 1] = { {0, 0, 0}, 0.1 }; //random here
+    newColorPalette[nColors] = { 1.0, 1.0, 1.0, 0.0 }; //random here
     delete[] colorPalette;
     colorPalette = newColorPalette;
-  } else {
-    color _color = colorPalette[active - 1].first;
-    GdkRGBA _gcolor;
-    _gcolor.red = _color.r / 255;
-    _gcolor.green = _color.g / 255;
-    _gcolor.blue = _color.b / 255;
-    _gcolor.alpha = 1.0;
-    gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &_gcolor);
-    gtk_adjustment_set_value(adj_prob, colorPalette[active - 1].second);
-    std::string s = std::to_string(active) + " loaded: " + std::to_string(_color.r) + " " + std::to_string(_color.g) + " " + std::to_string(_color.b) + "\n";
-    g_print(s.c_str());
+    activeColor = nColors++;
+    load_color(activeColor);
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(cbt_select), ("Color " + std::to_string(activeColor)).c_str());
+    gtk_combo_box_set_active(GTK_COMBO_BOX(cbt_select), activeColor);
   }
-}
-
-void on_btn_save_clicked() {
-  GdkRGBA _gcolor;
-  color _color;
-  gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &_gcolor);
-  _color.r = (byte)255 * _gcolor.red;
-  _color.g = (byte)255 * _gcolor.green;
-  _color.b = (byte)255 * _gcolor.blue;
-  uint active = gtk_combo_box_get_active(GTK_COMBO_BOX(cbt_select));
-  colorPalette[active - 1].first = _color;
-  colorPalette[active - 1].second = gtk_adjustment_get_value(adj_prob);
-  std::string s = std::to_string(active) + " saved: " + std::to_string(_color.r) + " " + std::to_string(_color.g) + " " + std::to_string(_color.b) + "\n";
-  g_print(s.c_str());
+  else {
+    load_color(activeColor);
+  }
 }
 
 void on_btn_close_clicked() {
-  //get save here, change delete-event and delete save-btn
+  save_color(activeColor);
   gtk_widget_hide(window_colorPalette);
 }
 
@@ -236,16 +219,15 @@ int main(int argc, char *argv[]) {
   btn_delete = GTK_WIDGET(gtk_builder_get_object(builder, "btn_delete"));
   adj_prob = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_prob"));
   ccwidget_color = GTK_WIDGET(gtk_builder_get_object(builder, "ccwidget_color"));
-  btn_save = GTK_WIDGET(gtk_builder_get_object(builder, "btn_save"));
   btn_close = GTK_WIDGET(gtk_builder_get_object(builder, "btn_close"));
   gtk_window_set_transient_for(GTK_WINDOW(window_colorPalette), GTK_WINDOW(window_main));
-  g_signal_connect(window_colorPalette, "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+  g_signal_connect(window_colorPalette, "delete-event", G_CALLBACK(on_btn_close_clicked), NULL);
   g_signal_connect(cbt_select, "changed", G_CALLBACK(on_cbt_select_changed), NULL);
   //g_signal_connect(btn_delete, "clicked", G_CALLBACK(on_btn_delete_clicked), NULL);
   //g_signal_connect(adj_prob, "value-changed", G_CALLBACK(on_adj_prob_changed), NULL);
-  g_signal_connect(btn_save, "clicked", G_CALLBACK(on_btn_save_clicked), NULL);
   g_signal_connect(btn_close, "clicked", G_CALLBACK(on_btn_close_clicked), NULL);
 
+  colorPalette[0] = {1.0, 1.0, 1.0, 1.0};
   pixels = new byte[w * h * bpp / 8];
   for (uint i = 0; i < w * h * bpp / 8; i++) {
     pixels[i] = 0;
@@ -253,8 +235,6 @@ int main(int argc, char *argv[]) {
   GBytes* gPixels = g_bytes_new(pixels, w * h * bpp / 8);
   GdkPixbuf* pixbuf = gdk_pixbuf_new_from_bytes(gPixels, GDK_COLORSPACE_RGB, false, 8, w, h, w * bpp / 8);
   gtk_image_set_from_pixbuf(img_main, pixbuf);
-  renderInit(1.0, 10.0);
-
   renderInit(1.0, 10.0);
 
   gtk_widget_show(window_main);

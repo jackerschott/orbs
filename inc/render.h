@@ -11,7 +11,7 @@
 #include <iostream>
 #include <random>
 #include <string>
-#include <utility>
+//#include <utility>
 
 typedef unsigned char byte;
 typedef unsigned int uint;
@@ -20,6 +20,12 @@ struct color {
   byte r;
   byte g;
   byte b;
+};
+struct probColor {
+  double r;
+  double g;
+  double b;
+  double p;
 };
 struct particle {
   double r;
@@ -62,7 +68,7 @@ const int bpp = 24;
 void renderInit(double _rs, double _rg);
 void createParticleRing(uint nParticles, double rr, vector rn,
   double rdr, double rdtheta, double rdphi,
-  uint nColors, std::pair<color, double>* rparticleColorPalette);
+  uint nColors, probColor* rparticleColorPalette);
 void setCamera(perspectiveCamera _camera);
 void renderConfig(uint _pWidth, uint _pHeight);
 byte* render();
