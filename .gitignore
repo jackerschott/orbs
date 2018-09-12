@@ -8,3 +8,9 @@
 /linux_compile.bat
 /black_hole_simulation.exe
 /compile_commands.txt
+/src/tmain.cpp
+/inc/tmain.hpp
+/gpp.bat
+/cl_compile_options.txt
+/BlackHoleSimulation.ipdb
+/BlackHoleSimulation.iobj

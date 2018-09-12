@@ -1,20 +1,7 @@
-#ifndef RENDER_H
-#define RENDER_H
-
-#define _USE_MATH_DEFINES
-
-#include "randutils.h"
-
-#include <chrono>
-#include <climits>
-#include <cmath>
-#include <iostream>
-#include <random>
-#include <string>
-//#include <utility>
+#ifndef OBJECTS3D_HPP
+#define OBJECTS3D_HPP
 
 typedef unsigned char byte;
-typedef unsigned int uint;
 
 struct color {
   byte r;
@@ -35,7 +22,6 @@ struct particle {
   double vtheta;
   double vphi;
   color pcolor;
-  particle* children;
 };
 struct vector {
   double x;
@@ -58,19 +44,5 @@ struct perspectiveCamera {
   vector upDir;
   double fov;
 };
-
-static double rs;
-static double rg;
-static uint pWidth;
-static uint pHeight;
-const int bpp = 24;
-
-void renderInit(double _rs, double _rg);
-void createParticleRing(uint nParticles, double rr, vector rn,
-  double rdr, double rdtheta, double rdphi,
-  uint nColors, probColor* rparticleColorPalette);
-void setCamera(perspectiveCamera _camera);
-void renderConfig(uint _pWidth, uint _pHeight);
-byte* render();
 
 #endif

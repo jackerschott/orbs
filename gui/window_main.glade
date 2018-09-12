@@ -249,7 +249,7 @@
                     <property name="can_focus">True</property>
                     <property name="adjustment">adj_nParticles</property>
                     <property name="climb_rate">10</property>
-                    <property name="value">5000</property>
+                    <property name="value">500000</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
