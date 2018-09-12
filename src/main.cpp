@@ -5,6 +5,7 @@
 #include "render.h"
 
 GtkWidget *window_main;
+GtkMenuBar *menu_bar;
 GtkImage *img_main;
 GtkAdjustment *adj_rg;
 GtkAdjustment *adj_rs;
@@ -27,8 +28,8 @@ GtkAdjustment *adj_prob;
 GtkWidget *ccwidget_color;
 GtkWidget *btn_close;
 
-uint w = 920;
-uint h = 690;
+uint w = 990;
+uint h = 660;
 byte* pixels;
 bool rendering = false;
 byte activeColor = 0;
@@ -237,6 +238,15 @@ int main(int argc, char *argv[]) {
   GdkPixbuf* pixbuf = gdk_pixbuf_new_from_bytes(gPixels, GDK_COLORSPACE_RGB, false, 8, w, h, w * bpp / 8);
   gtk_image_set_from_pixbuf(img_main, pixbuf);
   renderInit(1.0, 10.0);
+
+  /*std::vector<cl::Platform> platforms;
+  cl::Platform::get(&platforms);
+  byte platform_id = 0;
+  byte device_id = 0;
+  for(std::vector<cl::Platform>::iterator it = platforms.begin(); it != platforms.end(); ++it){
+    cl::Platform platform(*it);
+    gtk_menu_bar_bar_append(menu_bar);
+  }*/
 
   gtk_widget_show(window_main);
   gtk_main();
