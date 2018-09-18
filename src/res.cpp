@@ -3,8 +3,12 @@
 const char* kerPath = "E:\\Benutzerdateien\\Documents\\GitHub\\black-hole-simulation\\src\\ker\\render.cl";
 const char* kerOptsPath = "E:\\Benutzerdateien\\Documents\\GitHub\\black-hole-simulation\\cl_compile_options.txt";
 
-const char* getClErrMsg(int clErr)
-{
+const uint nKer = 2;
+const char *kerNames[] = { "renderScreenPos", "renderShapes" };
+
+const uint partRad0 = 3;
+
+const char* getClErrMsg(int clErr) {
   switch (clErr) {
   case 0: return "CL_SUCCESS";
   case -1: return "CL_DEVICE_NOT_FOUND";

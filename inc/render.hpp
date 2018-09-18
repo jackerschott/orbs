@@ -26,7 +26,7 @@ namespace render {
     uint nColors, probColor* rparticleColorPalette);
   void clearParticleRings();
   void setCamera(perspectiveCamera _camera);
-  void config(uint _pWidth, uint _pHeight, bool _hardwAcc);
+  void config(uint _pWidth, uint _pHeight, uint partRad, bool _hardwAcc);
   void render();
   void close();
 }

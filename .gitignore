@@ -15,3 +15,6 @@
 /cl_compile_options.txt
 /BlackHoleSimulation.ipdb
 /BlackHoleSimulation.iobj
+/gui/window_userPreferences.glade~
+/gui/window_main.glade~
+/gui/window_colorPalette.glade~
