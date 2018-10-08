@@ -106,4 +106,3 @@ kVector vNeg(kVector v) {
   kVector res = { -v.x, -v.y, -v.z };
   return res;
 }
-// test
