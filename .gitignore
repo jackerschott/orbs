@@ -9,6 +9,7 @@
 /.gitattributes
 /linux_compile.bat
 /black_hole_simulation.exe
+/black_hole_simulation
 /compile_commands.txt
 /src/tmain.cpp
 /inc/tmain.hpp
