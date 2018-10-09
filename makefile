@@ -14,11 +14,12 @@ ifeq ($(detected_OS),Linux)
 endif
 
 INCFLAGS := -Iinc
-LIBFLAGS := -lOpenCL
+VARFLAGS := -DCL_TARGET_OPENCL_VERSION=220
+LIBFLAGS := -lOpenCL -lSDL2 -lGLEW -lGL
 PKGFLAGS := `pkg-config --cflags --libs gtk+-3.0`
 
 CC := g++
-CFLAGS = $(OSFLAGS) $(INCFLAGS) $(LIBFLAGS) $(PKGFLAGS)
+CFLAGS := $(OSFLAGS) $(INCFLAGS) $(VARFLAGS) $(LIBFLAGS) $(PKGFLAGS)
 
 CPP := src/fileman.cpp src/main.cpp src/objects3d.cpp src/render.cpp src/res.cpp src/rng.cpp src/tmain.cpp src/clWrapper/clwrap.cpp src/glWrapper/glwrap.cpp src/glWrapper/mesh.cpp src/glWrapper/shader.cpp
 HPP := inc/fileman.hpp inc/objects3d.hpp inc/randutils.hpp inc/render.hpp inc/res.hpp inc/rng.hpp inc/tmain.hpp inc/clWrapper/clwrap.hpp inc/glWrapper/glwrap.hpp inc/kernels/objects3d.h inc/kernels/render.h

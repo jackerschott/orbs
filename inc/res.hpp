@@ -6,7 +6,8 @@
 #include <GL/glew.h>
 
 typedef unsigned int uint;
-typedef unsigned long long ulong;
+typedef size_t ulong;
+typedef unsigned int uint;
 
 extern const char* kerPath;
 extern const char* kerOptsPath;
