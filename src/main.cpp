@@ -1,9 +1,10 @@
-#define COMPILE_UI true
-#if COMPILE_UI
+#define TEST_WITHOUT_GTK true
+#if !TEST_WITHOUT_GTK
 
-#include <cmath>
+#include <fstream>
 #include <gtk/gtk.h>
 #include <iostream>
+#include <math.h>
 #include <thread>
 
 #include "res.hpp"
@@ -36,7 +37,10 @@ GtkAdjustment *adj_prob;
 GtkWidget *ccwidget_color;
 GtkWidget *btn_close;
 
+// User preferences window ui elements
 GtkWidget *window_userPreferences;
+GtkButton *btnSaveUserPreferences;
+GtkStack *stackDevices;
 GtkComboBoxText *cbt_cp_devices;
 GtkComboBoxText *cbt_gp_devices;
 
@@ -49,7 +53,10 @@ uint h = 690;
 byte activeColor = 0;
 uint nColors = 1;
 probColor *colorPalette = new probColor[nColors];
-bool useHardwAcc = false;
+bool useHardwAcc = true;
+
+GdkPixbuf* framePixBuf;
+std::thread renderWaiter;
 
 // Function declerations for event and helper functions
 void on_mi_userPref_activate();
@@ -66,6 +73,7 @@ void on_btn_close_clicked();
 void renderFrame();
 void save_color(byte index);
 void load_color(byte index);
+void on_btnSaveUserPreferences_clicked();
 
 // Entry point
 int main(int argc, char *argv[]) {
@@ -117,8 +125,15 @@ int main(int argc, char *argv[]) {
   g_signal_connect(btn_close, "clicked", G_CALLBACK(on_btn_close_clicked), NULL);
 
   window_userPreferences = GTK_WIDGET(gtk_builder_get_object(builder, "window_userPreferences"));
+  btnSaveUserPreferences = GTK_BUTTON(gtk_builder_get_object(builder, "btnSaveUserPreferences"));
+  stackDevices = GTK_STACK(gtk_builder_get_object(builder, "stackDevices"));
   cbt_cp_devices = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(builder, "cbt_cp_devices"));
   cbt_gp_devices = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(builder, "cbt_gp_devices"));
+  g_signal_connect(btnSaveUserPreferences, "clicked", G_CALLBACK(on_btnSaveUserPreferences_clicked), NULL);
+
+  const uint bgWidth = 4096;
+  const uint bgHeight = 2048;
+  const uint bgBpp = 32;
 
   render::init(1.0, 10.0);
   render::initHardwAcc(cl::Platform::getDefault(), cl::Device::getDefault());
@@ -155,6 +170,7 @@ void on_mi_userPref_activate() {
   if (nDevices > 0)
     gtk_combo_box_set_active(GTK_COMBO_BOX(cbt_gp_devices), 0);
   gtk_widget_show(window_userPreferences);
+  gtk_stack_set_visible_child(stackDevices, GTK_WIDGET(cbt_gp_devices));
 }
 void on_key_press(GtkWidget *widget, GdkEventKey *event) {
   switch (event->keyval) {
@@ -197,9 +213,9 @@ void on_key_release(GtkWidget *widget, GdkEventKey *event) {
   }
 }
 void on_adj_rx_changed() {
-  double rg_value = gtk_adjustment_get_value(adj_rg);
-  double rs_value = gtk_adjustment_get_value(adj_rs);
-  double rr_value = gtk_adjustment_get_value(adj_rr);
+  float rg_value = (float)gtk_adjustment_get_value(adj_rg);
+  float rs_value = (float)gtk_adjustment_get_value(adj_rs);
+  float rr_value = (float)gtk_adjustment_get_value(adj_rr);
   gtk_adjustment_set_upper(adj_rs, rg_value);
   gtk_adjustment_set_upper(adj_rr, rg_value);
   gtk_adjustment_set_lower(adj_rg, rs_value);
@@ -228,18 +244,18 @@ void on_btn_render_clicked() {
 void on_btn_ring_clicked() {
   g_print("Creating Ring...\n");
   uint nParticles = (uint)gtk_adjustment_get_value(adj_nParticles);
-  double rr = gtk_adjustment_get_value(adj_rr);
-  double rtheta = gtk_adjustment_get_value(adj_rtheta);
-  double rphi = gtk_adjustment_get_value(adj_rphi);
-  double rdr = gtk_adjustment_get_value(adj_rdr);
-  double rdtheta = gtk_adjustment_get_value(adj_rdtheta);
-  double rdphi = gtk_adjustment_get_value(adj_rdphi);
+  float rr = (float)gtk_adjustment_get_value(adj_rr);
+  float rtheta = (float)gtk_adjustment_get_value(adj_rtheta);
+  float rphi = (float)gtk_adjustment_get_value(adj_rphi);
+  float rdr = (float)gtk_adjustment_get_value(adj_rdr);
+  float rdtheta = (float)gtk_adjustment_get_value(adj_rdtheta);
+  float rdphi = (float)gtk_adjustment_get_value(adj_rdphi);
 
   perspectiveCamera camera;
-  camera.pos = { 30.0, 0.0, 0.0 };
-  camera.lookDir = { -1.0, 0.0, 0.0 };
-  camera.upDir = { 0.0, 0.0, 1.0 };
-  camera.fov = 60.0;
+  camera.pos = { 30.0f, 0.0f, 0.0f };
+  camera.lookDir = { -1.0f, 0.0f, 0.0f };
+  camera.upDir = { 0.0f, 0.0f, 1.0f };
+  camera.fov = 60.0f;
   render::setCamera(camera);
   vector rn = { sin(rtheta) * cos(rphi), sin(rtheta) * sin(rphi), cos(rtheta) };
   render::createParticleRing(nParticles, rr, rn, rdr, rdtheta, rdphi, 5, colorPalette);
@@ -253,16 +269,34 @@ void on_window_main_destroy() {
 
 // MainWindow helper functions
 void renderFrame() {
-  render::config(w, h, partRad0, true);
-  render::render();
+  render::config(w, h, partRad0, useHardwAcc);
 
-  std::thread waiter([]() {
+  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+  try {
+    render::render();
+  }
+  catch (int clErr) {
+    std::cout << "OpenCL Error: " << getClErrMsg(clErr) << ", " << clErr << std::endl;
+    return;
+  }
+
+  renderWaiter = std::thread([&]() {
     while (render::isRendering()) {};
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+    double renderTime = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() * 1.0e-9;
+    
+    //if (useHardwAcc) {
+    //  std::cout << "GPU Render Time: " << renderTime << " s" << std::endl;
+    //}
+    //else {
+    //  std::cout << "CPU Render Time: " << renderTime << " s" << std::endl;
+    //}
+
     GBytes* gPixels = g_bytes_new(render::getImageData(), render::sPixels);
-    GdkPixbuf* pixbuf = gdk_pixbuf_new_from_bytes(gPixels, GDK_COLORSPACE_RGB, false, 8, w, h, w * render::bpp / 8);
-    gtk_image_set_from_pixbuf(img_main, pixbuf);
+    framePixBuf = gdk_pixbuf_new_from_bytes(gPixels, GDK_COLORSPACE_RGB, render::bpp == 32, 8, w, h, w * render::bpp / 8);
+    gtk_image_set_from_pixbuf(img_main, framePixBuf);
   });
-  waiter.detach();
+  renderWaiter.detach();
 }
 
 // ColorPaletteWindow events
@@ -312,10 +346,10 @@ void on_btn_close_clicked() {
 void save_color(byte index) {
   GdkRGBA gcolor;
   gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &gcolor);
-  colorPalette[index].r = gcolor.red;
-  colorPalette[index].g = gcolor.green;
-  colorPalette[index].b = gcolor.blue;
-  colorPalette[index].p = gtk_adjustment_get_value(adj_prob);
+  colorPalette[index].r = (float)gcolor.red;
+  colorPalette[index].g = (float)gcolor.green;
+  colorPalette[index].b = (float)gcolor.blue;
+  colorPalette[index].p = (float)gtk_adjustment_get_value(adj_prob);
 
   std::cout << std::endl;
   std::cout << "save_color: colorPalette[index].r = " << colorPalette[index].r << std::endl;
@@ -339,183 +373,16 @@ void load_color(byte index) {
   std::cout << std::endl;
 }
 
+void on_btnSaveUserPreferences_clicked() {
+  
+}
+
 #else
 
-#define _USE_MATH_DEFINES
+#include "tmain.hpp"
 
-#include <cmath>
-#include <chrono>
-#include <iostream>
-
-#include "render.hpp"
-#include "res.hpp"
-
-// Entry point for testing purposes
-int main(int argc, char *argv[]) {
-
-#if false
-  uint w = 1920;
-  uint h = 1080;
-  double rs = 1.0;
-  double rg = 10.0 * rs;
-
-  const uint nParticles = 5000;
-
-  perspectiveCamera camera;
-  camera.pos = { 30.0, 0.0, 0.0 };
-  camera.lookDir = { -1.0, 0.0, 0.0 };
-  camera.upDir = { 0.0, 0.0, 1.0 };
-  camera.fov = 60.0;
-
-  probColor *colorPalette = new probColor[1];
-  for (uint i = 0; i < 1; i++) {
-    colorPalette[i] = { 1.0, 1.0, 1.0, 1.0 };
-  }
-  render::init(rs, rg);
-  render::initHardwAcc(cl::Platform::getDefault(), cl::Device::getDefault());
-  render::createParticleRing(nParticles, 5.0 * rs, { 1.0, -1.0, 1.0 }, 0.1 * rs, 0.1, 0.1, 1, colorPalette);
-  render::setCamera(camera);
-
-  uint nFrames = 100;
-  render::config(w, h, false);
-  std::chrono::high_resolution_clock::time_point tc1 = std::chrono::high_resolution_clock::now();
-  for (uint i = 0; i < nFrames; i++) {
-    render::render();
-    while (render::isRendering()) {};
-  }
-  std::chrono::high_resolution_clock::time_point tc2 = std::chrono::high_resolution_clock::now();
-  double cRenderTime = std::chrono::duration_cast<std::chrono::nanoseconds>(tc2 - tc1).count() * 1.0e-9;
-  double cFrameRate = nFrames / cRenderTime;
-  std::cout << "CPU frame rate: " << cFrameRate << " fps" << std::endl;
-
-  render::config(w, h, true);
-  std::chrono::high_resolution_clock::time_point tg1 = std::chrono::high_resolution_clock::now();
-  for (uint i = 0; i < nFrames; i++) {
-    render::render();
-    while (render::isRendering()) {};
-  }
-  std::chrono::high_resolution_clock::time_point tg2 = std::chrono::high_resolution_clock::now();
-  double gRenderTime = std::chrono::duration_cast<std::chrono::nanoseconds>(tg2 - tg1).count() * 1.0e-9;
-  double gFrameRate = nFrames / gRenderTime;
-  std::cout << "GPU frame rate: " << gFrameRate << " fps" << std::endl;
-
-  std::cin.get();
-#elif false
-  uint w = 1920;
-  uint h = 1080;
-  double rs = 1.0;
-  double rg = 10.0 * rs;
-
-  const uint nParticles = 5000;
-
-  perspectiveCamera camera;
-  camera.pos = { 30.0, 0.0, 0.0 };
-  camera.lookDir = { -1.0, 0.0, 0.0 };
-  camera.upDir = { 0.0, 0.0, 1.0 };
-  camera.fov = 60.0;
-
-  probColor *colorPalette = new probColor[1];
-  for (uint i = 0; i < 1; i++) {
-    colorPalette[i] = { 1.0, 1.0, 1.0, 1.0 };
-  }
-  render::init(rs, rg);
-  render::initHardwAcc(cl::Platform::getDefault(), cl::Device::getDefault());
-  render::createParticleRing(nParticles, 5.0 * rs, { 1.0, -1.0, 1.0 }, 0.1 * rs, 0.1, 0.1, 1, colorPalette);
-  render::setCamera(camera);
-
-  uint nFrames = 100;
-  uint nTests = 10;
-  double *frameRates = new double[nTests];
-  for (int i = 0; i < nTests; i++) {
-    render::config(w, h, true);
-    std::chrono::high_resolution_clock::time_point tg1 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < nFrames; i++) {
-      render::render();
-      while (render::isRendering()) {};
-    }
-    std::chrono::high_resolution_clock::time_point tg2 = std::chrono::high_resolution_clock::now();
-    double gRenderTime = std::chrono::duration_cast<std::chrono::nanoseconds>(tg2 - tg1).count() * 1.0e-9;
-    frameRates[i] = nFrames / gRenderTime;
-    std::cout << "GPU frame rate: " << frameRates[i] << " fps, " << i << std::endl;
-  }
-
-  double frameRateMean = 0.0;
-  double frameRateStdErrMean = 0.0;
-  for (int i = 0; i < nTests; i++) {
-    frameRateMean += frameRates[i];
-  }
-  frameRateMean /= nTests;
-  for (int i = 0; i < nTests; i++) {
-    frameRateStdErrMean += (frameRates[i] - frameRateMean) * (frameRates[i] - frameRateMean);
-  }
-  frameRateStdErrMean = sqrt(frameRateStdErrMean / (nTests - 1));
-
-  std::cout << std::endl;
-  std::cout << "GPU mean frame rate:\t\t\t\t\t" << frameRateMean << " fps" << std::endl;
-  std::cout << "GPU standard deviation of frame rate mean value:\t" << frameRateStdErrMean << " fps" << std::endl;
-
-  delete[] frameRates;
-  std::cin.get();
-#elif true
-  uint w = 1920;
-  uint h = 1080;
-  double rs = 1.0;
-  double rg = 10.0 * rs;
-
-  const uint nParticles = 5000;
-
-  perspectiveCamera camera;
-  camera.pos = { 30.0, 0.0, 0.0 };
-  camera.lookDir = { -1.0, 0.0, 0.0 };
-  camera.upDir = { 0.0, 0.0, 1.0 };
-  camera.fov = 60.0;
-
-  probColor *colorPalette = new probColor[1];
-  for (uint i = 0; i < 1; i++) {
-    colorPalette[i] = { 1.0, 1.0, 1.0, 1.0 };
-  }
-  render::init(rs, rg);
-  render::initHardwAcc(cl::Platform::getDefault(), cl::Device::getDefault());
-  render::createParticleRing(nParticles, 5.0 * rs, { 1.0, -1.0, 1.0 }, 0.1 * rs, 0.1, 0.1, 1, colorPalette);
-  render::setCamera(camera);
-
-  render::config(w, h, partRad0, true);
-  render::render();
-  while (render::isRendering()) {};
-  byte *pixels = render::getImageData();
-
-  for (uint i = 0; i < render::sPixels; i++) {
-    if (pixels[i] != 0) {
-      std::cout << (int)pixels[i] << "\t" << i << "\n";
-    }
-  }
-  std::cin.get();
-#endif
-
-  //const uint nTest = 4;
-  //byte *test = new byte[nTest];
-
-  //for (int i = 0; i < nTest; i++) {
-  //  test[i] = (byte)i;
-  //}
-
-  //for (int i = 0; i < nTest; i++) {
-  //  std::cout << (int)test[i] << std::endl;
-  //}
-  //std::cout << std::endl;
-
-  //uint t = (42 << 24) | (24 << 16) | (42 << 8) | test[0];
-
-  //((uint*)((void*)test))[0] = t;
-
-  //for (int i = 0; i < nTest; i++) {
-  //  std::cout << (int)test[i] << std::endl;
-  //}
-
-  //std::cin.get();
-  //delete[] test;
-
-  return 0;
+int main(int argc, char** argv) {
+	return tmain(argc, argv);
 }
 
 #endif

@@ -17,7 +17,7 @@
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <object class="GtkButton">
+              <object class="GtkButton" id="btnSaveUserPreferences">
                 <property name="label" translatable="yes">Save User Preferences</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -49,6 +49,7 @@
                 <property name="margin_right">5</property>
                 <property name="margin_top">5</property>
                 <property name="margin_bottom">5</property>
+                <property name="icon_size">0</property>
                 <property name="stack">stack1</property>
               </object>
               <packing>
@@ -156,7 +157,7 @@
                             <property name="margin_right">5</property>
                             <property name="margin_top">5</property>
                             <property name="margin_bottom">5</property>
-                            <property name="stack">stack2</property>
+                            <property name="stack">stackDevices</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -165,7 +166,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkStack" id="stack2">
+                          <object class="GtkStack" id="stackDevices">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <child>

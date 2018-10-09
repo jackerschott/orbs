@@ -17,22 +17,22 @@ uint randInt(uint max) {
 int randInt(int min, int max) {
   return rng() % (max - min) + min + 1;
 }
-double randDouble() {
-  return (double)rng() / UINT_MAX;
+float randDouble() {
+  return (float)rng() / UINT_MAX;
 }
-double randDouble(double max) {
-  return (double)rng() / UINT_MAX * max;
+float randDouble(float max) {
+  return (float)rng() / UINT_MAX * max;
 }
-double randDouble(double min, double max) {
-  return (double)rng() / UINT_MAX * (max - min) + min;
+float randDouble(float min, float max) {
+  return (float)rng() / UINT_MAX * (max - min) + min;
 }
-double normPdf(double d) {
+float normPdf(float d) {
   std::default_random_engine generator;
   generator.seed(rng());
-  std::normal_distribution<double> distribution(0, d);
+  std::normal_distribution<float> distribution(0, d);
   return distribution(generator);
 }
-template<typename T> T selectObject(uint nObjects, std::pair<T, double> *collection) {
+template<typename T> T selectObject(uint nObjects, std::pair<T, float> *collection) {
   std::default_random_engine generator;
   generator.seed(rng());
   std::uniform_int_distribution<uint> distribution(0, UINT_MAX - 1);

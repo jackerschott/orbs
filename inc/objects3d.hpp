@@ -9,40 +9,40 @@ struct color {
   byte b;
 };
 struct probColor {
-  double r;
-  double g;
-  double b;
-  double p;
+  float r;
+  float g;
+  float b;
+  float p;
 };
 struct particle {
-  double r;
-  double theta;
-  double phi;
-  double vr;
-  double vtheta;
-  double vphi;
+  float r;
+  float theta;
+  float phi;
+  float vr;
+  float vtheta;
+  float vphi;
   color pcolor;
 };
 struct vector {
-  double x;
-  double y;
-  double z;
+  float x;
+  float y;
+  float z;
 
-  double getLength();
+  float getLength();
   static vector crossProduct(vector v1, vector v2);
-  static double dotProduct(vector v1, vector v2);
+  static float dotProduct(vector v1, vector v2);
 
   vector operator +(vector v);
   vector operator -(vector v);
-  vector operator *(double d);
-  vector operator /(double d);
+  vector operator *(float d);
+  vector operator /(float d);
   vector operator -();
 };
 struct perspectiveCamera {
   vector pos;
   vector lookDir;
   vector upDir;
-  double fov;
+  float fov;
 };
 
 #endif
