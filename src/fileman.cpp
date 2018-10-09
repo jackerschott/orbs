@@ -5,7 +5,7 @@
 #include "res.hpp"
 
 
-bool loadFile(const char* path, std::string& text, std::string* errMsg = nullptr) {
+bool loadFile(const char* path, std::string& text, std::string* errMsg) {
 	std::string fileText;
 
 	std::ifstream fileStream(path, std::ios::ate);
@@ -22,10 +22,10 @@ bool loadFile(const char* path, std::string& text, std::string* errMsg = nullptr
 	else {
 		if (errMsg != nullptr)
 			*errMsg = std::string("Error while opening ") + path + "\n";
-		*text = std::string();
+		text = std::string();
 		return false;
 	}
 
-	*text = fileText;
+	text = fileText;
 	return true;
 }

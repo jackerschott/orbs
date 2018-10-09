@@ -2,7 +2,7 @@
 
 namespace cl {
 	const char* getErrMsg(int err) {
-		switch (clErr) {
+		switch (err) {
 		case 0: return "CL_SUCCESS";
 		case -1: return "CL_DEVICE_NOT_FOUND";
 		case -2: return "CL_DEVICE_NOT_AVAILABLE";
