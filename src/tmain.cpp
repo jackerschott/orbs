@@ -1,16 +1,11 @@
 #define _USE_MATH_DEFINES
 
-#define ENCODER_PATH "E:/Benutzerdateien/Documents/Visual Studio 2017/Projects/PngEncoder/PngEncoder/bin/Release/PngEncoder.exe"
-#define TMP_IMG_DATA_PATH "E:/tmp/imgbin"
-#define IMG_PATH "E:/tmp/img.png"
-
 #include <chrono>
 #include <fstream>
 #include <GL/glew.h>
 #include <iostream>
 #include <cmath>
 #include <SDL.h>
-#include <windows.h>
 
 #include "glWrapper/glwrap.hpp"
 
@@ -21,7 +16,6 @@
 #define FRAGMENT_SHADER_SRC_PATH ""
 
 void initRenderSample(bool hardwAcc = true);
-int encodePng(const char* dataPath, const char* imgPath);
 
 // Entry point for testing purposes
 int tmain(int argc, char** argv) {
@@ -69,15 +63,6 @@ int tmain(int argc, char** argv) {
 	//while (render::isRendering()); 
 	//byte* imageData = render::getImageData();
 
-	//std::ofstream imgStream(TMP_IMG_DATA_PATH, std::ios::binary);
-	//imgStream.write(reinterpret_cast<char*>(&render::pWidth), sizeof(uint));
-	//imgStream.write(reinterpret_cast<char*>(&render::pHeight), sizeof(uint));
-	//imgStream.write(reinterpret_cast<char*>((uint*)&render::bpp), sizeof(uint));
-	//imgStream.write(reinterpret_cast<char*>(imageData), render::sPixelData);
-	//imgStream.close();
-	//encodePng(TMP_IMG_DATA_PATH, IMG_PATH);
-	//std::remove(TMP_IMG_DATA_PATH);
-
 	//SDL_GL_DeleteContext(contextMain);
 	SDL_DestroyWindow(windowMain);
 	SDL_Quit();
@@ -112,17 +97,4 @@ void initRenderSample(bool hardwAcc) {
 	render::setCamera(camera);
 
 	render::config(w, h, partRad0, hardwAcc);
-}
-int encodePng(const char* dataPath, const char* imgPath) {
-	STARTUPINFO si = { 0 };
-	PROCESS_INFORMATION pi = { 0 };
-	si.cb = sizeof(si);
-
-	std::string cmdLine = "\"" + std::string(ENCODER_PATH) + "\" " + std::string(dataPath) + " " + std::string(imgPath);
-	CreateProcess(ENCODER_PATH, (char*)cmdLine.c_str(), nullptr, nullptr, false, 0, nullptr, nullptr, &si, &pi);
-
-	WaitForSingleObject(pi.hProcess, INFINITE);
-	CloseHandle(pi.hProcess);
-	CloseHandle(pi.hThread);
-	return 0;
 }

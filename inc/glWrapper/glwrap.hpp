@@ -27,7 +27,7 @@ namespace gl {
 #define N_SHADERS 2
 	class program {
 	public:
-		program(const char* vertexShader, const char* fragmentShader);
+		program(const char* vertexShader, const char* fragmentShader, std::string* err = nullptr);
 		virtual ~program();
 
 		void bind();
@@ -35,6 +35,8 @@ namespace gl {
 	private:
 		GLuint prog;
 		GLuint shaders[N_SHADERS];
+
+		bool hasLoadedShader;
 	};
 
 #define N_MESH_ARRAYS 4

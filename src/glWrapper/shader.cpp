@@ -5,16 +5,30 @@ namespace gl {
 #define N_SRCS 1
 	GLuint createShader(std::string& src, uint shaderType);
 
-	program::program(const char* vertexShaderSrcPath, const char* fragmentShaderSrcPath) {
+	program::program(const char* vertexShaderSrcPath, const char* fragmentShaderSrcPath, std::string* err) {
 		std::string vertexShaderSrc;
 		std::string fragmentShaderSrc;
+		std::string shaderLoadErrMsg;
+		hasLoadedShader = true;
 		
 		prog = glCreateProgram();
-		if (loadFile(vertexShaderSrcPath, vertexShaderSrc)) {
+		if (loadFile(vertexShaderSrcPath, vertexShaderSrc, &shaderLoadErrMsg)) {
 			shaders[SHADER_VERTEX] = createShader(vertexShaderSrc, GL_VERTEX_SHADER);
 		}
-		if (loadFile(vertexShaderSrcPath, vertexShaderSrc)) {
+		else {
+			if (err != nullptr)
+				*err = shaderLoadErrMsg;
+			hasLoadedShader = false;
+			return;
+		}
+		if (loadFile(vertexShaderSrcPath, vertexShaderSrc, &shaderLoadErrMsg)) {
 			shaders[SHADER_FRAGMENT] = createShader(fragmentShaderSrc, GL_FRAGMENT_SHADER);
+		}
+		else {
+			if (err != nullptr)
+				*err = shaderLoadErrMsg;
+			hasLoadedShader = false;
+			return;
 		}
 		
 		glAttachShader(prog, shaders[SHADER_VERTEX]);
@@ -29,10 +43,12 @@ namespace gl {
 	}
 
 	program::~program() {
-		glDetachShader(prog, shaders[SHADER_VERTEX]);
-		glDetachShader(prog, shaders[SHADER_FRAGMENT]);
-		glDeleteShader(shaders[SHADER_VERTEX]);
-		glDeleteShader(shaders[SHADER_FRAGMENT]);
+		if (hasLoadedShader) {
+			glDetachShader(prog, shaders[SHADER_VERTEX]);
+			glDetachShader(prog, shaders[SHADER_FRAGMENT]);
+			glDeleteShader(shaders[SHADER_VERTEX]);
+			glDeleteShader(shaders[SHADER_FRAGMENT]);
+		}
 		glDeleteProgram(prog);
 	}
 

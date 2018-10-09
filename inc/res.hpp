@@ -1,12 +1,11 @@
 #ifndef RES_HPP
 #define RES_HPP
 
+#include <GL/glew.h>
 #include <string>
 
-#include <GL/glew.h>
-
 typedef unsigned int uint;
-typedef unsigned long long ulong;
+typedef size_t ulong;
 
 extern const char* kerPath;
 extern const char* kerOptsPath;
