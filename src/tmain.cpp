@@ -5,7 +5,7 @@
 #include <GL/glew.h>
 #include <iostream>
 #include <cmath>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 #include "glWrapper/glwrap.hpp"
 

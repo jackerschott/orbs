@@ -380,6 +380,7 @@ void on_btnSaveUserPreferences_clicked() {
 #else
 
 #include "tmain.hpp"
+#include <iostream>
 
 int main(int argc, char** argv) {
 	return tmain(argc, argv);
