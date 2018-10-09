@@ -2,6 +2,7 @@
 #define RNG_HPP
 
 #include <utility>
+#include <climits>
 
 typedef unsigned char byte;
 typedef unsigned int uint;
