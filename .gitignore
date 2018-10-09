@@ -7,12 +7,11 @@
 /BlackHoleSimulation.ilk
 /BlackHoleSimulation.exe
 /.gitattributes
+/.gitignore
 /linux_compile.bat
 /black_hole_simulation.exe
 /black_hole_simulation
 /compile_commands.txt
-/src/tmain.cpp
-/inc/tmain.hpp
 /gpp.bat
 /cl_compile_options.txt
 /BlackHoleSimulation.ipdb
