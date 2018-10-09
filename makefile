@@ -6,11 +6,11 @@ endif
 
 ifeq ($(detected_OS),Windows)
     OSFLAGS := -D WIN32
-		TARGET := black_hole_simulation.exe
+    TARGET := black_hole_simulation.exe
 endif
 ifeq ($(detected_OS),Linux)
     OSFLAGS := -D LINUX -fno-pie -no-pie
-		TARGET := black_hole_simulation
+    TARGET := black_hole_simulation
 endif
 
 CC := g++
@@ -23,4 +23,4 @@ CPP := src/main.cpp src/render.cpp src/res.cpp src/rng.cpp
 HPP := inc/render.hpp inc/res.hpp inc/rng.hpp inc/objects3d.hpp
 
 all: $(CPP) $(HPP)
-	$(CC) $(CPP) $(CFLAGS) -o $(TARGET)
+    $(CC) $(CPP) $(CFLAGS) -o $(TARGET)
