@@ -26,8 +26,8 @@ endif
 
 CC := g++
 
-CPP := src/fileman.cpp src/main.cpp src/objects3d.cpp src/render.cpp src/res.cpp src/rng.cpp src/tmain.cpp src/clWrapper/clwrap.cpp src/glWrapper/glwrap.cpp
-HPP := inc/fileman.hpp inc/objects3d.hpp inc/randutils.hpp inc/render.hpp inc/res.hpp inc/rng.hpp inc/tmain.hpp inc/clWrapper/clwrap.hpp inc/glWrapper/glwrap.hpp
+CPP := src/main.cpp src/fileman.cpp src/render.cpp src/res.cpp src/rng.cpp src/tmain.cpp src/clWrapper/clwrap.cpp src/glWrapper/glwrap.cpp
+HPP := inc/fileman.hpp inc/randutils.hpp inc/render.hpp inc/res.hpp inc/rng.hpp inc/tmain.hpp inc/clWrapper/clwrap.hpp inc/glWrapper/glwrap.hpp
 
 all: $(CPP) $(HPP)
 	$(CC) $(CPP) $(CFLAGS) -o $(TARGET)
