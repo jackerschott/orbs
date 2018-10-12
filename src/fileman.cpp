@@ -8,16 +8,10 @@
 bool loadFile(const char* path, std::string& text, std::string* errMsg) {
 	std::string fileText;
 
-	std::ifstream fileStream(path, std::ios::ate);
+	std::ifstream fileStream(path);
 	if (fileStream.is_open()) {
-		uint textSize = (uint)fileStream.tellg();
-		char* text = new char[textSize];
-		fileStream.seekg(0, std::ios::beg);
-		fileStream.read(text, textSize);
+    fileText = std::string(std::istreambuf_iterator<char>(fileStream), (std::istreambuf_iterator<char>()));
 		fileStream.close();
-
-		fileText = std::string(text, textSize);
-		delete[] text;
 	}
 	else {
 		if (errMsg != nullptr)

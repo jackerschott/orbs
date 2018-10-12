@@ -2,6 +2,7 @@
 #define CLWRAP_HPP
 
 #include <CL/cl.hpp>
+#include <string>
 
 namespace cl {
 
@@ -315,7 +316,7 @@ namespace cl {
 		kernel.setArg<T1>(0, arg1);
 	}
 
-	const char* getErrMsg(int err);
+	std::string getErrMsg(int err);
 }
 
 #endif

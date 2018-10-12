@@ -1,7 +1,7 @@
 #include "clWrapper/clwrap.hpp"
 
 namespace cl {
-	const char* getErrMsg(int err) {
+	std::string getErrMsg(int err) {
 		switch (err) {
 		case 0: return "CL_SUCCESS";
 		case -1: return "CL_DEVICE_NOT_FOUND";

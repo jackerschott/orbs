@@ -3,10 +3,21 @@
 
 #include "res.hpp"
 
-const char* kerPath = "E:\\Benutzerdateien\\Documents\\GitHub\\black-hole-simulation\\src\\ker\\render.cl";
-const char* kerOptsPath = "E:\\Benutzerdateien\\Documents\\GitHub\\black-hole-simulation\\cl_compile_options.txt";
+// OpenGL
+const char* glPtShaderIns[] = {
+    "pos",
+    "color"
+};
+const char* glPtShaderUniforms[] = {
+    "viewProj"
+};
 
-const uint nKer = 3;
-const char *kerNames[] = { "renderBg", "computePtProj", "drawPtShapes" };
+const char* glBgShaderIns[] = {
+  "pos",
+  "texCoord"
+};
 
-const uint partRad0 = 3;
+// OpenCL
+const char* kernelNames[] = {
+  "getPtPositions"
+};

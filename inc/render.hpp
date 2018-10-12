@@ -4,11 +4,49 @@
 // Device: NVIDIA GeForce GTX 1080 Ti with OpenCL 1.2 CUDA
 #include <CL/cl.hpp>
 
-#include "objects3d.hpp"
 #include "res.hpp"
 
-typedef unsigned char byte;
-typedef unsigned int uint;
+typedef glm::vec3 vector;
+
+struct camera;
+struct color24;
+union color32;
+struct color;
+struct colorBlur;
+
+struct camera {
+  vector pos;
+  vector lookDir;
+  vector upDir;
+  float fov;
+  float aspect;
+  float zNear;
+  float zFar;
+};
+struct color24 {
+  byte r;
+  byte g;
+  byte b;
+};
+union color32 {
+  struct {
+    byte r;
+    byte g;
+    byte b;
+    byte a;
+  };
+  int data;
+};
+struct color {
+  float r;
+  float g;
+  float b;
+  float a;
+};
+struct colorBlur {
+  color clr;
+  float size;
+};
 
 namespace render {
   extern float rs;
@@ -18,18 +56,16 @@ namespace render {
   extern const uint bpp;
   extern ulong sPixelData;
 
-  byte* getImageData();
   bool isRendering();
 
-  void init(float _rs, float _rg);
-  void initHardwAcc(cl::Platform _platform, cl::Device _device);
-  void createParticleRing(ulong nParticles, float rr, vector rn,
+  void init(float _rs, float _rg, bool _hardwAcc = true);
+  void initHardwAcc(cl::Device device, cl::Context context);
+  void createParticleRing(uint nParticles, float rr, vector rn,
     float rdr, float rdtheta, float rdphi,
-    uint nColors, probColor* rparticleColorPalette);
+    uint nColors, colorBlur* rparticleColorPalette);
   void clearParticleRings();
-  void setCamera(perspectiveCamera _camera);
+  void setObserver(camera _observer);
   void setBackground(uint sData, byte* data, uint width, uint height, uint bpp);
-  void config(uint _pWidth, uint _pHeight, uint partRad, bool _hardwAcc);
   void render();
   void close();
 }

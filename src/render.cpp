@@ -13,304 +13,335 @@
 #include <thread>
 #include <utility>
 
-#include <GL/glew.h>
+// OpenGL Version: 4.6.0 NVIDIA 397.44
+// OpenGL Shading Language Version: 4.60 NVIDIA
 
 #include "clWrapper/clwrap.hpp"
 #include "glWrapper/glwrap.hpp"
 #include "rng.hpp"
 #include "render.hpp"
 
-#define USE_GL true
-
 namespace render {
-  bool isInit = false;
-  bool isHardwAccInit = false;
-  bool _isRendering;
+  // Physics Data
+  float rs;
+  float rg;
+  uint nParticles;
+  float* ptR;
+  float* ptTheta;
+  float* ptPhi;
+  color* ptColor;
+  camera observer;
+  bool isRel = false;
 
-  uint pWidth;
-  uint pHeight;
-  const uint bpp = 24;
-  ulong sPixelData;
-  byte *pixelData;
-
+  // Background Texture
   uint bgWidth;
   uint bgHeight;
   uint bgBpp;
-  ulong bgSPixels;
-  byte *bgPixels;
+  ulong bgSImageData;
+  byte *bgImageData;
 
-  uint ptNPixels;
-  int *PtProjX;
-  int *PtProjY;
-  int *screenRelX;
-  int *screenRelY;
-  float* screenRelFac;
+  // OpenGL Variables
+  GLuint bgProgram;
+  GLuint bgVertShader;
+  GLuint bgFragShader;
 
+  GLuint ptProgram;
+  GLuint ptVertShader;
+  GLuint ptFragShader;
+
+  GLuint glBg;
+  GLuint glBgTexture;
+  GLuint glBgPositionBuffer;
+  GLuint glBgTexCoordBuffer;
+  glm::vec2 bgTexCoord[4];
+
+  GLuint glParticles;
+  GLuint glPtPositionBuf;
+  GLuint ptColorBuf;
+
+  std::chrono::high_resolution_clock::time_point t0;
+  glm::mat4 persp;
+  GLint glViewProj;
+
+  // OpenCL Variables
+  cl::Program clProgram;
+  cl::Context clContext;
+  cl::CommandQueue clQueue;
+
+  cl::Kernel kernelGetPtPositions;
+
+  // Configuration Details
+  bool isInit = false;
+  bool isHardwAccInit = false;
   bool hardwAcc = false;
-  uint maxSWGroup;
-  cl::Platform platform;
-  cl::Device device;
-  cl::Context context;
-  cl::Program program;
-  cl::CommandQueue queue;
-  int clErr;
+  bool _isRendering;
 
-  cl::Kernel kerRenderBg;
-  cl::Buffer bufBgPixels;
-
-  cl::Kernel kerComputePtProj;
-  cl::Buffer bufPtR;
-  cl::Buffer bufPtTheta;
-  cl::Buffer bufPtPhi;
-
-  cl::Kernel kerDrawPtShapes;
-  cl::Buffer bufPtProjRelX;
-  cl::Buffer bufPtProjRelY;
-  cl::Buffer bufPtProjRelCFac;
-  cl::Buffer bufPtCR;
-  cl::Buffer bufPtCG;
-  cl::Buffer bufPtCB;
-
-  float rs;
-  float rg;
-  ulong nParticles;
-  particle* particles;
-  probColor *particleColorPalette;
-  perspectiveCamera camera;
-  bool isRelativistic = false;
-
-  void onChangeParticleNumber();
-  void onChangeParticlePos();
   void renderCla();
   void renderClaGpu();
-	void renderClaGpuGL();
   void renderRel();
   void renderRelGpu();
-  float m(float x, float y, float s);
 
-  byte* getImageData() {
-    return pixelData;
-  }
   bool isRendering() {
     return _isRendering;
   }
 
-  void init(float _rs, float _rg) {
+  void init(float _rs, float _rg, bool _hardwAcc) {
     rs = _rs;
     rg = _rg;
+    hardwAcc = _hardwAcc;
 
     isInit = true;
   }
-  void initHardwAcc(cl::Platform _platform, cl::Device _device) {
-    platform = _platform;
-    device = _device;
+  void initHardwAcc(cl::Device device, cl::Context context) {
+    glewInit();
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    for (maxSWGroup = 1; maxSWGroup <= CL_DEVICE_MAX_WORK_GROUP_SIZE; maxSWGroup <<= 1); maxSWGroup >>= 1;
+    std::string source;
+    const char* src;
+    int len;
 
-    std::string log;
-    std::ifstream kerOptsFile(kerOptsPath);
-    std::string kerOpts(std::istreambuf_iterator<char>(kerOptsFile), (std::istreambuf_iterator<char>()));
-    std::ifstream kernelFile(kerPath);
-    std::string src(std::istreambuf_iterator<char>(kernelFile), (std::istreambuf_iterator<char>()));
+    ptVertShader = glCreateShader(GL_VERTEX_SHADER);
+    loadFile(PT_VERTEX_SHADER_SRC_PATH, source);
+    src = source.c_str();
+    len = (int)source.length();
+    glShaderSource(ptVertShader, 1, &src, &len);
 
-    cl::Program::Sources sources(1);
-    sources[0] = std::pair<const char*, uint>(src.c_str(), (uint)src.length());
+    ptFragShader = glCreateShader(GL_FRAGMENT_SHADER);
+    loadFile(PT_FRAGMENT_SHADER_SRC_PATH, source);
+    src = source.c_str();
+    len = (int)source.length();
+    glShaderSource(ptFragShader, 1, &src, &len);
 
-    context = cl::Context(device);
-    program = cl::Program(context, sources, &clErr);
-    clErr = program.build(kerOpts.c_str());
-    program.getBuildInfo(device, CL_PROGRAM_BUILD_LOG, &log);
-    if (strcmp(log.c_str(), "\n") != 0) {
-      std::cout << log << std::endl;
-      std::cin.get();
+    ptProgram = glCreateProgram();
+    glCompileShader(ptVertShader);
+    if (gl::checkForShaderErr(ptVertShader, GL_COMPILE_STATUS)) {
+      std::cerr << gl::getShaderInfoLog(ptVertShader) << std::endl;
     }
-    if (clErr != 0)
-      throw clErr;
+    glAttachShader(ptProgram, ptVertShader);
 
-    kerRenderBg = cl::Kernel(program, kerNames[0], &clErr);
-    if (clErr != 0)
-      throw clErr;
-    kerComputePtProj = cl::Kernel(program, kerNames[1], &clErr);
-    if (clErr != 0)
-      throw clErr;
-    kerDrawPtShapes = cl::Kernel(program, kerNames[2], &clErr);
-    if (clErr != 0)
-      throw clErr;
+    glCompileShader(ptFragShader);
+    if (gl::checkForShaderErr(ptFragShader, GL_COMPILE_STATUS)) {
+      std::cerr << gl::getShaderInfoLog(ptFragShader) << std::endl;
+    }
+    glAttachShader(ptProgram, ptFragShader);
 
-    queue = cl::CommandQueue(context, device);
-    
+    for (uint i = 0; i < NUM_PT_SHADER_ATTR; i++) {
+      glBindAttribLocation(ptProgram, i, glPtShaderIns[i]);
+    }
+    glLinkProgram(ptProgram);
+    if (gl::checkForProgramErr(ptProgram, GL_LINK_STATUS)) {
+      std::cerr << gl::getProgramInfoLog(ptProgram) << std::endl;
+    }
+    glValidateProgram(ptProgram);
+    if (gl::checkForProgramErr(ptProgram, GL_VALIDATE_STATUS)) {
+      std::cerr << gl::getProgramInfoLog(ptProgram) << std::endl;
+    }
+
+
+    //bgVertShader = glCreateShader(GL_VERTEX_SHADER);
+    //loadFile(BG_VERTEX_SHADER_SRC_PATH, source);
+    //src = source.c_str();
+    //len = (int)source.length();
+    //glShaderSource(bgVertShader, 1, &src, &len);
+
+    //bgFragShader = glCreateShader(GL_FRAGMENT_SHADER);
+    //loadFile(BG_FRAGMENT_SHADER_SRC_PATH, source);
+    //src = source.c_str();
+    //len = (int)source.length();
+    //glShaderSource(bgFragShader, 1, &src, &len);
+
+    //bgProgram = glCreateProgram();
+    //glCompileShader(bgVertShader);
+    //if (gl::checkForShaderErr(bgVertShader, GL_COMPILE_STATUS)) {
+    //  std::cerr << gl::getProgramInfoLog(bgVertShader) << std::endl;
+    //}
+    //glAttachShader(bgProgram, bgVertShader);
+
+    //glCompileShader(bgFragShader);
+    //if (gl::checkForShaderErr(bgFragShader, GL_COMPILE_STATUS)) {
+    //  std::cerr << gl::getProgramInfoLog(bgFragShader) << std::endl;
+    //}
+    //glAttachShader(bgProgram, bgFragShader);
+
+    //for (int i = 0; i < NUM_BG_SHADER_ATTR; i++) {
+    //  glBindAttribLocation(bgProgram, i, glBgShaderIns[i]);
+    //}
+    //glLinkProgram(bgProgram);
+    //if (gl::checkForProgramErr(bgProgram, GL_LINK_STATUS)) {
+    //  std::cerr << gl::getProgramInfoLog(bgProgram) << std::endl;
+    //}
+    //glValidateProgram(bgProgram);
+    //if (gl::checkForProgramErr(bgProgram, GL_VALIDATE_STATUS)) {
+    //  std::cerr << gl::getProgramInfoLog(bgProgram) << std::endl;
+    //}
+
+
+    clContext = context;
+
+    int clErr;
+    std::string clSource;
+    loadFile(RENDER_KERNEL_SRC_PATH, clSource);
+    clProgram = cl::Program(clContext, clSource);
+    clErr = clProgram.build();
+    if (clErr != 0) {
+      std::cerr << clProgram.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
+      throw clErr;
+    }
+
+    clQueue = cl::CommandQueue(clContext, device);
+
     isHardwAccInit = true;
   }
-  void createParticleRing(ulong rnParticles, float rr, vector rn,
+  void createParticleRing(uint rnParticles, float rr, vector rn,
       float rdr, float rdtheta, float rdphi,
-      uint nColors, probColor* rparticleColorPalette) {
+      uint nColors, colorBlur* rPtColorPalette) {
 
-    particle* newParticles = new particle[nParticles + rnParticles];
+    float* newPtR = new float[nParticles + rnParticles];
+    float* newPtTheta = new float[nParticles + rnParticles];
+    float* newPtPhi = new float[nParticles + rnParticles];
+    color* newPtColor = new color[nParticles + rnParticles];
     for (ulong i = 0; i < nParticles; i++) {
-      newParticles[i] = particles[i];
+      newPtR[i] = ptR[i];
+      newPtTheta[i] = ptTheta[i];
+      newPtPhi[i] = ptPhi[i];
+      newPtColor[i] = ptColor[i];
     }
     for (ulong i = nParticles; i < nParticles + rnParticles; i++) {
-      newParticles[i].r = rr + normPdf(rdr / 2.0f);
+      newPtR[i] = rr + normPdf(rdr / 2.0f);
       if (rn.z == 0.0) {
-        newParticles[i].theta = randDouble(PI);
+        newPtTheta[i] = randFloat(PI);
         if (rn.y == 0.0) {
-          newParticles[i].phi = normPdf(rdphi / 2.0f) + randInt(0, 1) * PI;
+          newPtPhi[i] = normPdf(rdphi / 2.0f) + randInt(0, 1) * PI;
         }
         else {
-          newParticles[i].phi = normPdf(rdphi / 2.0f) - atan(rn.x / rn.y) + PI_2 + randInt(0, 1) * PI;
+          newPtPhi[i] = normPdf(rdphi / 2.0f) - atan(rn.x / rn.y) + PI_2 + randInt(0, 1) * PI;
         }
       }
       else {
-        newParticles[i].phi = randDouble(2.0f * PI);
-        if (rn.x * cos(newParticles[i].phi) + rn.y * sin(newParticles[i].phi) == 0.0f) {
-          newParticles[i].theta = normPdf(rdtheta / 2.0f) + PI_2;
+        newPtPhi[i] = randFloat(2.0f * PI);
+        if (rn.x * cos(newPtPhi[i]) + rn.y * sin(newPtPhi[i]) == 0.0f) {
+          newPtTheta[i] = normPdf(rdtheta / 2.0f) + PI_2;
         }
         else {
-          newParticles[i].theta = normPdf(rdtheta / 2.0f) - atan(rn.z / (rn.x * cos(newParticles[i].phi) + rn.y * sin(newParticles[i].phi))) + PI;
-          if (newParticles[i].theta > PI) {
-            newParticles[i].theta -= PI;
+          newPtTheta[i] = normPdf(rdtheta / 2.0f) - atan(rn.z / (rn.x * cos(newPtPhi[i]) + rn.y * sin(newPtPhi[i]))) + PI;
+          if (newPtTheta[i] > PI) {
+            newPtTheta[i] -= PI;
           }
         }
       }
-      newParticles[i].vr = 0.0;
-      newParticles[i].vphi = 1.0;
-      newParticles[i].vtheta = 0.0;
-      newParticles[i].pcolor = { 255, 255, 255 };
+      newPtColor[i] = { 1.0f, 0.3f, 0.0f, 0.05f };//selectObject<color>(nColors, reinterpret_cast<std::pair<color, float>*>(rPtColorPalette));
     }
 
-    delete[] particles;
-    particles = newParticles;
+    delete[] ptR;
+    delete[] ptTheta;
+    delete[] ptPhi;
+    delete[] ptColor;
+    ptR = newPtR;
+    ptTheta = newPtTheta;
+    ptPhi = newPtPhi;
+    ptColor = newPtColor;
     nParticles += rnParticles;
 
-    onChangeParticleNumber();
+    glGenVertexArrays(1, &glParticles);
+    glBindVertexArray(glParticles);
+
+    glGenBuffers(1, &glPtPositionBuf);
+    glBindBuffer(GL_ARRAY_BUFFER, glPtPositionBuf);
+    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(cl_float4), nullptr, GL_STATIC_DRAW);
+
+    glFinish();
+
+    cl::Kernel kernelGetPtPositions(clProgram, kernelNames[GET_PT_POSITIONS]);
+    cl::Buffer posBuffer = cl::BufferGL(clContext, CL_MEM_READ_WRITE, glPtPositionBuf);
+    cl::Buffer rBuffer = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(float), ptR);
+    cl::Buffer thetaBuffer = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(float), ptTheta);
+    cl::Buffer phiBuffer = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(float), ptPhi);
+
+    cl::setKernelArgs(kernelGetPtPositions, posBuffer, rBuffer, thetaBuffer, phiBuffer);
+    std::vector<cl::Memory> glObjects = { posBuffer };
+    clQueue.enqueueAcquireGLObjects(&glObjects);
+    clQueue.finish();
+    clQueue.enqueueNDRangeKernel(kernelGetPtPositions, cl::NullRange, cl::NDRange(nParticles));
+    clQueue.finish();
+    clQueue.enqueueReleaseGLObjects(&glObjects);
+    clQueue.finish();
+
+    cl::finish();
+    glFlush();
+
+    glEnableVertexAttribArray(PT_POS);
+    glVertexAttribPointer(PT_POS, 4, GL_FLOAT, false, 0, (void*)0);
+
+    glGenBuffers(1, &ptColorBuf);
+    glBindBuffer(GL_ARRAY_BUFFER, ptColorBuf);
+    glBufferData(GL_ARRAY_BUFFER, (int)nParticles * sizeof(color), ptColor, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(PT_COLOR);
+    glVertexAttribPointer(PT_COLOR, 4, GL_FLOAT, false, 0, (void*)0);
+
+    glBindVertexArray(0);
   }
   void clearParticleRings()
   {
-    delete[] particles;
-    particles = new particle[0];
+    delete[] ptR;
+    delete[] ptTheta;
+    delete[] ptPhi;
+    delete[] ptColor;
+
+    ptR = new float[0];
+    ptTheta = new float[0];
+    ptPhi = new float[0];
+    ptColor = new color[0];
     nParticles = 0;
+  }
+  void setObserver(camera _observer) {
+    _observer.lookDir = glm::normalize(_observer.lookDir);
+    _observer.upDir = glm::normalize(_observer.upDir);
+    observer = _observer;
 
-    onChangeParticleNumber();
-  }
-  void onChangeParticleNumber() {
-    delete[] PtProjX;
-    delete[] PtProjY;
-    PtProjX = new int[nParticles];
-    PtProjY = new int[nParticles];
-    byte *pCR = new byte[nParticles];
-    byte *pCG = new byte[nParticles];
-    byte *pCB = new byte[nParticles];
-    for (uint i = 0; i < nParticles; i++) {
-      pCR[i] = particles[i].pcolor.r;
-      pCG[i] = particles[i].pcolor.g;
-      pCB[i] = particles[i].pcolor.b;
-    }
-    bufPtCR = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(byte), pCR, &clErr);
-    bufPtCG = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(byte), pCG, &clErr);
-    bufPtCB = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(byte), pCB, &clErr);
-    delete[] pCR;
-    delete[] pCG;
-    delete[] pCB;
+    glViewProj = glGetUniformLocation(ptProgram, glPtShaderUniforms[PT_VIEW_PROJ]);
+    persp = glm::perspective(glm::radians(observer.fov), observer.aspect, observer.zNear, observer.zFar);
+    glm::mat4 vp = persp * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
+    glUniformMatrix4fv(glViewProj, 1, false, &vp[0][0]);
 
-    onChangeParticlePos();
-  }
-  void onChangeParticlePos() {
-    float *pR = new float[nParticles];
-    float *pTheta = new float[nParticles];
-    float *pPhi = new float[nParticles];
-    for (uint i = 0; i < nParticles; i++) {
-      pR[i] = (float)particles[i].r;
-      pTheta[i] = (float)particles[i].theta;
-      pPhi[i] = (float)particles[i].phi;
-    }
-    bufPtR = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(float), pR, &clErr);
-    bufPtTheta = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(float), pTheta, &clErr);
-    bufPtPhi = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(float), pPhi, &clErr);
-    delete[] pR;
-    delete[] pTheta;
-    delete[] pPhi;
-  }
-  void setCamera(perspectiveCamera _camera) {
-    _camera.lookDir = _camera.lookDir / _camera.lookDir.getLength();
-    _camera.upDir = _camera.upDir / _camera.upDir.getLength();
-    camera = _camera;
+    t0 = std::chrono::high_resolution_clock::now();
   }
   void setBackground(uint sData, byte* data, uint width, uint height, uint bpp) {
-    bgSPixels = sData;
+    bgSImageData = sData;
     bgWidth = width;
     bgHeight = height;
     bgBpp = bpp;
-    bgPixels = data;
+    bgImageData = data;
 
-    bufBgPixels = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bgSPixels, bgPixels, &clErr);
-    if (clErr != 0) {
-      std::cout << "Allocation Error" << std::endl;
-      throw clErr;
-    }
-  }
-  void config(uint _pWidth, uint _pHeight, uint partRad, bool _hardwAcc) {
-    pWidth = _pWidth;
-    pHeight = _pHeight;
-    hardwAcc = _hardwAcc;
+    //const glm::vec3 bgPos[] = {
+    //  { -1.0f, -1.0f , 0.0f },
+    //  {  1.0f, -1.0f , 0.0f },
+    //  { -1.0f,  1.0f , 0.0f },
+    //  {  1.0f,  1.0f , 0.0f }
+    //};
 
-    sPixelData = pWidth * pHeight * bpp / 8;
-    pixelData = new byte[sPixelData];
+    //glGenVertexArrays(1, &glBg);
+    //glBindVertexArray(glBg);
 
-    std::vector<int> vScreenRelX;
-    std::vector<int> vScreenRelY;
-    std::vector<float> vScreenRelFac;
-#define SET_PIXEL(x, y) vScreenRelX.push_back(x); vScreenRelY.push_back(y); vScreenRelFac.push_back(m((float)x, (float)y, (float)r));
+    //glGenBuffers(1, &glBgPositionBuffer);
+    //glBindBuffer(GL_ARRAY_BUFFER, glBgPositionBuffer);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(bgPos), bgPos, GL_STATIC_DRAW);
+    //glEnableVertexAttribArray(0);
+    //glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, (void*)0);
 
-    int r = partRad;//(pWidth + pHeight) / (2 * sizeToRad);
-    int x = r;
-    int y = 0;
-    int err = r;
-    for (int xi = -x; xi < x + 1; ++xi) {
-      SET_PIXEL(xi, y);
-    }
-    for (int xi = -y; xi < y; ++xi) {
-      SET_PIXEL(y, x);
-      SET_PIXEL(y, -x);
-    }
-    while (y < x) {
-      err -= (y << 1) + 1;
-      ++y;
-      if (err < 0) {
-        err += (x << 1) - 1;
-        --x;
+    //glGenBuffers(1, &glBgTexCoordBuffer);
+    //glBindBuffer(GL_ARRAY_BUFFER, glBgTexCoordBuffer);
+    //glEnableVertexAttribArray(1);
+    //glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, (void*)0);
 
-        if (y < x) {
-          for (int xi = -y; xi < y + 1; ++xi) {
-            SET_PIXEL(xi, x);
-            SET_PIXEL(xi, -x);
-          }
-        }
-      }
-      else {
-        SET_PIXEL(y, x);
-        SET_PIXEL(-y, x);
-        SET_PIXEL(y, -x);
-        SET_PIXEL(-y, -x);
-      }
-
-      for (int xi = -x; xi < x + 1; ++xi) {
-        SET_PIXEL(xi, y);
-        SET_PIXEL(xi, -y);
-      }
-    }
-
-    ptNPixels = (uint)vScreenRelX.size();
-    screenRelX = new int[ptNPixels];
-    screenRelY = new int[ptNPixels];
-    screenRelFac = new float[ptNPixels];
-    for (uint i = 0; i < ptNPixels; i++) {
-      screenRelX[i] = vScreenRelX[i];
-      screenRelY[i] = vScreenRelY[i];
-      screenRelFac[i] = vScreenRelFac[i];
-    }
-    bufPtProjRelX = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, ptNPixels * sizeof(int), screenRelX, &clErr);
-    bufPtProjRelY = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, ptNPixels * sizeof(int), screenRelY, &clErr);
-    bufPtProjRelCFac = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, ptNPixels * sizeof(float), screenRelFac, &clErr);
+    //glGenTextures(1, &glBgTexture);
+    //glBindTexture(GL_TEXTURE_2D, glBgTexture);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bgWidth, bgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, bgImageData);
   }
   void render()
   {
@@ -320,135 +351,57 @@ namespace render {
       throw "Hardware acceleration for rendering is not initialized.";
 
     _isRendering = true;
-    if (isRelativistic) {
+    if (isRel) {
       if (hardwAcc)
         renderRelGpu();
       else renderRel();
     }
     else {
 			if (hardwAcc) {
-#if USE_GL
-				renderClaGpuGL();
-#else
-				renderClaCL();
-#endif
+				renderClaGpu();
 			}
       else renderCla();
     }
     _isRendering = false;
   }
   void renderCla() {
-    std::chrono::high_resolution_clock::time_point *t = new std::chrono::high_resolution_clock::time_point[3];
-    t[0] = std::chrono::high_resolution_clock::now();
-
-    memset(pixelData, 0, sPixelData);
-
-    t[1] = std::chrono::high_resolution_clock::now();
-
-    for (uint i = 0; i < nParticles; i++) {
-      vector particlePos;
-      particlePos.x = particles[i].r * sin(particles[i].theta) * cos(particles[i].phi);
-      particlePos.y = particles[i].r * sin(particles[i].theta) * sin(particles[i].phi);
-      particlePos.z = particles[i].r * cos(particles[i].theta);
-
-      vector screenPoint;
-      screenPoint = camera.pos + (particlePos - camera.pos) * vector::dotProduct(camera.lookDir, camera.lookDir)
-        / vector::dotProduct(camera.lookDir, particlePos - camera.pos);
-      vector xDir = vector::crossProduct(camera.lookDir, camera.upDir);
-      vector screenX = xDir / (float)pWidth;
-      vector screenY = vector::crossProduct(camera.lookDir, xDir) / (float)pWidth;
-      float cameraX = vector::dotProduct(screenPoint, screenX) / vector::dotProduct(screenX, screenX);
-      float cameraY = vector::dotProduct(screenPoint, screenY) / vector::dotProduct(screenY, screenY);
-
-      float bhSiding = vector::dotProduct(particlePos, camera.pos - particlePos);
-      float bhAlignm = bhSiding * bhSiding - vector::dotProduct(camera.pos - particlePos, camera.pos - particlePos) * (vector::dotProduct(particlePos, particlePos) - rs * rs);
-      if (bhSiding <= 0.0f && bhAlignm >= 0.0f) {
-        continue;
-      }
-
-      int pixelX = (int)(cameraX + pWidth / 2.0);
-      int pixelY = (int)(cameraY + pHeight / 2.0);
-      for (uint j = 0; j < ptNPixels; j++) {
-        int x = pixelX + screenRelX[j];
-        int y = pixelY + screenRelY[j];
-        int p = (x + pWidth * y) * bpp / 8;
-        if (p >= 0 && p < (int)sPixelData) {
-#define BYTE_MAX_CUT(b) (b) <= 255.0f ? (byte)(b) : (byte)255
-          pixelData[p] = BYTE_MAX_CUT(particles[i].pcolor.r * screenRelFac[j] + pixelData[p]);
-          pixelData[p + 1] = BYTE_MAX_CUT(particles[i].pcolor.g * screenRelFac[j] + pixelData[p + 1]);
-          pixelData[p + 2] = BYTE_MAX_CUT(particles[i].pcolor.b * screenRelFac[j] + pixelData[p + 2]);
-        }
-      }
-    }
-
-    t[2] = std::chrono::high_resolution_clock::now();
-
-    double renderTime = 0.0;
-    for (int i = 1; i < 4; i++) {
-      double sec = std::chrono::duration_cast<std::chrono::nanoseconds>(t[i] - t[i - 1]).count() * 1.0e-9;
-      renderTime += sec;
-    }
-    for (int i = 1; i < 4; i++) {
-      double sec = std::chrono::duration_cast<std::chrono::nanoseconds>(t[i] - t[i - 1]).count() * 1.0e-9;
-      std::cout << "time from " << i - 1 << " to " << i << " : " << sec << " s" << std::endl;
-      std::cout << "share: " << sec / renderTime * 100.0 << " %" << std::endl;
-    }
-    std::cout << "overall time: " << renderTime << " s" << std::endl;
-    std::cout << "frame rate: " << 1.0 / renderTime << " fps" << std::endl;
-    std::cout << std::endl;
+    
   }
   void renderClaGpu() {
-		uint it = 0;
-		std::chrono::high_resolution_clock::time_point *t = new std::chrono::high_resolution_clock::time_point[100];
-		t[it] = std::chrono::high_resolution_clock::now(); ++it; // 0
+    glClear(GL_COLOR_BUFFER_BIT);
 
-    cl::Buffer bufPixelData(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY, sPixelData, pixelData, &clErr);
-    cl::Buffer bufPtProjX(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY, nParticles * sizeof(int), PtProjX, &clErr);
-    cl::Buffer bufPtProjY(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY, nParticles * sizeof(int), PtProjY, &clErr);
+    //float fovY2 = 0.5f * glm::radians(observer.fov);
+    //float fovX2 = atan(observer.aspect * tan(fovY2));
+    //float phi1 = atan2(observer.lookDir.y, observer.lookDir.x) + fovX2;
+    //float phi2 = phi1 - 2.0f * fovX2;
+    //float theta1 = acos(observer.lookDir.z / observer.lookDir.length()) - fovY2;
+    //float theta2 = theta1 + 2.0f * fovY2;
+    //bgTexCoord[0] = { phi1, theta1 };
+    //bgTexCoord[1] = { phi1, theta1 };
+    //bgTexCoord[2] = { phi2, theta2 };
+    //bgTexCoord[3] = { phi1, theta2 };
 
-    if (nParticles == 0) {
-      clErr = queue.enqueueReadBuffer(bufPixelData, true, 0, sPixelData, pixelData);
-      _isRendering = false;
-      return;
-    }
-		t[it] = std::chrono::high_resolution_clock::now(); ++it; // 1
+    //glUseProgram(bgProgram);
+    //glBindVertexArray(glBg);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(bgTexCoord), bgTexCoord, GL_STATIC_DRAW);
+    //glActiveTexture(GL_TEXTURE0 + 0);
+    //glBindTexture(GL_TEXTURE_2D, glBgTexture);
+    //glDrawArrays(GL_QUADS, 0, 4);
+    //glBindVertexArray(0);
 
-		cl::setKernelArgs(kerComputePtProj, pWidth, pHeight, bpp, bufPtProjX, bufPtProjY, rs, bufPtR, bufPtTheta, bufPtPhi,
-			camera.pos.x, camera.pos.y, camera.pos.z, camera.lookDir.x, camera.lookDir.y, camera.lookDir.z, camera.upDir.x, camera.upDir.y, camera.upDir.z, camera.fov);
-    clErr = queue.enqueueNDRangeKernel(kerComputePtProj, cl::NullRange, cl::NDRange(nParticles));
-    if (clErr != 0)
-      throw clErr;
-		t[it] = std::chrono::high_resolution_clock::now(); ++it; // 2
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+    float dt = (std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() % 10000) / 1000.0f;
+    glm::mat4 rot = glm::rotate(2.0f * (float)M_PI * dt / 10.0f, observer.upDir);
+    glm::vec3 newPos = rot * glm::vec4(observer.pos, 1.0);
+    glm::vec3 newLookDir = rot * glm::vec4(observer.lookDir, 1.0);
+    glm::mat4 vp = persp * glm::lookAt(newPos, newPos + newLookDir, observer.upDir);
 
-		cl::finish();
-		cl::setKernelArgs(kerDrawPtShapes, pWidth, pHeight, bpp, sPixelData, bufPixelData, ptNPixels, bufPtProjX, bufPtProjY,
-			bufPtProjRelX, bufPtProjRelY, bufPtProjRelCFac, bufPtCR, bufPtCG, bufPtCB);
-    clErr = queue.enqueueNDRangeKernel(kerDrawPtShapes, cl::NullRange, cl::NDRange(nParticles * ptNPixels));
-    if (clErr != 0)
-      throw clErr;
-		t[it] = std::chrono::high_resolution_clock::now(); ++it; // 3
-
-		cl::finish();
-		queue.enqueueReadBuffer(bufPixelData, true, 0, sPixelData, pixelData);
-		t[it] = std::chrono::high_resolution_clock::now(); ++it; // 4
-
-		double renderTime = 0.0;
-		for (uint i = 1; i < it; i++) {
-			double sec = std::chrono::duration_cast<std::chrono::nanoseconds>(t[i] - t[i - 1]).count() * 1.0e-9;
-			renderTime += sec;
-		}
-		for (uint i = 1; i < it; i++) {
-			double sec = std::chrono::duration_cast<std::chrono::nanoseconds>(t[i] - t[i - 1]).count() * 1.0e-9;
-			std::cout << "time from " << i - 1 << " to " << i << " : " << sec << " s" << std::endl;
-			std::cout << "share: " << sec / renderTime * 100.0 << " %" << std::endl;
-		}
-		std::cout << "overall time: " << renderTime << " s" << std::endl;
-		std::cout << "frame rate: " << 1.0 / renderTime << " fps" << std::endl;
-		std::cout << std::endl;
+    glUseProgram(ptProgram);
+    glBindVertexArray(glParticles);
+    glUniformMatrix4fv(glViewProj, 1, false, &vp[0][0]);
+    glDrawArrays(GL_POINTS, 0, (int)nParticles);
+    glBindVertexArray(0);
   }
-	void renderClaGpuGL() {
-		
-	}
   void renderRel() {
 
   }
@@ -456,16 +409,20 @@ namespace render {
 
   }
   void close() {
-    delete[] PtProjX;
-    delete[] PtProjY;
-    delete[] particles;
-    delete[] pixelData;
-    delete[] bgPixels;
-  }
+    glDeleteBuffers(1, &glPtPositionBuf);
+    glDeleteVertexArrays(1, &glParticles);
 
-  float m(float x, float y, float s) {
-    float r2 = x * x + y * y;
-    float r = sqrt(r2);
-    return (2.0f * r - 3.0f * s) *  r2 / (s * s * s) + 1.0f;
+    glDetachShader(ptProgram, ptVertShader);
+    glDeleteShader(ptVertShader);
+    glDetachShader(ptProgram, ptFragShader);
+    glDeleteShader(ptFragShader);
+    glDeleteProgram(ptProgram);
+
+    delete[] ptR;
+    delete[] ptTheta;
+    delete[] ptPhi;
+    delete[] ptColor;
+
+    delete[] bgImageData;
   }
 }
