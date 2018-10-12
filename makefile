@@ -18,7 +18,7 @@ ifeq ($(detected_OS),Linux)
 	TARGET := black_hole_simulation
 	INCFLAGS := -I inc
 	VARFLAGS := -D CL_TARGET_OPENCL_VERSION=120
-	LIBFLAGS := -l OpenCL -l SDL2 -l GLEW -l OpenGL
+	LIBFLAGS := -l OpenCL -l SDL2 -l GLEW -l GL
 	PKGFLAGS := `pkg-config --cflags --libs gtk+-3.0`
 
 	CFLAGS := $(OSFLAGS) $(INCFLAGS) $(VARFLAGS) $(LIBFLAGS) $(PKGFLAGS)
