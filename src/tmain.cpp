@@ -4,7 +4,6 @@
 #include <cmath>
 #include <fstream>
 #include <GL/glew.h>
-#include <GL/wglew.h>
 #include <iostream>
 #include <SDL2/SDL.h>
 
@@ -33,9 +32,9 @@ int tmain(int argc, char** argv) {
   cl::Device device = cl::Device::getDefault();
   cl_context_properties contextProps[] = {
     CL_GL_CONTEXT_KHR,
-    (cl_context_properties)wglGetCurrentContext(),
+    (cl_context_properties)contextMain,
     CL_WGL_HDC_KHR,
-    (cl_context_properties)wglGetCurrentDC(),
+    (cl_context_properties)contextMain,
     CL_CONTEXT_PLATFORM,
     (cl_context_properties)platform(),
     0

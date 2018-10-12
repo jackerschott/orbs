@@ -6,6 +6,6 @@
 /gui/window_main.glade~
 /gui/window_colorPalette.glade~
 
-# Ignored local files for 9Strike (please delete redundant files and these parenthesis)
+# Ignored local files for 9Strike
 /.vscode
 /black_hole_simulation
