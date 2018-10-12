@@ -7,25 +7,5 @@
 /gui/window_colorPalette.glade~
 
 # Ignored local files for 9Strike (please delete redundant files and these parenthesis)
-/.vs
 /.vscode
-/.project
-/CppProperties.json
-/BlackHoleSimulation
-/BlackHoleSimulation.pdb
-/BlackHoleSimulation.ilk
-/BlackHoleSimulation.exe
-/.gitattributes
-/.gitignore
-/linux_compile.bat
-/black_hole_simulation.exe
 /black_hole_simulation
-/compile_commands.txt
-/gpp.bat
-/gppsrc.txt
-/make.bat
-/BlackHoleSimulation.ipdb
-/BlackHoleSimulation.iobj
-/gui/window_userPreferences.glade~
-/gui/window_main.glade~
-/gui/window_colorPalette.glade~
