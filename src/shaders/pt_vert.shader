@@ -1,4 +1,7 @@
-#version 460
+#version 120
+#extension GL_ARB_explicit_attrib_location : enable
+#extension GL_ARB_explicit_uniform_location : enable
+
 
 #define PI 3.14159265358979323846
 
