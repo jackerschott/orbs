@@ -4,20 +4,27 @@
 #include "res.hpp"
 
 // OpenGL
-const char* glPtShaderIns[] = {
+const char* glPtShaderInNames[] = {
     "pos",
     "color"
 };
-const char* glPtShaderUniforms[] = {
+const char* glPtShaderUniNames[] = {
     "viewProj"
 };
 
-const char* glBgShaderIns[] = {
+const char* glBgShaderInNames[] = {
   "pos",
   "texCoord"
 };
 
 // OpenCL
 const char* kernelNames[] = {
-  "getPtPositions"
+  "getPtPositions",
+  "processImage"
 };
+
+namespace std {
+  const char* invalid_operation::what() {
+    return "This operation is invalid in the current state.";
+  }
+}

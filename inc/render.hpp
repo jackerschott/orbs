@@ -1,7 +1,6 @@
 #ifndef RENDER_HPP
 #define RENDER_HPP
 
-// Device: NVIDIA GeForce GTX 1080 Ti with OpenCL 1.2 CUDA
 #include <CL/cl.hpp>
 
 #include "res.hpp"
@@ -58,15 +57,16 @@ namespace render {
 
   bool isRendering();
 
-  void init(float _rs, float _rg, bool _hardwAcc = true);
-  void initHardwAcc(cl::Device device, cl::Context context);
+  void init(cl::Device device, cl::Context context, float _rs);
   void createParticleRing(uint nParticles, float rr, vector rn,
     float rdr, float rdtheta, float rdphi,
     uint nColors, colorBlur* rparticleColorPalette);
   void clearParticleRings();
-  void setObserver(camera _observer);
-  void setBackground(uint sData, byte* data, uint width, uint height, uint bpp);
-  void render();
+  void setObserverCamera(camera _observer);
+  void setBackgroundTex(uint sData, byte* data, uint width, uint height, uint bpp);
+  void moveObserverCamera(vector pos, vector lookDir, vector upDir);
+  void renderClassic();
+  void renderRelativistic();
   void close();
 }
 

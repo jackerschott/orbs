@@ -1,6 +1,7 @@
 # Ignored local files for jackerschott
 /BlackHoleSimulation
-/out
+/BlackHoleSimulationLinux
+/bin
 /make.bat
 /gui/window_userPreferences.glade~
 /gui/window_main.glade~

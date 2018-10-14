@@ -13,18 +13,24 @@
 #include <thread>
 #include <utility>
 
-// OpenGL Version: 4.6.0 NVIDIA 397.44
-// OpenGL Shading Language Version: 4.60 NVIDIA
-
 #include "clWrapper/clwrap.hpp"
 #include "glWrapper/glwrap.hpp"
 #include "rng.hpp"
 #include "render.hpp"
 
+enum renderConfig {
+  CONFIG_CLOSED = 0b000001,
+  CONFIG_INIT = 0b000010,
+  CONFIG_HAS_CAMERA = 0b000100,
+  CONFIG_HAS_BG_TEX = 0b001000,
+  CONFIG_RENDERING = 0b010000,
+
+  CONFIG_INIT_FOR_RENDER = 0b001110
+};
+
 namespace render {
-  // Physics Data
+  // Physics data
   float rs;
-  float rg;
   uint nParticles;
   float* ptR;
   float* ptTheta;
@@ -33,171 +39,147 @@ namespace render {
   camera observer;
   bool isRel = false;
 
-  // Background Texture
+  // Background texture data
   uint bgWidth;
   uint bgHeight;
   uint bgBpp;
   ulong bgSImageData;
   byte *bgImageData;
 
-  // OpenGL Variables
-  GLuint bgProgram;
+  // GPU Rendering programs
+  GLuint bgRenderProg;
   GLuint bgVertShader;
   GLuint bgFragShader;
 
-  GLuint ptProgram;
+  GLuint ptRenderProg;
   GLuint ptVertShader;
   GLuint ptFragShader;
 
-  GLuint glBg;
-  GLuint glBgTexture;
-  GLuint glBgPositionBuffer;
-  GLuint glBgTexCoordBuffer;
-  glm::vec2 bgTexCoord[4];
+  // GPU buffers
+  GLuint glBackground;
+  GLuint bgTexture;
+  GLuint bgPosBuf;
+  GLuint bgTexCoordBuf;
 
   GLuint glParticles;
-  GLuint glPtPositionBuf;
+  GLuint ptPosBuf;
   GLuint ptColorBuf;
 
-  std::chrono::high_resolution_clock::time_point t0;
-  glm::mat4 persp;
-  GLint glViewProj;
+  // Render output computation data
+  const glm::vec3 bgPos[] = {
+    { -1.0f, -1.0f,  0.0f },
+    {  1.0f, -1.0f,  0.0f },
+    {  1.0f,  1.0f,  0.0f },
+    { -1.0f,  1.0f,  0.0f }
+  };
+  glm::vec2 bgTexCoord[4];
+  glm::mat4 perspv;
+  GLint viewProjn;
 
-  // OpenCL Variables
-  cl::Program clProgram;
-  cl::Context clContext;
-  cl::CommandQueue clQueue;
+  // GPU computation programs
+  cl::Program clglProgram;
+  cl::Context clglContext;
+  cl::CommandQueue clglQueue;
 
   cl::Kernel kernelGetPtPositions;
 
-  // Configuration Details
-  bool isInit = false;
-  bool isHardwAccInit = false;
-  bool hardwAcc = false;
-  bool _isRendering;
-
-  void renderCla();
-  void renderClaGpu();
-  void renderRel();
-  void renderRelGpu();
+  // Organisation Details
+  renderConfig config = CONFIG_CLOSED;
 
   bool isRendering() {
-    return _isRendering;
+    return (config | CONFIG_RENDERING) != 0;
   }
 
-  void init(float _rs, float _rg, bool _hardwAcc) {
+  void init(cl::Device device, cl::Context context, float _rs) {
+    assert(config == CONFIG_CLOSED);
     rs = _rs;
-    rg = _rg;
-    hardwAcc = _hardwAcc;
 
-    isInit = true;
-  }
-  void initHardwAcc(cl::Device device, cl::Context context) {
+    // Initialize OpenGL
     glewInit();
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    std::string source;
-    const char* src;
-    int len;
-
-    ptVertShader = glCreateShader(GL_VERTEX_SHADER);
-    loadFile(PT_VERTEX_SHADER_SRC_PATH, source);
-    src = source.c_str();
-    len = (int)source.length();
-    glShaderSource(ptVertShader, 1, &src, &len);
-
-    ptFragShader = glCreateShader(GL_FRAGMENT_SHADER);
-    loadFile(PT_FRAGMENT_SHADER_SRC_PATH, source);
-    src = source.c_str();
-    len = (int)source.length();
-    glShaderSource(ptFragShader, 1, &src, &len);
-
-    ptProgram = glCreateProgram();
-    glCompileShader(ptVertShader);
-    if (gl::checkForShaderErr(ptVertShader, GL_COMPILE_STATUS)) {
-      std::cerr << gl::getShaderInfoLog(ptVertShader) << std::endl;
+    // Build rendering programs
+    std::string errLog;
+    if (!gl::createProgram(PT_VERTEX_SHADER_SRC_PATH, PT_FRAGMENT_SHADER_SRC_PATH,
+      glPtShaderInNames, &ptRenderProg, &ptVertShader, &ptFragShader, &errLog)){
+      std::cerr << errLog << std::endl;
     }
-    glAttachShader(ptProgram, ptVertShader);
-
-    glCompileShader(ptFragShader);
-    if (gl::checkForShaderErr(ptFragShader, GL_COMPILE_STATUS)) {
-      std::cerr << gl::getShaderInfoLog(ptFragShader) << std::endl;
-    }
-    glAttachShader(ptProgram, ptFragShader);
-
-    for (uint i = 0; i < NUM_PT_SHADER_ATTR; i++) {
-      glBindAttribLocation(ptProgram, i, glPtShaderIns[i]);
-    }
-    glLinkProgram(ptProgram);
-    if (gl::checkForProgramErr(ptProgram, GL_LINK_STATUS)) {
-      std::cerr << gl::getProgramInfoLog(ptProgram) << std::endl;
-    }
-    glValidateProgram(ptProgram);
-    if (gl::checkForProgramErr(ptProgram, GL_VALIDATE_STATUS)) {
-      std::cerr << gl::getProgramInfoLog(ptProgram) << std::endl;
+    if (!gl::createProgram(BG_VERTEX_SHADER_SRC_PATH, BG_FRAGMENT_SHADER_SRC_PATH,
+      glBgShaderInNames, &bgRenderProg, &bgVertShader, &bgFragShader, &errLog)) {
+      std::cerr << errLog << std::endl;
     }
 
+    // Initialize Particle Buffers
+    glGenVertexArrays(1, &glParticles);
+    glBindVertexArray(glParticles);
 
-    //bgVertShader = glCreateShader(GL_VERTEX_SHADER);
-    //loadFile(BG_VERTEX_SHADER_SRC_PATH, source);
-    //src = source.c_str();
-    //len = (int)source.length();
-    //glShaderSource(bgVertShader, 1, &src, &len);
+    glGenBuffers(1, &ptPosBuf);
+    glBindBuffer(GL_ARRAY_BUFFER, ptPosBuf);
+    glEnableVertexAttribArray(PT_POS);
+    glVertexAttribPointer(PT_POS, 4, GL_FLOAT, false, 0, (void*)0);
 
-    //bgFragShader = glCreateShader(GL_FRAGMENT_SHADER);
-    //loadFile(BG_FRAGMENT_SHADER_SRC_PATH, source);
-    //src = source.c_str();
-    //len = (int)source.length();
-    //glShaderSource(bgFragShader, 1, &src, &len);
+    glGenBuffers(1, &ptColorBuf);
+    glBindBuffer(GL_ARRAY_BUFFER, ptColorBuf);
+    glEnableVertexAttribArray(PT_COLOR);
+    glVertexAttribPointer(PT_COLOR, 4, GL_FLOAT, false, 0, (void*)0);
 
-    //bgProgram = glCreateProgram();
-    //glCompileShader(bgVertShader);
-    //if (gl::checkForShaderErr(bgVertShader, GL_COMPILE_STATUS)) {
-    //  std::cerr << gl::getProgramInfoLog(bgVertShader) << std::endl;
-    //}
-    //glAttachShader(bgProgram, bgVertShader);
+    glBindVertexArray(0);
 
-    //glCompileShader(bgFragShader);
-    //if (gl::checkForShaderErr(bgFragShader, GL_COMPILE_STATUS)) {
-    //  std::cerr << gl::getProgramInfoLog(bgFragShader) << std::endl;
-    //}
-    //glAttachShader(bgProgram, bgFragShader);
+    glUseProgram(ptRenderProg);
+    viewProjn = glGetUniformLocation(ptRenderProg, glPtShaderUniNames[PT_VIEW_PROJ]);
+    glUseProgram(0);
 
-    //for (int i = 0; i < NUM_BG_SHADER_ATTR; i++) {
-    //  glBindAttribLocation(bgProgram, i, glBgShaderIns[i]);
-    //}
-    //glLinkProgram(bgProgram);
-    //if (gl::checkForProgramErr(bgProgram, GL_LINK_STATUS)) {
-    //  std::cerr << gl::getProgramInfoLog(bgProgram) << std::endl;
-    //}
-    //glValidateProgram(bgProgram);
-    //if (gl::checkForProgramErr(bgProgram, GL_VALIDATE_STATUS)) {
-    //  std::cerr << gl::getProgramInfoLog(bgProgram) << std::endl;
-    //}
+    // Initialize Background rendering Buffers
+    glGenVertexArrays(1, &glBackground);
+    glBindVertexArray(glBackground);
 
+    glGenBuffers(1, &bgPosBuf);
+    glBindBuffer(GL_ARRAY_BUFFER, bgPosBuf);
+    glEnableVertexAttribArray(BG_POS);
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, (void*)0);
 
-    clContext = context;
+    glGenBuffers(1, &bgTexCoordBuf);
+    glBindBuffer(GL_ARRAY_BUFFER, bgTexCoordBuf);
+    glEnableVertexAttribArray(BG_TEX_COORD);
+    glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, (void*)0);
 
+    glBindVertexArray(0);
+
+    // Initialize background texture
+    glGenTextures(1, &bgTexture);
+    glBindTexture(GL_TEXTURE_2D, bgTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    std::cout << "Point 1.4" << std::endl;
+
+    // Initialize GPU computation programs
     int clErr;
     std::string clSource;
+    clglContext = context;
+
     loadFile(RENDER_KERNEL_SRC_PATH, clSource);
-    clProgram = cl::Program(clContext, clSource);
-    clErr = clProgram.build();
+    clglProgram = cl::Program(clglContext, clSource);
+    clErr = clglProgram.build();
     if (clErr != 0) {
-      std::cerr << clProgram.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
+      std::cerr << clglProgram.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
       throw clErr;
     }
+    clglQueue = cl::CommandQueue(clglContext, device);
 
-    clQueue = cl::CommandQueue(clContext, device);
 
-    isHardwAccInit = true;
+    config = CONFIG_INIT;
   }
   void createParticleRing(uint rnParticles, float rr, vector rn,
-      float rdr, float rdtheta, float rdphi,
-      uint nColors, colorBlur* rPtColorPalette) {
+    float rdr, float rdtheta, float rdphi,
+    uint nColors, colorBlur* rPtColorPalette) {
+    assert((config & CONFIG_INIT) != 0);
 
+    // Append new particle spherical position and color data
     float* newPtR = new float[nParticles + rnParticles];
     float* newPtTheta = new float[nParticles + rnParticles];
     float* newPtPhi = new float[nParticles + rnParticles];
@@ -208,6 +190,10 @@ namespace render {
       newPtPhi[i] = ptPhi[i];
       newPtColor[i] = ptColor[i];
     }
+    delete[] ptR;
+    delete[] ptTheta;
+    delete[] ptPhi;
+    delete[] ptColor;
     for (ulong i = nParticles; i < nParticles + rnParticles; i++) {
       newPtR[i] = rr + normPdf(rdr / 2.0f);
       if (rn.z == 0.0) {
@@ -231,59 +217,48 @@ namespace render {
           }
         }
       }
-      newPtColor[i] = { 1.0f, 0.3f, 0.0f, 0.05f };//selectObject<color>(nColors, reinterpret_cast<std::pair<color, float>*>(rPtColorPalette));
+      float alpha = 5.0e4f / rnParticles;
+      newPtColor[i] = { 1.0f, 0.3f, 0.0f, alpha > 1.0f ? 1.0f : alpha };//selectObject<color>(nColors, reinterpret_cast<std::pair<color, float>*>(rPtColorPalette));
     }
-
-    delete[] ptR;
-    delete[] ptTheta;
-    delete[] ptPhi;
-    delete[] ptColor;
     ptR = newPtR;
     ptTheta = newPtTheta;
     ptPhi = newPtPhi;
     ptColor = newPtColor;
     nParticles += rnParticles;
 
-    glGenVertexArrays(1, &glParticles);
+
+    // Compute cartesian particle positions and set particle position and color data
     glBindVertexArray(glParticles);
 
-    glGenBuffers(1, &glPtPositionBuf);
-    glBindBuffer(GL_ARRAY_BUFFER, glPtPositionBuf);
+    glBindBuffer(GL_ARRAY_BUFFER, ptPosBuf);
     glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(cl_float4), nullptr, GL_STATIC_DRAW);
 
     glFinish();
 
-    cl::Kernel kernelGetPtPositions(clProgram, kernelNames[GET_PT_POSITIONS]);
-    cl::Buffer posBuffer = cl::BufferGL(clContext, CL_MEM_READ_WRITE, glPtPositionBuf);
-    cl::Buffer rBuffer = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(float), ptR);
-    cl::Buffer thetaBuffer = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(float), ptTheta);
-    cl::Buffer phiBuffer = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(float), ptPhi);
+    cl::Kernel kernelGetPtPositions(clglProgram, kernelNames[KERNEL_GET_PT_POSITIONS]);
+    cl::Buffer posBuffer = cl::BufferGL(clglContext, CL_MEM_READ_WRITE, ptPosBuf);
+    cl::Buffer rBuffer = cl::Buffer(clglContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(float), ptR);
+    cl::Buffer thetaBuffer = cl::Buffer(clglContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(float), ptTheta);
+    cl::Buffer phiBuffer = cl::Buffer(clglContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nParticles * sizeof(float), ptPhi);
 
     cl::setKernelArgs(kernelGetPtPositions, posBuffer, rBuffer, thetaBuffer, phiBuffer);
     std::vector<cl::Memory> glObjects = { posBuffer };
-    clQueue.enqueueAcquireGLObjects(&glObjects);
-    clQueue.finish();
-    clQueue.enqueueNDRangeKernel(kernelGetPtPositions, cl::NullRange, cl::NDRange(nParticles));
-    clQueue.finish();
-    clQueue.enqueueReleaseGLObjects(&glObjects);
-    clQueue.finish();
+    clglQueue.enqueueAcquireGLObjects(&glObjects);
+    clglQueue.enqueueNDRangeKernel(kernelGetPtPositions, cl::NullRange, cl::NDRange(nParticles));
+    clglQueue.enqueueReleaseGLObjects(&glObjects);
 
     cl::finish();
     glFlush();
 
-    glEnableVertexAttribArray(PT_POS);
-    glVertexAttribPointer(PT_POS, 4, GL_FLOAT, false, 0, (void*)0);
-
-    glGenBuffers(1, &ptColorBuf);
     glBindBuffer(GL_ARRAY_BUFFER, ptColorBuf);
     glBufferData(GL_ARRAY_BUFFER, (int)nParticles * sizeof(color), ptColor, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(PT_COLOR);
-    glVertexAttribPointer(PT_COLOR, 4, GL_FLOAT, false, 0, (void*)0);
 
     glBindVertexArray(0);
   }
   void clearParticleRings()
   {
+    // Clear particle data
+    assert((config & CONFIG_INIT) != 0);
     delete[] ptR;
     delete[] ptTheta;
     delete[] ptPhi;
@@ -294,129 +269,152 @@ namespace render {
     ptPhi = new float[0];
     ptColor = new color[0];
     nParticles = 0;
+
+    // Clear particle GPU buffers
+    glBindVertexArray(glParticles);
+
+    glBindBuffer(GL_ARRAY_BUFFER, ptPosBuf);
+    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(cl_float4), nullptr, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, ptColorBuf);
+    glBufferData(GL_ARRAY_BUFFER, (int)nParticles * sizeof(color), ptColor, GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
   }
-  void setObserver(camera _observer) {
+  GLuint getParticlePosBuf(uint nParticles) {
+    glBindVertexArray(glParticles);
+
+    glBindBuffer(GL_ARRAY_BUFFER, ptPosBuf);
+    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(cl_float4), nullptr, GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+
+    return ptPosBuf;
+  }
+  GLuint getParticleColorBuf(uint nParticles) {
+    glBindVertexArray(glParticles);
+
+    glBindBuffer(GL_ARRAY_BUFFER, ptColorBuf);
+    glBufferData(GL_ARRAY_BUFFER, (int)nParticles * sizeof(color), ptColor, GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+
+    return ptColorBuf;
+  }
+  void setObserverCamera(camera _observer) {
+    assert((config & CONFIG_INIT) != 0 && (config & CONFIG_HAS_CAMERA) == 0);
+
+    // Normalize Vectors and set observer camera
     _observer.lookDir = glm::normalize(_observer.lookDir);
     _observer.upDir = glm::normalize(_observer.upDir);
     observer = _observer;
 
-    glViewProj = glGetUniformLocation(ptProgram, glPtShaderUniforms[PT_VIEW_PROJ]);
-    persp = glm::perspective(glm::radians(observer.fov), observer.aspect, observer.zNear, observer.zFar);
-    glm::mat4 vp = persp * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
-    glUniformMatrix4fv(glViewProj, 1, false, &vp[0][0]);
+    // Set View Projection Matrix
+    perspv = glm::perspective(observer.fov, observer.aspect, observer.zNear, observer.zFar);
+    glm::mat4 vp = perspv * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
+    glUseProgram(ptRenderProg);
+    glUniformMatrix4fv(viewProjn, 1, false, &vp[0][0]);
+    glUseProgram(0);
 
-    t0 = std::chrono::high_resolution_clock::now();
+    config = (renderConfig)(config | CONFIG_HAS_CAMERA);
   }
-  void setBackground(uint sData, byte* data, uint width, uint height, uint bpp) {
+  void setBackgroundTex(uint sData, byte* data, uint width, uint height, uint bpp) {
+    assert((config & CONFIG_INIT) != 0 && (config & CONFIG_HAS_BG_TEX) == 0);
     bgSImageData = sData;
     bgWidth = width;
     bgHeight = height;
     bgBpp = bpp;
     bgImageData = data;
 
-    //const glm::vec3 bgPos[] = {
-    //  { -1.0f, -1.0f , 0.0f },
-    //  {  1.0f, -1.0f , 0.0f },
-    //  { -1.0f,  1.0f , 0.0f },
-    //  {  1.0f,  1.0f , 0.0f }
-    //};
+    // Set background shader inputs
+    glBindVertexArray(glBackground);
 
-    //glGenVertexArrays(1, &glBg);
-    //glBindVertexArray(glBg);
+    glBindBuffer(GL_ARRAY_BUFFER, bgPosBuf);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(bgPos), bgPos, GL_STATIC_DRAW);
 
-    //glGenBuffers(1, &glBgPositionBuffer);
-    //glBindBuffer(GL_ARRAY_BUFFER, glBgPositionBuffer);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(bgPos), bgPos, GL_STATIC_DRAW);
-    //glEnableVertexAttribArray(0);
-    //glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, (void*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, bgTexCoordBuf);
 
-    //glGenBuffers(1, &glBgTexCoordBuffer);
-    //glBindBuffer(GL_ARRAY_BUFFER, glBgTexCoordBuffer);
-    //glEnableVertexAttribArray(1);
-    //glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, (void*)0);
+    glBindVertexArray(0);
 
-    //glGenTextures(1, &glBgTexture);
-    //glBindTexture(GL_TEXTURE_2D, glBgTexture);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bgWidth, bgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, bgImageData);
+    // Set background texture to passed image
+    glBindTexture(GL_TEXTURE_2D, bgTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bgWidth, bgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, bgImageData);
+
+    config = (renderConfig)(config | CONFIG_HAS_BG_TEX);
   }
-  void render()
-  {
-    if (!isInit)
-      throw "Rendering is not initialized.";
-    if (hardwAcc && !isHardwAccInit)
-      throw "Hardware acceleration for rendering is not initialized.";
+  void moveObserverCamera(vector pos, vector lookDir, vector upDir) {
+    assert((config & CONFIG_HAS_BG_TEX) != 0);
 
-    _isRendering = true;
-    if (isRel) {
-      if (hardwAcc)
-        renderRelGpu();
-      else renderRel();
-    }
-    else {
-			if (hardwAcc) {
-				renderClaGpu();
-			}
-      else renderCla();
-    }
-    _isRendering = false;
+    // Set new camera position
+    observer.pos = pos;
+    observer.lookDir = glm::normalize(lookDir);
+    observer.upDir = glm::normalize(upDir);
+
+    // Set new view projection matrix
+    glm::mat4 vp = perspv * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
+
+    glUseProgram(ptRenderProg);
+    glUniformMatrix4fv(viewProjn, 1, false, &vp[0][0]);
+    glUseProgram(0);
   }
-  void renderCla() {
-    
-  }
-  void renderClaGpu() {
-    glClear(GL_COLOR_BUFFER_BIT);
+  void renderClassic() {
+    assert(config == CONFIG_INIT_FOR_RENDER);
+    config = (renderConfig)(config | CONFIG_RENDERING);
 
-    //float fovY2 = 0.5f * glm::radians(observer.fov);
-    //float fovX2 = atan(observer.aspect * tan(fovY2));
-    //float phi1 = atan2(observer.lookDir.y, observer.lookDir.x) + fovX2;
-    //float phi2 = phi1 - 2.0f * fovX2;
-    //float theta1 = acos(observer.lookDir.z / observer.lookDir.length()) - fovY2;
-    //float theta2 = theta1 + 2.0f * fovY2;
-    //bgTexCoord[0] = { phi1, theta1 };
-    //bgTexCoord[1] = { phi1, theta1 };
-    //bgTexCoord[2] = { phi2, theta2 };
-    //bgTexCoord[3] = { phi1, theta2 };
+    // Compute Background Texture Coordinates
+    float fovY2 = 0.5f * glm::radians(observer.fov);
+    float fovX2 = atan(observer.aspect * tan(fovY2));
+    float phi1 = atan2(observer.lookDir.y, observer.lookDir.x) - fovX2;
+    float phi2 = phi1 + 2.0f * fovX2;
+    float theta1 = acos(observer.lookDir.z / observer.lookDir.length()) - fovY2;
+    float theta2 = theta1 + 2.0f * fovY2;
 
-    //glUseProgram(bgProgram);
-    //glBindVertexArray(glBg);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(bgTexCoord), bgTexCoord, GL_STATIC_DRAW);
-    //glActiveTexture(GL_TEXTURE0 + 0);
-    //glBindTexture(GL_TEXTURE_2D, glBgTexture);
-    //glDrawArrays(GL_QUADS, 0, 4);
-    //glBindVertexArray(0);
+    bgTexCoord[0] = { 1.0 - phi2 / (2.0f * M_PI), theta1 / M_PI };
+    bgTexCoord[1] = { 1.0 - phi1 / (2.0f * M_PI), theta1 / M_PI };
+    bgTexCoord[2] = { 1.0 - phi1 / (2.0f * M_PI), theta2 / M_PI };
+    bgTexCoord[3] = { 1.0 - phi2 / (2.0f * M_PI), theta2 / M_PI };
 
-    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-    float dt = (std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() % 10000) / 1000.0f;
-    glm::mat4 rot = glm::rotate(2.0f * (float)M_PI * dt / 10.0f, observer.upDir);
-    glm::vec3 newPos = rot * glm::vec4(observer.pos, 1.0);
-    glm::vec3 newLookDir = rot * glm::vec4(observer.lookDir, 1.0);
-    glm::mat4 vp = persp * glm::lookAt(newPos, newPos + newLookDir, observer.upDir);
+    glUseProgram(bgRenderProg);
+    glBindVertexArray(glBackground);
+    // Set Background Texture Coordinates
+    glBindBuffer(GL_ARRAY_BUFFER, bgTexCoordBuf);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(bgTexCoord), bgTexCoord, GL_STATIC_DRAW);
+    // Bind Background Texture
+    glActiveTexture(GL_TEXTURE0 + 0);
+    glBindTexture(GL_TEXTURE_2D, bgTexture);
+    // Render Background
+    glDrawArrays(GL_QUADS, 0, 4);
+    glBindVertexArray(0);
+    glUseProgram(0);
 
-    glUseProgram(ptProgram);
+    // Render Particles
+    glUseProgram(ptRenderProg);
     glBindVertexArray(glParticles);
-    glUniformMatrix4fv(glViewProj, 1, false, &vp[0][0]);
     glDrawArrays(GL_POINTS, 0, (int)nParticles);
     glBindVertexArray(0);
-  }
-  void renderRel() {
+    glUseProgram(0);
 
+    config = (renderConfig)(config & ~CONFIG_RENDERING);
   }
-  void renderRelGpu() {
+  void renderRelativistic() {
+    assert(config == CONFIG_INIT_FOR_RENDER);
+    config = (renderConfig)(config | CONFIG_RENDERING);
 
+
+
+    config = (renderConfig)(config & ~CONFIG_RENDERING);
   }
   void close() {
-    glDeleteBuffers(1, &glPtPositionBuf);
+    assert((config & CONFIG_INIT) != 0);
+
+    glDeleteBuffers(1, &ptPosBuf);
     glDeleteVertexArrays(1, &glParticles);
 
-    glDetachShader(ptProgram, ptVertShader);
+    glDetachShader(ptRenderProg, ptVertShader);
     glDeleteShader(ptVertShader);
-    glDetachShader(ptProgram, ptFragShader);
+    glDetachShader(ptRenderProg, ptFragShader);
     glDeleteShader(ptFragShader);
-    glDeleteProgram(ptProgram);
+    glDeleteProgram(ptRenderProg);
 
     delete[] ptR;
     delete[] ptTheta;
@@ -424,5 +422,7 @@ namespace render {
     delete[] ptColor;
 
     delete[] bgImageData;
+
+    config = CONFIG_CLOSED;
   }
 }

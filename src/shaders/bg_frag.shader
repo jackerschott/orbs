@@ -1,6 +1,6 @@
-#version 460
+#version 140
 
-layout(location = 0) in vec2 texCoordF;
+in vec2 texCoordF;
 
 out vec4 color;
 

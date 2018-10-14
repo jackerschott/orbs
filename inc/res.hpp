@@ -1,15 +1,16 @@
+// Device: NVIDIA GeForce GTX 1080 Ti with OpenCL 1.2 CUDA
+// OpenGL Version: 4.6.0 NVIDIA 397.44
+// OpenGL Shading Language Version: 4.60 NVIDIA
+
 #ifndef RES_HPP
 #define RES_HPP
-
-#include <GL/glew.h>
-#include <string>
 
 typedef unsigned char byte;
 typedef unsigned int uint;
 typedef size_t ulong;
 
 // OpenGL
-#ifdef __linux__
+#ifdef __unix__
 #define GIT_FOLDER_PATH "./"
 #endif
 #ifdef _WIN32
@@ -27,8 +28,8 @@ enum ptShaderIn {
 enum ptShaderUniform {
   PT_VIEW_PROJ
 };
-extern const char* glPtShaderIns[];
-extern const char* glPtShaderUniforms[];
+extern const char* glPtShaderInNames[];
+extern const char* glPtShaderUniNames[];
 
 #define BG_VERTEX_SHADER_SRC_PATH GIT_FOLDER_PATH "src/shaders/bg_vert.shader"
 #define BG_FRAGMENT_SHADER_SRC_PATH GIT_FOLDER_PATH "src/shaders/bg_frag.shader"
@@ -40,14 +41,21 @@ enum bgShaderIn {
 enum bgShaderUniform {
 
 };
-extern const char* glBgShaderIns[];
+extern const char* glBgShaderInNames[];
 
 // OpenCL
 #define RENDER_KERNEL_SRC_PATH GIT_FOLDER_PATH "src/kernels/render.cl"
 #define NUM_KERNELS 1
 enum kernels {
-  GET_PT_POSITIONS
+  KERNEL_GET_PT_POSITIONS,
+  KERNEL_PROCESS_IMAGE
 };
 extern const char* kernelNames[];
+
+namespace std {
+  class invalid_operation : exception {
+    virtual const char* what();
+  };
+}
 
 #endif

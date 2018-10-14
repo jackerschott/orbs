@@ -3,6 +3,13 @@
 
 #include <fstream>
 #include <gtk/gtk.h>
+#include <GL/glew.h>
+#ifdef _WIN32
+#include <GL/wglew.h>
+#endif
+#ifdef __unix__
+#include <GL/glxew.h>
+#endif
 #include <iostream>
 #include <math.h>
 #include <thread>
@@ -11,38 +18,38 @@
 #include "render.hpp"
 
 // MainWindow ui elements
-GtkWidget *window_main;
-GtkMenuBar *menu_bar;
-GtkMenuItem *mi_userPref;
-GtkImage *img_main;
-GtkAdjustment *adj_rg;
-GtkAdjustment *adj_rs;
-GtkWidget *btn_render;
-GtkAdjustment *adj_nParticles;
-GtkAdjustment *adj_rr;
-GtkAdjustment *adj_rtheta;
-GtkAdjustment *adj_rphi;
-GtkAdjustment *adj_rdr;
-GtkAdjustment *adj_rdtheta;
-GtkAdjustment *adj_rdphi;
-GtkWidget *btn_rcolors;
-GtkWidget *btn_ring;
+GtkWidget* window_main;
+GtkMenuBar* menu_bar;
+GtkMenuItem* mi_userPref;
+GtkGLArea* area_render;
+GtkAdjustment* adj_rg;
+GtkAdjustment* adj_rs;
+GtkWidget* btn_render;
+GtkAdjustment* adj_nParticles;
+GtkAdjustment* adj_rr;
+GtkAdjustment* adj_rtheta;
+GtkAdjustment* adj_rphi;
+GtkAdjustment* adj_rdr;
+GtkAdjustment* adj_rdtheta;
+GtkAdjustment* adj_rdphi;
+GtkWidget* btn_rcolors;
+GtkWidget* btn_ring;
 
 // ColorPaletteWindow ui elements
-GtkWidget *window_colorPalette;
-GtkWidget *cbt_select;
-GtkWidget *btn_new;
-GtkWidget *btn_delete;
-GtkAdjustment *adj_prob;
-GtkWidget *ccwidget_color;
-GtkWidget *btn_close;
+GtkWidget* window_colorPalette;
+GtkWidget* cbt_select;
+GtkWidget* btn_new;
+GtkWidget* btn_delete;
+GtkAdjustment* adj_prob;
+GtkWidget* ccwidget_color;
+GtkWidget* btn_close;
 
 // User preferences window ui elements
-GtkWidget *window_userPreferences;
-GtkButton *btnSaveUserPreferences;
-GtkStack *stackDevices;
-GtkComboBoxText *cbt_cp_devices;
-GtkComboBoxText *cbt_gp_devices;
+GtkWidget* window_userPreferences;
+GtkButton* btnSaveUserPreferences;
+GtkStack* stackDevices;
+GtkComboBoxText* cbt_cp_devices;
+GtkComboBoxText* cbt_gp_devices;
 
 bool is_on_btn_new_clicked_user_call = true;
 bool is_on_cbt_select_changed_user_call = true;
@@ -52,7 +59,7 @@ uint w = 920;
 uint h = 690;
 byte activeColor = 0;
 uint nColors = 1;
-probColor *colorPalette = new probColor[nColors];
+color* colorPalette = new color[nColors];
 bool useHardwAcc = true;
 
 GdkPixbuf* framePixBuf;
@@ -60,8 +67,8 @@ std::thread renderWaiter;
 
 // Function declerations for event and helper functions
 void on_mi_userPref_activate();
-void on_key_press(GtkWidget *widget, GdkEventKey *event);
-void on_key_release(GtkWidget *widget, GdkEventKey *event);
+void on_key_press(GtkWidget* widget, GdkEventKey* event);
+void on_key_release(GtkWidget* widget, GdkEventKey* event);
 void on_adj_rx_changed();
 void on_btn_rcolors_clicked();
 void on_btn_render_clicked();
@@ -70,23 +77,22 @@ void on_window_main_destroy();
 void on_btn_new_clicked();
 void on_cbt_select_changed();
 void on_btn_close_clicked();
-void renderFrame();
 void save_color(byte index);
 void load_color(byte index);
 void on_btnSaveUserPreferences_clicked();
 
 // Entry point
-int main(int argc, char *argv[]) {
-  GtkBuilder *builder;
-  GError *err = NULL;
+int main(int argc, char* argv[]) {
+  GtkBuilder* builder;
+  GError* err = NULL;
   gtk_init(&argc, &argv);
   builder = gtk_builder_new();
-  gtk_builder_add_from_file(builder, "gui/window_main.glade", &err);
-  gtk_builder_add_from_file(builder, "gui/window_colorPalette.glade", &err);
-  gtk_builder_add_from_file(builder, "gui/window_userPreferences.glade", &err);
+  gtk_builder_add_from_file(builder, GIT_FOLDER_PATH "gui/window_main.glade", &err);
+  gtk_builder_add_from_file(builder, GIT_FOLDER_PATH "gui/window_colorPalette.glade", &err);
+  gtk_builder_add_from_file(builder, GIT_FOLDER_PATH "gui/window_userPreferences.glade", &err);
 
   window_main = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
-  img_main = GTK_IMAGE(gtk_builder_get_object(builder, "img_main"));
+  area_render = GTK_GL_AREA(gtk_builder_get_object(builder, "area_render"));
   mi_userPref = GTK_MENU_ITEM(gtk_builder_get_object(builder, "mi_userPref"));
   adj_rg = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rg"));
   adj_rs = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rs"));
@@ -131,14 +137,56 @@ int main(int argc, char *argv[]) {
   cbt_gp_devices = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(builder, "cbt_gp_devices"));
   g_signal_connect(btnSaveUserPreferences, "clicked", G_CALLBACK(on_btnSaveUserPreferences_clicked), NULL);
 
-  const uint bgWidth = 4096;
-  const uint bgHeight = 2048;
-  const uint bgBpp = 32;
+  gtk_gl
+  gtk_gl_area_make_current(area_render);
 
-  render::init(1.0, 10.0);
-  render::initHardwAcc(cl::Platform::getDefault(), cl::Device::getDefault());
+  cl_context_properties platform = (cl_context_properties)cl::Platform::getDefault()();
+#ifdef _WIN32
+  cl_context_properties contextProps[] = {
+    CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
+    CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
+    CL_CONTEXT_PLATFORM, platform,
+    0
+  };
+#endif
+#ifdef __unix__
+    cl_context_properties contextProps[] = {
+      CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(),
+      CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDrawable(),
+      CL_CONTEXT_PLATFORM, platform(),
+      0
+  };
+#endif
+  cl::Device device = cl::Device::getDefault();
+  cl::Context context(device, contextProps);
+
+  float rs = 1.0f;
+  const uint nParticles = 100000;
+  camera obsCamera;
+  obsCamera.pos = { 30.0f, 0.0f, 0.0f };
+  obsCamera.lookDir = -obsCamera.pos;
+  obsCamera.upDir = { 0.0f, 0.0f, 1.0f };
+  obsCamera.fov = glm::radians(60.0f);
+  obsCamera.aspect = 16.0f / 9.0f;
+  obsCamera.zNear = 0.1f;
+  obsCamera.zFar = 100.0f;
+
+  int bgWidth;
+  int bgHeight;
+  int bgBpp;
+  std::ifstream ifs("E:/tmp/sphere_map", std::ios::binary);
+  ifs.read(reinterpret_cast<char*>(&bgWidth), sizeof(int));
+  ifs.read(reinterpret_cast<char*>(&bgHeight), sizeof(int));
+  ifs.read(reinterpret_cast<char*>(&bgBpp), sizeof(int));
+  uint sBgImageData = bgWidth * bgHeight * bgBpp / 8;
+  byte* bgImageData = new byte[sBgImageData];
+  ifs.read(reinterpret_cast<char*>(bgImageData), sBgImageData);
+
+  render::init(device, context, 1.0f);
   render::clearParticleRings();
-  renderFrame();
+  render::setObserverCamera(obsCamera);
+  render::setBackgroundTex(sBgImageData, bgImageData, bgWidth, bgBpp, bgBpp);
+  render::renderClassic();
 
   /*std::vector<cl::Platform> platforms;
   cl::Platform::get(&platforms);
@@ -172,7 +220,7 @@ void on_mi_userPref_activate() {
   gtk_widget_show(window_userPreferences);
   gtk_stack_set_visible_child(stackDevices, GTK_WIDGET(cbt_gp_devices));
 }
-void on_key_press(GtkWidget *widget, GdkEventKey *event) {
+void on_key_press(GtkWidget* widget, GdkEventKey* event) {
   switch (event->keyval) {
   case GDK_KEY_w: case GDK_KEY_Up:
     g_print("forward\n");
@@ -188,13 +236,13 @@ void on_key_press(GtkWidget *widget, GdkEventKey *event) {
     break;
   case GDK_KEY_Delete: {
     render::clearParticleRings();
-    renderFrame();
+    render::renderClassic();
   }
   default:
     g_print("else\n");
   }
 }
-void on_key_release(GtkWidget *widget, GdkEventKey *event) {
+void on_key_release(GtkWidget* widget, GdkEventKey* event) {
   switch (event->keyval) {
   case GDK_KEY_w: case GDK_KEY_Up:
     g_print("stop forward\n");
@@ -251,52 +299,13 @@ void on_btn_ring_clicked() {
   float rdtheta = (float)gtk_adjustment_get_value(adj_rdtheta);
   float rdphi = (float)gtk_adjustment_get_value(adj_rdphi);
 
-  perspectiveCamera camera;
-  camera.pos = { 30.0f, 0.0f, 0.0f };
-  camera.lookDir = { -1.0f, 0.0f, 0.0f };
-  camera.upDir = { 0.0f, 0.0f, 1.0f };
-  camera.fov = 60.0f;
-  render::setCamera(camera);
   vector rn = { sin(rtheta) * cos(rphi), sin(rtheta) * sin(rphi), cos(rtheta) };
-  render::createParticleRing(nParticles, rr, rn, rdr, rdtheta, rdphi, 5, colorPalette);
-
-  renderFrame();
+  render::createParticleRing(nParticles, rr, rn, rdr, rdtheta, rdphi, 5, nullptr);
+  render::renderClassic();
 }
 void on_window_main_destroy() {
   g_print("Exit\n");
   gtk_main_quit();
-}
-
-// MainWindow helper functions
-void renderFrame() {
-  render::config(w, h, partRad0, useHardwAcc);
-
-  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-  try {
-    render::render();
-  }
-  catch (int clErr) {
-    std::cout << "OpenCL Error: " << getClErrMsg(clErr) << ", " << clErr << std::endl;
-    return;
-  }
-
-  renderWaiter = std::thread([&]() {
-    while (render::isRendering()) {};
-    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-    double renderTime = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() * 1.0e-9;
-    
-    //if (useHardwAcc) {
-    //  std::cout << "GPU Render Time: " << renderTime << " s" << std::endl;
-    //}
-    //else {
-    //  std::cout << "CPU Render Time: " << renderTime << " s" << std::endl;
-    //}
-
-    GBytes* gPixels = g_bytes_new(render::getImageData(), render::sPixels);
-    framePixBuf = gdk_pixbuf_new_from_bytes(gPixels, GDK_COLORSPACE_RGB, render::bpp == 32, 8, w, h, w * render::bpp / 8);
-    gtk_image_set_from_pixbuf(img_main, framePixBuf);
-  });
-  renderWaiter.detach();
 }
 
 // ColorPaletteWindow events
@@ -308,7 +317,7 @@ void on_btn_new_clicked() {
 
   std::cout << "on_btn_new_clicked: active color = " << (int)activeColor << std::endl;
   save_color(activeColor);
-  probColor *newColorPalette = new probColor[nColors + 1];
+  color *newColorPalette = new color[nColors + 1];
   for (uint i = 0; i < nColors; i++) {
     newColorPalette[i] = colorPalette[i];
   }
@@ -349,7 +358,7 @@ void save_color(byte index) {
   colorPalette[index].r = (float)gcolor.red;
   colorPalette[index].g = (float)gcolor.green;
   colorPalette[index].b = (float)gcolor.blue;
-  colorPalette[index].p = (float)gtk_adjustment_get_value(adj_prob);
+  colorPalette[index].a = (float)gtk_adjustment_get_value(adj_prob);
 
   std::cout << std::endl;
   std::cout << "save_color: colorPalette[index].r = " << colorPalette[index].r << std::endl;
@@ -364,7 +373,7 @@ void load_color(byte index) {
   gcolor.blue = colorPalette[index].b;
   gcolor.alpha = 1.0;
   gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(ccwidget_color), &gcolor);
-  gtk_adjustment_set_value(adj_prob, colorPalette[index].p);
+  gtk_adjustment_set_value(adj_prob, colorPalette[index].a);
 
   std::cout << std::endl;
   std::cout << "load_color: colorPalette[index].r = " << colorPalette[index].r << std::endl;
@@ -378,12 +387,10 @@ void on_btnSaveUserPreferences_clicked() {
 }
 
 #else
-
 #include "tmain.hpp"
 #include <iostream>
 
 int main(int argc, char** argv) {
 	return tmain(argc, argv);
 }
-
 #endif

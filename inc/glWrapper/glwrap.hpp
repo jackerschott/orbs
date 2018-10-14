@@ -25,6 +25,9 @@ namespace gl {
     GLuint buffers[NUM_VERTEX_BUFFERS];
   };
 
+  bool createProgram(const char* vsSrcPath, const char* fsSrcPath, const char** inputNames,
+    GLuint* prog, GLuint* vs, GLuint* fs, std::string* errLog = nullptr);
+
   bool checkForShaderErr(GLuint shader, GLenum errType);
   std::string getShaderInfoLog(GLuint shader);
   bool checkForProgramErr(GLuint program, GLenum errType);
