@@ -13,11 +13,16 @@
 #include <iostream>
 #include <SDL2/SDL.h>
 
+#include "clWrapper/clwrap.hpp"
 #include "glWrapper/glwrap.hpp"
 
 #include "render.hpp"
 #include "res.hpp"
 #include "tmeas.hpp"
+
+#if cl_khr_gl_sharing != 1
+#error OpenCL and OpenGL sharing is not present
+#endif
 
 // Entry point for testing purposes
 int tmain(int argc, char** argv) {
@@ -30,6 +35,8 @@ int tmain(int argc, char** argv) {
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_Window* windowMain = SDL_CreateWindow("OpenGL Test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800 * 16 / 9, 800, SDL_WINDOW_OPENGL);
   SDL_GLContext contextMain = SDL_GL_CreateContext(windowMain);
+
+  
 
   float rs = 1.0f;
   const uint nParticles = 10000;
@@ -59,26 +66,42 @@ int tmain(int argc, char** argv) {
   byte* bgImageData = new byte[sBgImageData];
   ifs.read(reinterpret_cast<char*>(bgImageData), sBgImageData);
 
-
-  cl_context_properties platform = (cl_context_properties)cl::Platform::getDefault()();
+  int clErr = 0;
+  cl::Platform platform = cl::Platform::getDefault();
 #ifdef _WIN32
   cl_context_properties contextProps[] = {
     CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
     CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
-    CL_CONTEXT_PLATFORM, platform,
+    CL_CONTEXT_PLATFORM, (cl_context_properties)platform(),
     0
   };
 #endif
 #ifdef __unix__
   cl_context_properties contextProps[] = {
     CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(),
-    CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDrawable(),
-    CL_CONTEXT_PLATFORM, platform(),
+    CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDisplay(),
+    CL_CONTEXT_PLATFORM, (cl_context_properties)platform(),
     0
   };
 #endif
   cl::Device device = cl::Device::getDefault();
-  cl::Context context(device, contextProps);
+  cl::Context context(device, contextProps, 0, 0, &clErr);
+
+  std::cout << "Platform: " << platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
+  std::cout << "Device: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
+  std::cout << std::endl;
+  if (device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_khr_glsharing") == std::string::npos) {
+    std::cerr << "There is no OpenGL and OpenCL sharing possible on this device." << std::endl;
+    std::cerr << std::endl;
+    std::cin.get();
+    return 1;
+  }
+  if (clErr != 0) {
+    std::cerr << "Error while creating context: " << cl::getErrMsg(clErr) << std::endl;
+    std::cerr << std::endl;
+    std::cin.get();
+    return 1;
+  }
 
   render::init(device, context, rs);
   render::setBackgroundTex(sBgImageData, bgImageData, bgWidth, bgHeight, bgBpp);
