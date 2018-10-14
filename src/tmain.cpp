@@ -50,7 +50,7 @@ int tmain(int argc, char** argv) {
   int bgWidth;
   int bgHeight;
   int bgBpp;
-  std::ifstream ifs("E:/tmp/sphere_map", std::ios::binary);
+  std::ifstream ifs(GIT_FOLDER_PATH "res/sphere_map", std::ios::binary);
   ifs.read(reinterpret_cast<char*>(&bgWidth), sizeof(int));
   ifs.read(reinterpret_cast<char*>(&bgHeight), sizeof(int));
   ifs.read(reinterpret_cast<char*>(&bgBpp), sizeof(int));
