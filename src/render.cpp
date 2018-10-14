@@ -86,8 +86,11 @@ namespace render {
   // Organisation Details
   renderConfig config = CONFIG_CLOSED;
 
+  bool isInit() {
+    return (config & CONFIG_INIT) != 0;
+  }
   bool isRendering() {
-    return (config | CONFIG_RENDERING) != 0;
+    return (config & CONFIG_RENDERING) != 0;
   }
 
   void init(cl::Device device, cl::Context context, float _rs) {
@@ -155,8 +158,6 @@ namespace render {
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    std::cout << "Point 1.4" << std::endl;
-
     // Initialize GPU computation programs
     int clErr;
     std::string clSource;
@@ -217,7 +218,7 @@ namespace render {
           }
         }
       }
-      float alpha = 5.0e4f / rnParticles;
+      float alpha = 0.5f;
       newPtColor[i] = { 1.0f, 0.3f, 0.0f, alpha > 1.0f ? 1.0f : alpha };//selectObject<color>(nColors, reinterpret_cast<std::pair<color, float>*>(rPtColorPalette));
     }
     ptR = newPtR;
@@ -362,7 +363,7 @@ namespace render {
     config = (renderConfig)(config | CONFIG_RENDERING);
 
     // Compute Background Texture Coordinates
-    float fovY2 = 0.5f * glm::radians(observer.fov);
+    float fovY2 = 0.5f * observer.fov;
     float fovX2 = atan(observer.aspect * tan(fovY2));
     float phi1 = atan2(observer.lookDir.y, observer.lookDir.x) - fovX2;
     float phi2 = phi1 + 2.0f * fovX2;

@@ -1,9 +1,12 @@
-#define TEST_WITHOUT_GTK false
+#define TEST_WITHOUT_GTK true
 #if !TEST_WITHOUT_GTK
+
+#define _USE_MATH_DEFINES
 
 #include <cmath>
 #include <fstream>
 #include <gtk/gtk.h>
+#include <gdk/gdk.h>
 #include <GL/glew.h>
 #ifdef _WIN32
 #include <GL/wglew.h>
@@ -18,7 +21,7 @@
 #include "res.hpp"
 #include "render.hpp"
 
-#include "trender.hpp" // test render file up until gtk migration
+#define PI ((float)M_PI)
 
 // MainWindow ui elements
 GtkWidget *window_main;
@@ -63,15 +66,16 @@ uint h = 690;
 byte activeColor = 0;
 uint nColors = 1;
 color* colorPalette = new color[nColors];
-bool useHardwAcc = true;
 
-GdkPixbuf* framePixBuf;
-std::thread renderWaiter;
+camera obsCamera;
+std::chrono::high_resolution_clock::time_point t0;
+std::chrono::high_resolution_clock::time_point t1;
+float t;
 
-cl::Platform clPlatform;
-cl::Device clDevice;
+std::thread renderThread;
 
 // Function declerations for event and helper functions
+void on_gla_realize(GtkGLArea* gla);
 void on_gla_render(GtkGLArea *glArea, GdkGLContext *glContext);
 void on_mi_userPref_activate();
 void on_key_press(GtkWidget* widget, GdkEventKey* event);
@@ -116,6 +120,7 @@ int main(int argc, char* argv[]) {
   g_signal_connect(window_main, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
   g_signal_connect(window_main, "key-press-event", G_CALLBACK(on_key_press), NULL);
   g_signal_connect(window_main, "key-release-event", G_CALLBACK(on_key_release), NULL);
+  g_signal_connect(gla_out, "realize", G_CALLBACK(on_gla_realize), NULL);
   g_signal_connect(gla_out, "render", G_CALLBACK(on_gla_render), NULL);
   g_signal_connect(mi_userPref, "activate", G_CALLBACK(on_mi_userPref_activate), NULL);
   g_signal_connect(adj_rg, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
@@ -145,85 +150,80 @@ int main(int argc, char* argv[]) {
   cbt_gp_devices = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(builder, "cbt_gp_devices"));
   g_signal_connect(btnSaveUserPreferences, "clicked", G_CALLBACK(on_btnSaveUserPreferences_clicked), NULL);
 
-  gtk_gl
-  gtk_gl_area_make_current(area_render);
-
-  cl_context_properties platform = (cl_context_properties)cl::Platform::getDefault()();
-#ifdef _WIN32
-  cl_context_properties contextProps[] = {
-    CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
-    CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
-    CL_CONTEXT_PLATFORM, platform,
-    0
-  };
-#endif
-#ifdef __unix__
-    cl_context_properties contextProps[] = {
-      CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(),
-      CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDrawable(),
-      CL_CONTEXT_PLATFORM, platform(),
-      0
-  };
-#endif
-  cl::Device device = cl::Device::getDefault();
-  cl::Context context(device, contextProps);
-
-  float rs = 1.0f;
-  const uint nParticles = 100000;
-  camera obsCamera;
-  obsCamera.pos = { 30.0f, 0.0f, 0.0f };
-  obsCamera.lookDir = -obsCamera.pos;
-  obsCamera.upDir = { 0.0f, 0.0f, 1.0f };
-  obsCamera.fov = glm::radians(60.0f);
-  obsCamera.aspect = 16.0f / 9.0f;
-  obsCamera.zNear = 0.1f;
-  obsCamera.zFar = 100.0f;
-
-  int bgWidth;
-  int bgHeight;
-  int bgBpp;
-  std::ifstream ifs("E:/tmp/sphere_map", std::ios::binary);
-  ifs.read(reinterpret_cast<char*>(&bgWidth), sizeof(int));
-  ifs.read(reinterpret_cast<char*>(&bgHeight), sizeof(int));
-  ifs.read(reinterpret_cast<char*>(&bgBpp), sizeof(int));
-  uint sBgImageData = bgWidth * bgHeight * bgBpp / 8;
-  byte* bgImageData = new byte[sBgImageData];
-  ifs.read(reinterpret_cast<char*>(bgImageData), sBgImageData);
-
-  render::init(device, context, 1.0f);
-  render::clearParticleRings();
-  render::setObserverCamera(obsCamera);
-  render::setBackgroundTex(sBgImageData, bgImageData, bgWidth, bgBpp, bgBpp);
-  render::renderClassic();
-
-  /*std::vector<cl::Platform> platforms;
-  cl::Platform::get(&platforms);
-  byte platform_id = 0;
-  byte device_id = 0;
-  for(std::vector<cl::Platform>::iterator it = platforms.begin(); it != platforms.end(); ++it){
-    cl::Platform platform(*it);
-    gtk_menu_bar_bar_append(menu_bar);
-  }*/
-
-  clPlatform = cl::Platform::getDefault();
-  clDevice = cl::Device::getDefault();
-
   gtk_widget_show(window_main);
   gtk_main();
   return 0;
 }
 
+void on_gla_realize(GtkGLArea* gla) {
+  
+}
+
 // MainWindow events
-void on_gla_render(GtkGLArea *glArea, GdkGLContext *glContext) {
+void on_gla_render(GtkGLArea* glArea, GdkGLContext* glContext) {
   g_print("render call\n");
-  cl_platform_id clPlatformId = clPlatform();
-  cl_context_properties clContextProps[] = {
-    CL_GL_CONTEXT_KHR, (cl_context_properties)glContext,
-    CL_CONTEXT_PLATFORM, (cl_context_properties)clPlatformId,
-    0
-  };
-  cl::Context clContext(clDevice, clContextProps);
-  trender(clDevice, clContext);
+  if (!render::isInit()) {
+    cl::Platform platform = cl::Platform::getDefault();
+    cl::Device device = cl::Device::getDefault();
+    cl_platform_id platformId = platform();
+    cl_context_properties contextProps[] = {
+      CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
+      CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
+      CL_CONTEXT_PLATFORM, (cl_context_properties)platformId,
+      0
+    };
+    cl::Context context(device, contextProps);
+
+    float rs = 1.0f;
+    const uint nParticles = 100000;
+    obsCamera.pos = { 30.0f, 0.0f, 0.0f };
+    obsCamera.lookDir = -obsCamera.pos;
+    obsCamera.upDir = { 0.0f, 0.0f, 1.0f };
+    obsCamera.fov = glm::radians(60.0f);
+    obsCamera.aspect = 16.0f / 9.0f;
+    obsCamera.zNear = 0.1f;
+    obsCamera.zFar = 100.0f;
+
+    int bgWidth;
+    int bgHeight;
+    int bgBpp;
+    std::ifstream ifs(GIT_FOLDER_PATH "res/sphere_map", std::ios::binary);
+    ifs.read(reinterpret_cast<char*>(&bgWidth), sizeof(int));
+    ifs.read(reinterpret_cast<char*>(&bgHeight), sizeof(int));
+    ifs.read(reinterpret_cast<char*>(&bgBpp), sizeof(int));
+    uint sBgImageData = bgWidth * bgHeight * bgBpp / 8;
+    byte* bgImageData = new byte[sBgImageData];
+    ifs.read(reinterpret_cast<char*>(bgImageData), sBgImageData);
+
+    std::cout << bgHeight << std::endl;
+
+    render::init(device, context, 1.0f);
+    render::setBackgroundTex(sBgImageData, bgImageData, bgWidth, bgBpp, bgBpp);
+    render::createParticleRing(nParticles, 10.0f * rs, { 1.0f, -1.0f, 1.0f }, 1.0f * rs, 0.1f, 0.1f,
+      sizeof(colorPalette) / sizeof(colorBlur), nullptr);
+    render::setObserverCamera(obsCamera);
+
+    t0 = std::chrono::high_resolution_clock::now();
+
+    renderThread = std::thread([&]() {
+      while (true) {
+        t1 = std::chrono::high_resolution_clock::now();
+        t = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count() / 1.0e9f;
+
+        obsCamera.pos = {
+          30.0f * sin(PI * sin(2.0f * PI * t / 5.0f)) * cos(2.0f * PI * t / 10.0f),
+          30.0f * sin(PI * sin(2.0f * PI * t / 5.0f)) * sin(2.0f * PI * t / 10.0f),
+          30.0f * cos(PI * sin(2.0f * PI * t / 5.0f))
+        };
+        obsCamera.lookDir = -obsCamera.pos;
+        render::moveObserverCamera(obsCamera.pos, obsCamera.lookDir, obsCamera.upDir);
+        render::renderClassic();
+      }
+    });
+    renderThread.detach();
+
+    std::cout << "render init" << std::endl;
+  }
 }
 
 void on_mi_userPref_activate() {

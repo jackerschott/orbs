@@ -56,6 +56,7 @@ namespace render {
   extern const uint bpp;
   extern ulong sPixelData;
 
+  bool isInit();
   bool isRendering();
 
   void init(cl::Device device, cl::Context context, float _rs);

@@ -48,7 +48,7 @@ bool evalLap(std::vector<double>* secTimes) {
   (*secTimes).reserve(nSections);
   for (uint i = 0; i < nSections; i++) {
     double meanTime = 0.0;
-    uint nLaps = rTimes.size() / nSections - nLapsUntilEval;
+    uint nLaps = (uint)rTimes.size() / nSections - nLapsUntilEval;
     for (uint i = nLapsUntilEval; i < nLapsUntilEval + nLaps; i++) {
       meanTime += rTimes[i * nSections];
     }
@@ -61,10 +61,10 @@ bool evalLap(std::vector<double>* secTimes) {
   return true;
 }
 void evalTimeMeas(std::vector<double>* meanSecTimes, std::vector<double>* stdDevMeanSecTimes) {
-  uint nLaps = rTimes.size() / nSections;
+  uint nLaps = (uint)rTimes.size() / nSections;
   meanSecTimes->reserve(nLaps);
   stdDevMeanSecTimes->reserve(nLaps);
-  for (int i = 0; i < nSections; i++) {
+  for (uint i = 0; i < nSections; i++) {
     double meanSecTime = 0.0;
     double stdDevMeanSecTime = 0.0;
     for (uint i = 0; i < nLaps; i++) {
