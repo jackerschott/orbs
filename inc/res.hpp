@@ -8,6 +8,14 @@ typedef unsigned char byte;
 typedef unsigned int uint;
 typedef size_t ulong;
 
+// Colors
+struct probColor {
+  byte r;
+  byte g;
+  byte b;
+  byte p;
+};
+
 // OpenGL
 #ifdef __linux__
 #define GIT_FOLDER_PATH "./"

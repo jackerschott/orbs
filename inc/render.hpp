@@ -1,8 +1,8 @@
 #ifndef RENDER_HPP
 #define RENDER_HPP
 
-// Device: NVIDIA GeForce GTX 1080 Ti with OpenCL 1.2 CUDA
 #include <CL/cl.hpp>
+#include <glm/glm.hpp>
 
 #include "res.hpp"
 

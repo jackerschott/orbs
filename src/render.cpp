@@ -13,9 +13,6 @@
 #include <thread>
 #include <utility>
 
-// OpenGL Version: 4.6.0 NVIDIA 397.44
-// OpenGL Shading Language Version: 4.60 NVIDIA
-
 #include "clWrapper/clwrap.hpp"
 #include "glWrapper/glwrap.hpp"
 #include "rng.hpp"
