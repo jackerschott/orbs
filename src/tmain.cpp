@@ -36,7 +36,6 @@ int tmain(int argc, char** argv) {
   SDL_Window* windowMain = SDL_CreateWindow("OpenGL Test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800 * 16 / 9, 800, SDL_WINDOW_OPENGL);
   SDL_GLContext contextMain = SDL_GL_CreateContext(windowMain);
 
-  
 
   float rs = 1.0f;
   const uint nParticles = 10000;
@@ -90,7 +89,7 @@ int tmain(int argc, char** argv) {
   std::cout << "Platform: " << platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
   std::cout << "Device: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
   std::cout << std::endl;
-  if (device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_khr_glsharing") == std::string::npos) {
+  if (device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_khr_gl_sharing") == std::string::npos) {
     std::cerr << "There is no OpenGL and OpenCL sharing possible on this device." << std::endl;
     std::cerr << std::endl;
     std::cin.get();
@@ -120,7 +119,7 @@ int tmain(int argc, char** argv) {
   t0 = std::chrono::high_resolution_clock::now();
   while (!isClosed) {
     t1 = std::chrono::high_resolution_clock::now();
-    double t = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count() / 1.0e9;
+    double t = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() / 1.0e6;
 
     camera.pos = {
       30.0f * sin(M_PI_2 + sin(2.0 * M_PI * t / 30.0)) * cos(2.0 * M_PI * t / 60.0),

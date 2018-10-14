@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <thread>
 #include <vector>
 
 #include "tmeas.hpp"
