@@ -167,7 +167,7 @@ namespace render {
     clglProgram = cl::Program(clglContext, clSource);
     clErr = clglProgram.build();
     if (clErr != 0) {
-      std::cerr << clglProgram.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
+      std::cerr << "Build error " << clErr << ": " << clglProgram.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
       throw clErr;
     }
     clglQueue = cl::CommandQueue(clglContext, device);
