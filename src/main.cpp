@@ -1,6 +1,7 @@
-#define TEST_WITHOUT_GTK true
+#define TEST_WITHOUT_GTK false
 #if !TEST_WITHOUT_GTK
 
+#include <cmath>
 #include <fstream>
 #include <gtk/gtk.h>
 #include <GL/glew.h>
@@ -11,29 +12,31 @@
 #include <GL/glxew.h>
 #endif
 #include <iostream>
-#include <math.h>
 #include <thread>
+#include <gtk/gtk.h>
 
 #include "res.hpp"
 #include "render.hpp"
 
+#include "trender.hpp" // test render file up until gtk migration
+
 // MainWindow ui elements
-GtkWidget* window_main;
-GtkMenuBar* menu_bar;
-GtkMenuItem* mi_userPref;
-GtkGLArea* area_render;
-GtkAdjustment* adj_rg;
-GtkAdjustment* adj_rs;
-GtkWidget* btn_render;
-GtkAdjustment* adj_nParticles;
-GtkAdjustment* adj_rr;
-GtkAdjustment* adj_rtheta;
-GtkAdjustment* adj_rphi;
-GtkAdjustment* adj_rdr;
-GtkAdjustment* adj_rdtheta;
-GtkAdjustment* adj_rdphi;
-GtkWidget* btn_rcolors;
-GtkWidget* btn_ring;
+GtkWidget *window_main;
+GtkMenuBar *menu_bar;
+GtkMenuItem *mi_userPref;
+GtkWidget *gla_out;
+GtkAdjustment *adj_rg;
+GtkAdjustment *adj_rs;
+GtkWidget *btn_render;
+GtkAdjustment *adj_nParticles;
+GtkAdjustment *adj_rr;
+GtkAdjustment *adj_rtheta;
+GtkAdjustment *adj_rphi;
+GtkAdjustment *adj_rdr;
+GtkAdjustment *adj_rdtheta;
+GtkAdjustment *adj_rdphi;
+GtkWidget *btn_rcolors;
+GtkWidget *btn_ring;
 
 // ColorPaletteWindow ui elements
 GtkWidget* window_colorPalette;
@@ -65,7 +68,11 @@ bool useHardwAcc = true;
 GdkPixbuf* framePixBuf;
 std::thread renderWaiter;
 
+cl::Platform clPlatform;
+cl::Device clDevice;
+
 // Function declerations for event and helper functions
+void on_gla_render(GtkGLArea *glArea, GdkGLContext *glContext);
 void on_mi_userPref_activate();
 void on_key_press(GtkWidget* widget, GdkEventKey* event);
 void on_key_release(GtkWidget* widget, GdkEventKey* event);
@@ -92,7 +99,7 @@ int main(int argc, char* argv[]) {
   gtk_builder_add_from_file(builder, GIT_FOLDER_PATH "gui/window_userPreferences.glade", &err);
 
   window_main = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
-  area_render = GTK_GL_AREA(gtk_builder_get_object(builder, "area_render"));
+  gla_out = GTK_WIDGET(gtk_builder_get_object(builder, "gla_out"));
   mi_userPref = GTK_MENU_ITEM(gtk_builder_get_object(builder, "mi_userPref"));
   adj_rg = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rg"));
   adj_rs = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj_rs"));
@@ -109,6 +116,7 @@ int main(int argc, char* argv[]) {
   g_signal_connect(window_main, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
   g_signal_connect(window_main, "key-press-event", G_CALLBACK(on_key_press), NULL);
   g_signal_connect(window_main, "key-release-event", G_CALLBACK(on_key_release), NULL);
+  g_signal_connect(gla_out, "render", G_CALLBACK(on_gla_render), NULL);
   g_signal_connect(mi_userPref, "activate", G_CALLBACK(on_mi_userPref_activate), NULL);
   g_signal_connect(adj_rg, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
   g_signal_connect(adj_rs, "value-changed", G_CALLBACK(on_adj_rx_changed), NULL);
@@ -197,12 +205,27 @@ int main(int argc, char* argv[]) {
     gtk_menu_bar_bar_append(menu_bar);
   }*/
 
+  clPlatform = cl::Platform::getDefault();
+  clDevice = cl::Device::getDefault();
+
   gtk_widget_show(window_main);
   gtk_main();
   return 0;
 }
 
 // MainWindow events
+void on_gla_render(GtkGLArea *glArea, GdkGLContext *glContext) {
+  g_print("render call\n");
+  cl_platform_id clPlatformId = clPlatform();
+  cl_context_properties clContextProps[] = {
+    CL_GL_CONTEXT_KHR, (cl_context_properties)glContext,
+    CL_CONTEXT_PLATFORM, (cl_context_properties)clPlatformId,
+    0
+  };
+  cl::Context clContext(clDevice, clContextProps);
+  trender(clDevice, clContext);
+}
+
 void on_mi_userPref_activate() {
   std::vector<cl::Platform> platforms;
   cl::Platform::get(&platforms);
@@ -321,7 +344,7 @@ void on_btn_new_clicked() {
   for (uint i = 0; i < nColors; i++) {
     newColorPalette[i] = colorPalette[i];
   }
-  newColorPalette[nColors] = { 1.0, 1.0, 1.0, 0.0 };
+  newColorPalette[nColors] = { 0, 0, 0, 0 };
   delete[] colorPalette;
   colorPalette = newColorPalette;
   activeColor = nColors++;
@@ -383,14 +406,13 @@ void load_color(byte index) {
 }
 
 void on_btnSaveUserPreferences_clicked() {
-  
+  // todo
 }
 
 #else
 #include "tmain.hpp"
-#include <iostream>
 
 int main(int argc, char** argv) {
-	return tmain(argc, argv);
+  return tmain(argc, argv);
 }
 #endif

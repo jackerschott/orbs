@@ -184,7 +184,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <object class="GtkGLArea" id="area_render">
+              <object class="GtkGLArea" id="gla_out">
                 <property name="visible">True</property>
                 <property name="app_paintable">True</property>
                 <property name="can_focus">False</property>

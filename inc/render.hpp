@@ -2,6 +2,7 @@
 #define RENDER_HPP
 
 #include <CL/cl.hpp>
+#include <glm/glm.hpp>
 
 #include "res.hpp"
 
