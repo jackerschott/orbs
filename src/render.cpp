@@ -183,7 +183,7 @@ namespace render {
     clProgram = cl::Program(clContext, clSource);
     clErr = clProgram.build();
     if (clErr != 0) {
-      std::cerr << clProgram.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
+      std::cerr << cl::getErrMsg(clErr) << std::endl;
       throw clErr;
     }
 
