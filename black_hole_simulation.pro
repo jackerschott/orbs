@@ -43,6 +43,5 @@ SOURCES += src/fileman.cpp \
            src/clWrapper/clwrap.cpp \
            src/glWrapper/glwrap.cpp \
            src/gui/mainwindow.cpp \
-           src/gui/qrc_mainwindow.cpp \
            src/gui/renderwidget.cpp
 RESOURCES += res/mainwindow.qrc
