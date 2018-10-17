@@ -1,16 +1,9 @@
 #define TEST_WITHOUT_QT false
 #if !TEST_WITHOUT_QT
 
-#include <fstream>
-#include <GL/glew.h>
-#ifdef _WIN32
-#include <GL/wglew.h>
-#endif
-#ifdef __unix__
-#include <GL/glxew.h>
-#endif
+#include <QtWidgets/QApplication>
 #include <iostream>
-#include <QtWidgets/qapplication.h>
+#include <fstream>
 #include <thread>
 
 #include "clWrapper/clwrap.hpp"
