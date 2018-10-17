@@ -102,7 +102,7 @@ int tmain(int argc, char** argv) {
     return 1;
   }
 
-  render::init(device, context, rs);
+  render::init(rs, device, context);
   render::setBackgroundTex(sBgImageData, bgImageData, bgWidth, bgHeight, bgBpp);
   render::createParticleRing(nParticles, 10.0f * rs, { 1.0f, -1.0f, 1.0f }, 1.0f * rs, 0.1f, 0.1f,
     sizeof(colorPalette) / sizeof(colorBlur), colorPalette);

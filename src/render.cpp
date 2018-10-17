@@ -43,7 +43,7 @@ namespace render {
   uint bgWidth;
   uint bgHeight;
   uint bgBpp;
-  ulong bgSImageData;
+  uslong bgSImageData;
   byte *bgImageData;
 
   // GPU Rendering programs
@@ -92,8 +92,23 @@ namespace render {
   bool isRendering() {
     return (config & CONFIG_RENDERING) != 0;
   }
+  bool isClosed() {
+    return (config & CONFIG_CLOSED) != 0;
+  }
+  void setObserverCameraAspect(float aspect) {
+    assert((config & CONFIG_INIT) != 0 && (config & CONFIG_HAS_CAMERA) != 0 && (config & CONFIG_HAS_BG_TEX) != 0);
+    observer.aspect = aspect;
 
-  void init(cl::Device device, cl::Context context, float _rs) {
+    // Set new view projection matrix
+    perspv = glm::perspective(observer.fov, observer.aspect, observer.zNear, observer.zFar);
+    glm::mat4 vp = perspv * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
+
+    glUseProgram(ptRenderProg);
+    glUniformMatrix4fv(viewProjn, 1, false, &vp[0][0]);
+    glUseProgram(0);
+  }
+
+  void init(float _rs, cl::Device device, cl::Context context) {
     assert(config == CONFIG_CLOSED);
     rs = _rs;
 
@@ -185,7 +200,7 @@ namespace render {
     float* newPtTheta = new float[nParticles + rnParticles];
     float* newPtPhi = new float[nParticles + rnParticles];
     color* newPtColor = new color[nParticles + rnParticles];
-    for (ulong i = 0; i < nParticles; i++) {
+    for (uslong i = 0; i < nParticles; i++) {
       newPtR[i] = ptR[i];
       newPtTheta[i] = ptTheta[i];
       newPtPhi[i] = ptPhi[i];
@@ -195,7 +210,9 @@ namespace render {
     delete[] ptTheta;
     delete[] ptPhi;
     delete[] ptColor;
-    for (ulong i = nParticles; i < nParticles + rnParticles; i++) {
+    uint maxProgLength = 0;
+    std::string progress = "";
+    for (uslong i = nParticles; i < nParticles + rnParticles; i++) {
       newPtR[i] = rr + normPdf(rdr / 2.0f);
       if (rn.z == 0.0) {
         newPtTheta[i] = randFloat(PI);
@@ -218,9 +235,30 @@ namespace render {
           }
         }
       }
-      float alpha = 0.5f;
-      newPtColor[i] = { 1.0f, 0.3f, 0.0f, alpha > 1.0f ? 1.0f : alpha };//selectObject<color>(nColors, reinterpret_cast<std::pair<color, float>*>(rPtColorPalette));
+      color c = selectObject<color>(nColors, reinterpret_cast<std::pair<color, float>*>(rPtColorPalette));
+      float fac = randFloat(0.7f, 1.0f);
+      float r = (normPdf(0.03f) + c.r) * fac;
+      float g = (normPdf(0.03f) + c.g) * fac;
+      float b = (normPdf(0.03f) + c.b) * fac;
+      float a = normPdf(0.03f) + c.a;
+      newPtColor[i] = {
+        r > 1.0f ? 1.0f : r,
+        g > 1.0f ? 1.0f : g,
+        b > 1.0f ? 1.0f : b,
+        a > 1.0f ? 1.0f : a
+      };
+
+      progress = "Calculating particle positions: " + std::to_string(100 * i / (rnParticles - 1)) + " %";
+      if (progress.length() > maxProgLength)
+        maxProgLength = progress.length();
+      else if (progress.length() < maxProgLength) {
+        while (progress.length() < maxProgLength) {
+          progress += " ";
+        }
+      }
+      std::cout << '\r' << progress;
     }
+    std::cout << std::endl;
     ptR = newPtR;
     ptTheta = newPtTheta;
     ptPhi = newPtPhi;
@@ -344,7 +382,7 @@ namespace render {
     config = (renderConfig)(config | CONFIG_HAS_BG_TEX);
   }
   void moveObserverCamera(vector pos, vector lookDir, vector upDir) {
-    assert((config & CONFIG_HAS_BG_TEX) != 0);
+    assert((config & CONFIG_INIT) != 0 && (config & CONFIG_HAS_CAMERA) != 0 && (config & CONFIG_HAS_BG_TEX) != 0);
 
     // Set new camera position
     observer.pos = pos;

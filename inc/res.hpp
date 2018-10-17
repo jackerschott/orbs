@@ -7,7 +7,7 @@
 
 typedef unsigned char byte;
 typedef unsigned int uint;
-typedef size_t ulong;
+typedef size_t uslong;
 
 // Colors
 struct probColor {

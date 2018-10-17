@@ -1,6 +1,6 @@
 # Ignored local files for jackerschott
 /BlackHoleSimulation
-/BlackHoleSimulationLinux
+/BlackHoleSimulation-QtFork
 /bin
 /make.bat
 /gui/window_userPreferences.glade~
@@ -10,3 +10,5 @@
 # Ignored local files for 9Strike
 /.vscode
 /black_hole_simulation
+/.vs
+/qtc.bat

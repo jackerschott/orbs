@@ -54,12 +54,14 @@ namespace render {
   extern uint pWidth;
   extern uint pHeight;
   extern const uint bpp;
-  extern ulong sPixelData;
+  extern uslong sPixelData;
 
   bool isInit();
   bool isRendering();
+  bool isClosed();
+  void setObserverCameraAspect(float aspect);
 
-  void init(cl::Device device, cl::Context context, float _rs);
+  void init(float _rs, cl::Device device, cl::Context context);
   void createParticleRing(uint nParticles, float rr, vector rn,
     float rdr, float rdtheta, float rdphi,
     uint nColors, colorBlur* rparticleColorPalette);

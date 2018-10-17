@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/img">
+        <file alias="bgtex1">star_space_map.jpg</file>
+    </qresource>
+</RCC>
