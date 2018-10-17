@@ -1,14 +1,13 @@
 # Ignored local files for jackerschott
 /BlackHoleSimulation
 /BlackHoleSimulation-QtFork
-/bin
 /make.bat
-/gui/window_userPreferences.glade~
-/gui/window_main.glade~
-/gui/window_colorPalette.glade~
 
 # Ignored local files for 9Strike
 /.vscode
-/black_hole_simulation
-/.vs
-/qtc.bat
+
+# Ignored files created by qmake
+/.qmake.stash
+/Makefile
+/tmp
+/bin

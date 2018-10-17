@@ -4,7 +4,7 @@
 #include <QtWidgets/qmainwindow.h>
 
 #include "gui/renderwidget.hpp"
-#include "gui/ui_mainwindow.hpp"
+#include "gui/ui_mainwindow.h"
 
 class mainWindow : public QMainWindow {
   Q_OBJECT

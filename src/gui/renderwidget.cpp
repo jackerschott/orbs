@@ -1,16 +1,18 @@
 #define _USE_MATH_DEFINES
 
-#include <cmath>
-#include <iostream>
-
 #include "gui/renderwidget.hpp"
 #include "tmeas.hpp"
+
+#include <cmath>
+#include <iostream>
 
 #ifdef _WIN32
 #include <GL/wglew.h>
 #endif
 #ifdef __unix__
+namespace glxew {
 #include <GL/glxew.h>
+}
 #endif
 
 std::vector<double> renderTime;
@@ -40,12 +42,22 @@ renderWidget::~renderWidget() {
 void renderWidget::initializeGL() {
   cl::Platform clPlatform = cl::Platform::getDefault();
   cl::Device clDevice = cl::Device::getDefault();
+  #ifdef _WIN32
   cl_context_properties clContextProps[] = {
     CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
     CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
     CL_CONTEXT_PLATFORM, (cl_context_properties)clPlatform(),
     0
   };
+  #endif
+  #ifdef __unix__
+  cl_context_properties clContextProps[] = {
+    CL_GL_CONTEXT_KHR, (cl_context_properties)glxew::glXGetCurrentContext(),
+    CL_WGL_HDC_KHR, (cl_context_properties)glxew::glXGetCurrentDrawable(),
+    CL_CONTEXT_PLATFORM, (cl_context_properties)clPlatform(),
+    0
+  };
+  #endif
   cl::Context clContext(clDevice, clContextProps);
 
   float rs = 1.0f;
