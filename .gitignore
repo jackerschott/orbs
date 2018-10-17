@@ -9,6 +9,7 @@
 
 # Ignored local files for 9Strike
 /.vscode
+/tmp
+/Makefile
+/.qmake.stash
 /black_hole_simulation
-/.vs
-/qtc.bat
