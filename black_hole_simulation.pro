@@ -1,15 +1,14 @@
-
 TEMPLATE = app
 TARGET = black_hole_simulation
-INCLUDEPATH += inc
 
+DESTDIR=./bin
 UI_DIR=./inc/gui
 MOC_DIR=./src/gui
 RCC_DIR=./src/gui
 OBJECTS_DIR=./tmp
 
-INCLUDEPATH += inc
-DEFINES += CL_TARGET_OPENCL_VERSION=120
+INCLUDEPATH += -I./inc
+DEFINES += -DCL_TARGET_OPENCL_VERSION=120
 LIBS += -lOpenCL -lGLEW -lGL -lSDL2
 
 QT += core gui
