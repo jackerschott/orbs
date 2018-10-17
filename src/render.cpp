@@ -1,6 +1,6 @@
 #define _USE_MATH_DEFINES
-#define PI ((float)M_PI)
-#define PI_2 ((float)M_PI_2)
+#define PI float(M_PI)
+#define PI_2 float(M_PI_2)
 
 #include <chrono>
 #include <climits>
@@ -180,7 +180,7 @@ namespace render {
 
     loadFile(RENDER_KERNEL_SRC_PATH, clSource);
     clglProgram = cl::Program(clglContext, clSource);
-    clErr = clglProgram.build();
+    clErr = clglProgram.build("-cl-std=CL1.2");
     if (clErr != 0) {
       std::cerr << "Program build error " << clErr << ": " << clglProgram.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
       throw clErr;
