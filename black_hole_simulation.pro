@@ -1,5 +1,7 @@
 TEMPLATE = app
-TARGET = black_hole_simulation
+
+unix:TARGET = black_hole_simulation
+win32:TARGET = black_hole_simulation.exe
 
 DESTDIR=./bin
 UI_DIR=./inc/gui
