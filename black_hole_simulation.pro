@@ -3,6 +3,13 @@ TEMPLATE = app
 unix:TARGET = black_hole_simulation
 win32:TARGET = black_hole_simulation.exe
 
+unix:LIBS += -lOpenCL -lGLEW -lGL
+win32: {
+  INCLUDEPATH += "$$system(echo %PATH_OPENCL%)"
+  INCLUDEPATH += "$$system(echo %PATH_OPENGL%)"
+  INCLUDEPATH += "$$system(echo %PATH_GLM%)"
+}
+
 DESTDIR=./bin
 UI_DIR=./inc/gui
 MOC_DIR=./src/gui
@@ -11,7 +18,6 @@ OBJECTS_DIR=./tmp
 
 INCLUDEPATH += ./inc
 DEFINES += CL_TARGET_OPENCL_VERSION=120
-LIBS += -lOpenCL -lGLEW -lGL -lSDL2
 
 QT += core gui
 QT += widgets
