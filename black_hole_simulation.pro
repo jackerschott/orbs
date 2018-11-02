@@ -3,17 +3,14 @@ TEMPLATE = app
 unix:TARGET = black_hole_simulation
 win32:TARGET = black_hole_simulation.exe
 
-unix:LIBS += -lOpenCL -lGLEW -lGL
-win32: {
-  INCLUDEPATH += "$$system(echo %PATH_OPENCL%)"
-  INCLUDEPATH += "$$system(echo %PATH_OPENGL%)"
-  INCLUDEPATH += "$$system(echo %PATH_GLM%)"
-}
+unix:LIBS += -lOpenCL -lGLEW -lGL -lSDL2
+unix:QMAKE_LFLAGS += -no-pie
+CONFIG += optimize_full
 
 DESTDIR=./bin
 UI_DIR=./inc/gui
-MOC_DIR=./src/gui
-RCC_DIR=./src/gui
+MOC_DIR=./tmp
+RCC_DIR=./tmp
 OBJECTS_DIR=./tmp
 
 INCLUDEPATH += ./inc
