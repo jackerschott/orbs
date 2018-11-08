@@ -1,15 +1,20 @@
 TEMPLATE = app
-TARGET = black_hole_simulation
+
+unix:TARGET = black_hole_simulation
+win32:TARGET = black_hole_simulation.exe
+
+unix:LIBS += -lOpenCL -lGLEW -lGL -lSDL2
+unix:QMAKE_LFLAGS += -no-pie
+CONFIG += optimize_full
 
 DESTDIR=./bin
 UI_DIR=./inc/gui
-MOC_DIR=./src/gui
-RCC_DIR=./src/gui
+MOC_DIR=./tmp
+RCC_DIR=./tmp
 OBJECTS_DIR=./tmp
 
 INCLUDEPATH += ./inc
 DEFINES += CL_TARGET_OPENCL_VERSION=120
-LIBS += -lOpenCL -lGLEW -lGL -lSDL2
 
 QT += core gui
 QT += widgets
