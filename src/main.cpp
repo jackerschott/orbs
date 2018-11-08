@@ -9,10 +9,8 @@
 #include "clWrapper/clwrap.hpp"
 #include "glWrapper/glwrap.hpp"
 #include "gui/mainwindow.hpp"
-#include "render.hpp"
+#include "simulation.hpp"
 #include "tmeas.hpp"
-
-std::thread renderThread;
 
 int main(int argc, char** argv) {
   QApplication app(argc, argv);

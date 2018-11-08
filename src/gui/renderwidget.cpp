@@ -5,7 +5,6 @@
 
 #include <cmath>
 #include <iostream>
-
 #ifdef _WIN32
 #include <GL/wglew.h>
 #endif
@@ -36,12 +35,14 @@ renderWidget::~renderWidget() {
     << "Frame rate: " << 1.0 / meanRenderTime[0] << " +- "
     << stdDevMeanRenderTime[0] / (meanRenderTime[0] * meanRenderTime[0]) << " fps" << std::endl;
   
-  render::close();
+  delete timer;
+  sl::close();
 }
 
 void renderWidget::initializeGL() {
   cl::Platform clPlatform = cl::Platform::getDefault();
   cl::Device clDevice = cl::Device::getDefault();
+
   #ifdef _WIN32
   cl_context_properties clContextProps[] = {
     CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
@@ -50,10 +51,10 @@ void renderWidget::initializeGL() {
     0
   };
   #endif
-  #ifdef __unix__
+  #ifdef __linux
   cl_context_properties clContextProps[] = {
     CL_GL_CONTEXT_KHR, (cl_context_properties)glxew::glXGetCurrentContext(),
-    CL_WGL_HDC_KHR, (cl_context_properties)glxew::glXGetCurrentDrawable(),
+    CL_GLX_DISPLAY_KHR, (cl_context_properties)glxew::glXGetCurrentDrawable(),
     CL_CONTEXT_PLATFORM, (cl_context_properties)clPlatform(),
     0
   };
@@ -61,7 +62,7 @@ void renderWidget::initializeGL() {
   cl::Context clContext(clDevice, clContextProps);
 
   float rs = 1.0f;
-  uint nRnPts = 5000;
+  uint nRnPts = 1000000;
 
   observer.pos = { 30.0f, 0.0f, 0.0f };
   observer.lookDir = -observer.pos;
@@ -73,19 +74,22 @@ void renderWidget::initializeGL() {
 
   QImage bgTex = QImage(":/img/bgtex1");
 
-  colorBlur palette[] = {
-    { { 1.00f, 0.30f, 0.00f, 0.40f }, 0.990f },
-    { { 0.25f, 0.60f, 1.00f, 1.00f }, 0.005f },
-    { { 1.00f, 1.00f, 1.00f, 1.00f }, 0.005f }
+  color palette[] = {
+    { 1.00f, 0.50f, 0.00f, 0.10f },
+    { 1.00f, 1.00f, 1.00f, 1.00f }
+  };
+  float blurSizes[] = {
+    0.99f,
+    0.01f
   };
 
-  render::init(rs, clDevice, clContext);
-  render::setBackgroundTex(bgTex.sizeInBytes(), bgTex.bits(), bgTex.width(), bgTex.height(), bgTex.pixelFormat().bitsPerPixel() / 8);
-  render::setObserverCamera(observer);
-  render::createParticleRing(nRnPts, 10.0f * rs, { 1.0f, -1.0f, 1.0f }, 1.0f * rs, 0.1f, 0.1f, 3, palette);
+  sl::init(rs, clDevice, clContext);
+  sl::setBackgroundTex(bgTex.sizeInBytes(), bgTex.bits(), bgTex.width(), bgTex.height(), bgTex.pixelFormat().bitsPerPixel() / 8);
+  sl::setObserverCamera(observer);
+  sl::createEllipse(nRnPts, 15.0f * rs, 10.0f * rs, { 1.0f, -1.0f, 1.0f }, 1.0f * rs, 1.0f * rs, 3, palette, blurSizes);
   
   timer = new QTimer();
-  timer->setInterval(std::chrono::milliseconds(1));
+  timer->setInterval(1);
   connect(timer, &QTimer::timeout, this, &renderWidget::updateObjects);
   timer->start();
   
@@ -95,12 +99,11 @@ void renderWidget::initializeGL() {
 }
 
 void renderWidget::resizeGL(int w, int h) {
-  render::setObserverCameraAspect(float(w) / float(h));
+  sl::setObserverCameraAspect(float(w) / float(h));
 }
-
 void renderWidget::paintGL() {
   setTimeMeasPoint();
-  render::renderClassic();
+  sl::renderClassic();
   setTimeMeasPoint();
 
   if (evalLap(&renderTime)) {
@@ -109,10 +112,10 @@ void renderWidget::paintGL() {
     renderTime.clear();
   }
 }
-
 void renderWidget::updateObjects() {
   currTime = std::chrono::high_resolution_clock::now();
   double t = std::chrono::duration_cast<std::chrono::nanoseconds>(currTime - initTime).count() / 1.0e9;
+  // TODO: Use t
 
   observer.pos = {
     30.0f * sin(M_PI_2 + sin(2.0 * M_PI * t / 30.0)) * cos(2.0 * M_PI * t / 60.0),
@@ -121,7 +124,7 @@ void renderWidget::updateObjects() {
   };
   observer.lookDir = -observer.pos;
 
-  render::moveObserverCamera(observer.pos, observer.lookDir, observer.upDir);
+  sl::moveObserverCamera(observer.pos, observer.lookDir, observer.upDir);
 
   update();
 }

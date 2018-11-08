@@ -8,6 +8,8 @@
 #include "tmeas.hpp"
 #include "res.hpp"
 
+DEF_STANDARD_TYPES
+
 int lapCount;
 uint nSections;
 uint nLapsUntilEval;

@@ -5,28 +5,41 @@
 #ifndef RES_HPP
 #define RES_HPP
 
-typedef unsigned char byte;
-typedef unsigned int uint;
-typedef size_t uslong;
-
-// Colors
-struct probColor {
-  byte r;
-  byte g;
-  byte b;
-  byte p;
-};
-
-// OpenGL
 #ifdef __unix__
-#define GIT_FOLDER_PATH "./"
+#define DEF_STANDARD_TYPES \
+  typedef unsigned char byte; \
+  typedef unsigned int uint; \
+  typedef long int64; \
+  typedef unsigned long uint64;
+#endif
+#ifdef _WIN32
+#ifdef _WIN64
+#define DEF_STANDARD_TYPES \
+  typedef unsigned char byte; \
+  typedef unsigned int uint; \
+  typedef long long int64; \
+  typedef unsigned long long uint64;
+#elif
+#define DEF_STANDARD_TYPES \
+  typedef unsigned char byte; \
+  typedef unsigned int uint; \
+  typedef long int64; \
+  typedef unsigned long uint64;
+#endif
+#endif
+
+#ifdef __unix__
+#define GIT_FOLDER_PATH "../"
 #endif
 #ifdef _WIN32
 #define GIT_FOLDER_PATH "../../"
 #endif
 
-#define PT_VERTEX_SHADER_SRC_PATH GIT_FOLDER_PATH "src/shaders/pt_vert.shader"
-#define PT_FRAGMENT_SHADER_SRC_PATH GIT_FOLDER_PATH "src/shaders/pt_frag.shader"
+// OpenGL
+#define SHADER_PATH GIT_FOLDER_PATH "src/shaders/"
+
+#define PT_VERTEX_SHADER_SRC_PATH SHADER_PATH "pt_vert.shader"
+#define PT_FRAGMENT_SHADER_SRC_PATH SHADER_PATH "pt_frag.shader"
 #define NUM_PT_SHADER_ATTR 2
 #define NUM_PT_SHADER_UNIFORMS 1
 enum ptShaderIn {
@@ -39,31 +52,34 @@ enum ptShaderUniform {
 extern const char* glPtShaderInNames[];
 extern const char* glPtShaderUniNames[];
 
-#define BG_VERTEX_SHADER_SRC_PATH GIT_FOLDER_PATH "src/shaders/bg_vert.shader"
-#define BG_FRAGMENT_SHADER_SRC_PATH GIT_FOLDER_PATH "src/shaders/bg_frag.shader"
+#define BG_VERTEX_SHADER_SRC_PATH SHADER_PATH "bg_vert.shader"
+#define BG_FRAGMENT_SHADER_SRC_PATH SHADER_PATH "bg_frag.shader"
 #define NUM_BG_SHADER_ATTR 2
 enum bgShaderIn {
   BG_POS,
   BG_TEX_COORD
 };
-enum bgShaderUniform {
-
-};
+enum bgShaderUniform {};
 extern const char* glBgShaderInNames[];
 
 // OpenCL
-#define RENDER_KERNEL_SRC_PATH GIT_FOLDER_PATH "src/kernels/render.cl"
-#define NUM_KERNELS 1
-enum kernels {
-  KERNEL_GET_PT_POSITIONS,
-  KERNEL_PROCESS_IMAGE
-};
-extern const char* kernelNames[];
+#define KERNEL_PATH GIT_FOLDER_PATH "src/kernels/"
 
-namespace std {
-  class invalid_operation : exception {
-    virtual const char* what();
-  };
-}
+#define PTGEN_KERNEL_SRC_PATH KERNEL_PATH "ptgen.cl"
+#define PTGEN_NUM_KERNELS 2
+enum ptgenKernels {
+  KERNEL_GET_ELLIPTIC_PT_DISTR,
+  KERNEL_GET_PT_COLORS
+};
+extern const char* ptgenKernelNames[];
+
+#define RNG_KERNEL_SRC_PATH KERNEL_PATH "rng.cl"
+#define RNG_NUM_KERNELS 3
+enum rngKernels {
+  KERNEL_GEN_SAMPLES,
+  KERNEL_GEN_FLOAT_SAMPLES,
+  KERNEL_GEN_GAUSSIAN_SAMPLES
+};
+extern const char* rngKernelNames[];
 
 #endif
