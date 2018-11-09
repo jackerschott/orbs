@@ -9,7 +9,6 @@
 #include "clWrapper/clwrap.hpp"
 #include "glWrapper/glwrap.hpp"
 #include "gui/mainwindow.hpp"
-#include "simulation.hpp"
 #include "tmeas.hpp"
 
 int main(int argc, char** argv) {
