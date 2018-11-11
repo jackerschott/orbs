@@ -10,10 +10,14 @@ mainWindow::mainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::winMai
   connect(ui->rbBgFromPreset, &QRadioButton::toggled, this, &mainWindow::onRbBgFromPresetToggled);
   connect(ui->rbBgFromFile, &QRadioButton::toggled, this, &mainWindow::onRbBgFromFileToggled);
 
+  QPixmap thumbnail1 = QPixmap(":/img/bgtex1");
+  ui->lbBgPreset1->setPixmap(thumbnail1.scaled(ui->lbBgPreset1->width(), ui->lbBgPreset1->height(), Qt::KeepAspectRatioByExpanding));
+
   ui->wBgFromFile->setEnabled(false);
 }
 
 mainWindow::~mainWindow() {
+  disconnect(ui->ledRS, &QLineEdit::textEdited, this, &mainWindow::onLedRSTextEdited);
   disconnect(ui->rbBgFromPreset, &QRadioButton::toggled, this, &mainWindow::onRbBgFromPresetToggled);
   disconnect(ui->rbBgFromFile, &QRadioButton::toggled, this, &mainWindow::onRbBgFromFileToggled);
 

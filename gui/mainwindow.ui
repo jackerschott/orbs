@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1149</width>
-    <height>596</height>
+    <width>742</width>
+    <height>500</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -101,7 +101,7 @@ background-color: white
                 <x>0</x>
                 <y>0</y>
                 <width>224</width>
-                <height>529</height>
+                <height>433</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -113,7 +113,11 @@ background-color: white
                 </widget>
                </item>
                <item>
-                <widget class="QLineEdit" name="ledRS"/>
+                <widget class="QLineEdit" name="ledRS">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
                </item>
                <item>
                 <widget class="QLabel" name="lbBgTex">
@@ -237,7 +241,7 @@ background-color: white
                     <x>0</x>
                     <y>0</y>
                     <width>224</width>
-                    <height>520</height>
+                    <height>424</height>
                    </rect>
                   </property>
                   <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -412,7 +416,7 @@ background-color: white
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1149</width>
+     <width>742</width>
      <height>21</height>
     </rect>
    </property>

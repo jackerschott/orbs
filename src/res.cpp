@@ -18,13 +18,12 @@ const char* glBgShaderInNames[] = {
 };
 
 // OpenCL
-const char* kernelNames[] = {
-  "getPtPositions",
-  "processImage"
+const char* ptgenKernelNames[] = {
+  "getEllipticPtDistr",
+  "getPtColors"
 };
-
-namespace std {
-  const char* invalid_operation::what() {
-    return "This operation is invalid in the current state.";
-  }
-}
+const char* rngKernelNames[] = {
+  "genSamples",
+  "genFloatSamples",
+  "genGaussianSamples"
+};

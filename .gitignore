@@ -11,3 +11,5 @@
 /Makefile
 /tmp
 /bin
+/.vs
+/qtc.bat
