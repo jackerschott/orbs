@@ -186,12 +186,13 @@ namespace sl {
     int err = 0;
     posBuf = new cl_float4[nParticles];
     colorBuf = new cl_float4[nParticles];
-    clPosBuf = cl::Buffer(clContext, CL_MEM_READ_WRITE, nParticles * sizeof(cl_float4), posBuf, &err);
+    uint* sampleBuf = new uint[nParticles];
+    clPosBuf = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, nParticles * sizeof(cl_float4), posBuf, &err);
     clPaletteBuf = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nColors * sizeof(cl_float4), palette, &err);
     clBlurSizesBuf = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nColors * sizeof(float), blurSizes, &err);
-    clColorBuf = cl::Buffer(clContext, CL_MEM_READ_WRITE, nParticles * sizeof(cl_float4), colorBuf, &err);
+    clColorBuf = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, nParticles * sizeof(cl_float4), colorBuf, &err);
 
-    cl::Buffer uSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(uint), &err);
+    cl::Buffer uSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY | CL_MEM_USE_HOST_PTR, nParticles * sizeof(uint), sampleBuf, &err);
     cl::Buffer uSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(uint), &err);
     cl::Buffer gSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(float), &err);
     cl::Buffer gSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(float), &err);
@@ -200,6 +201,9 @@ namespace sl {
     err = kerGenFloatSamples.setArg(1, getRngOff());
     err = kerGenFloatSamples.setArg(2, uSamplesBuf1);
     err = clQueue.enqueueNDRangeKernel(kerGenFloatSamples, cl::NullRange, cl::NDRange(4096));
+    cl::finish();
+    err = clQueue.enqueueReadBuffer(uSamplesBuf1, true, 0, nParticles * sizeof(uint), sampleBuf);
+    std::cout << err << std::endl;
     err = kerGenFloatSamples.setArg(1, getRngOff());
     err = kerGenFloatSamples.setArg(2, uSamplesBuf2);
     err = clQueue.enqueueNDRangeKernel(kerGenFloatSamples, cl::NullRange, cl::NDRange(4096));
@@ -213,9 +217,10 @@ namespace sl {
     err = clQueue.enqueueNDRangeKernel(kerGenGaussianSamples, cl::NullRange, cl::NDRange(4096));
     cl::finish();
 
+    float eps = sqrt(1 - (b * b) / (a * a));
     err = kerGetEllipticPtDistr.setArg(0, nParticles);
     err = kerGetEllipticPtDistr.setArg(1, b);
-    err = kerGetEllipticPtDistr.setArg(2, sqrt(1 - (b * b) / (a * a)));
+    err = kerGetEllipticPtDistr.setArg(2, eps);
     err = kerGetEllipticPtDistr.setArg(3, cl_float3({ n.x, n.y, n.z }));
     err = kerGetEllipticPtDistr.setArg(4, dr);
     err = kerGetEllipticPtDistr.setArg(5, dz);
@@ -261,6 +266,14 @@ namespace sl {
     glPtPosBufs.push_back(glPtPosBuf);
     glPtColorBufs.push_back(glPtColorBuf);
 
+    // for (uint i = 1000; i < 1100; i++) {
+    //   std::cout << "sample = " << sampleBuf[i] << std::endl;
+    //   std::cout << "x = " << posBuf[i].s[0] << std::endl;
+    //   std::cout << "y = " << posBuf[i].s[1] << std::endl;
+    //   std::cout << "z = " << posBuf[i].s[2] << std::endl;      
+    // }
+
+    delete[] sampleBuf;
     delete[] posBuf;
     delete[] colorBuf;
   }
@@ -370,7 +383,7 @@ namespace sl {
     glUseProgram(ptRenderProg);
     for (int i = 0; i < glClusterPts.size(); i++) {
       glBindVertexArray(glClusterPts[i]);
-      glDrawArrays(GL_POINTS, 0, (int)nClusterPts[i]);
+      glDrawArrays(GL_POINTS, 0, 10000);
       glBindVertexArray(0);
     }
     glUseProgram(0);

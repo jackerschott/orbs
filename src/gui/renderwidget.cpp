@@ -3,6 +3,7 @@
 #include "gui/renderwidget.hpp"
 #include "tmeas.hpp"
 
+#include <chrono>
 #include <cmath>
 #include <iostream>
 #ifdef _WIN32
@@ -62,7 +63,7 @@ void renderWidget::initializeGL() {
   cl::Context clContext(clDevice, clContextProps);
 
   float rs = 1.0f;
-  uint nRnPts = 1000000;
+  uint nRnPts = 10000;
 
   observer.pos = { 30.0f, 0.0f, 0.0f };
   observer.lookDir = -observer.pos;

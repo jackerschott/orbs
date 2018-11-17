@@ -1,14 +1,9 @@
-// Device: NVIDIA GeForce GTX 1080 Ti with OpenCL 1.2 CUDA
-// OpenGL Version: 4.6.0 NVIDIA 397.44
-// OpenGL Shading Language Version: 4.60 NVIDIA
-
 #ifndef RES_HPP
 #define RES_HPP
 
-#ifdef __unix__
+#ifdef __unix
 #define DEF_STANDARD_TYPES \
   typedef unsigned char byte; \
-  typedef unsigned int uint; \
   typedef long int64; \
   typedef unsigned long uint64;
 #endif
@@ -28,8 +23,8 @@
 #endif
 #endif
 
-#ifdef __unix__
-#define GIT_FOLDER_PATH "../"
+#ifdef __unix
+#define GIT_FOLDER_PATH "/home/stephan/Projects/black_hole_simulation/"
 #endif
 #ifdef _WIN32
 #define GIT_FOLDER_PATH "../../"
