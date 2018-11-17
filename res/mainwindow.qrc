@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/textures">
+        <file>star_space_map_e.jpg</file>
+    </qresource>
+    <qresource prefix="/styles">
+        <file>mainwindow.qss</file>
+    </qresource>
+</RCC>
