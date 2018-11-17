@@ -464,7 +464,7 @@
   <customwidget>
    <class>renderWidget</class>
    <extends>QOpenGLWidget</extends>
-   <header>renderwidget.hpp</header>
+   <header>../inc/gui/renderwidget.hpp</header>
   </customwidget>
  </customwidgets>
  <resources/>

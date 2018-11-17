@@ -1,10 +1,9 @@
 #ifndef RES_HPP
 #define RES_HPP
 
-#ifdef __unix__
+#ifdef __unix
 #define DEF_STANDARD_TYPES \
   typedef unsigned char byte; \
-  typedef unsigned int uint; \
   typedef long int64; \
   typedef unsigned long uint64;
 #endif
@@ -26,7 +25,7 @@
 
 #ifdef _DEBUG
 #ifdef __unix__
-#define INSTALL_PATH "../"
+#define INSTALL_PATH "/home/stephan/Projects/black_hole_simulation/"
 #endif
 #ifdef _WIN32
 #define INSTALL_PATH "../../"

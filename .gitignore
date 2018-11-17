@@ -2,6 +2,7 @@
 /BlackHoleSimulation
 /BlackHoleSimulation-QtFork
 /make.bat
+/tmp
 
 # Ignored local files for 9Strike
 /.vscode

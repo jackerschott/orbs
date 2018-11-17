@@ -86,5 +86,5 @@ __kernel void genGaussianSamples(uint nSamples, ulong off, __global float* sampl
 }
 
 float normPdf(float x) {
-  return exp(-0.5 * x * x);
+  return exp(-0.5f * x * x);
 }

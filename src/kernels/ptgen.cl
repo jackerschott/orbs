@@ -1,4 +1,4 @@
-#define PI 3.14159265358979323846
+#define PI M_PI_F
 
 #include "rng.cl"
 
@@ -6,7 +6,7 @@ __kernel void getEllipticPtDistr(uint nPt, float b, float eps, float16 rot,
   float dr, float dz, __global float* uSamples, __global float* gSamples1, __global float* gSamples2,
   __global float4* pos) {
   uint g = get_global_id(0);
-
+  
   float u = uSamples[g];
   float g1 = gSamples1[g];
   float g2 = gSamples2[g];

@@ -8,7 +8,7 @@
 
 #include "clWrapper/clwrap.hpp"
 #include "glWrapper/glwrap.hpp"
-#include "gui/mainwindow.hpp"
+#include "../inc/gui/mainwindow.hpp"
 #include "tmeas.hpp"
 
 int main(int argc, char** argv) {

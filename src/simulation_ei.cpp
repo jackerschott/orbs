@@ -385,7 +385,7 @@ namespace sl {
     glUseProgram(ptRenderProg);
     for (int i = 0; i < glClusterPts.size(); i++) {
       glBindVertexArray(glClusterPts[i]);
-      glDrawArrays(GL_POINTS, 0, (int)nClusterPts[i]);
+      glDrawArrays(GL_POINTS, 0, (int)(nClusterPts[i]));
       glBindVertexArray(0);
     }
     glUseProgram(0);

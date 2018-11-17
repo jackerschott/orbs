@@ -3,6 +3,7 @@
 #include "gui/renderwidget.hpp"
 #include "tmeas.hpp"
 
+#include <chrono>
 #include <cmath>
 #include <iostream>
 #ifdef _WIN32
@@ -62,7 +63,7 @@ void renderWidget::initializeGL() {
   cl::Context clContext(clDevice, clContextProps);
 
   float rs = 1.0f;
-  uint nRnPts = 1000000;
+  uint nRnPts = 10000;
 
   observer.pos = { 30.0f, 0.0f, 0.0f };
   observer.lookDir = -observer.pos;
@@ -72,7 +73,7 @@ void renderWidget::initializeGL() {
   observer.zNear = 0.1f;
   observer.zFar = 100.0f;
 
-  QImage bgTex = QImage(":/textures/bgtex1");
+  QImage bgTex = QImage(":/textures/star_space_map_e.jpg");
 
   color palette[] = {
     { 1.00f, 0.50f, 0.00f, 0.10f }

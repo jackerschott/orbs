@@ -12,7 +12,7 @@ mainWindow::mainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::winMai
   //loadFile(INSTALL_PATH "res/mainwindow.qss", &styleSheetSrc);
   //setStyleSheet(QString(styleSheetSrc.c_str()));
 
-  QPixmap thumbnail1 = QPixmap(":/textures/bgtex1");
+  QPixmap thumbnail1 = QPixmap(":/textures/star_space_map_e.jpg");
   ui->lbBgPreset1->setPixmap(thumbnail1.scaled(ui->lbBgPreset1->width(), ui->lbBgPreset1->height(), Qt::KeepAspectRatioByExpanding));
 
   ui->wBgFromFile->setEnabled(false);
