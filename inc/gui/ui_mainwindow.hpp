@@ -78,16 +78,19 @@ public:
     QLineEdit *ledRnNormVecX;
     QLineEdit *ledRnNormVecZ;
     QLabel *lbRnNormVecX;
-    QLabel *lbRnRadius;
-    QLineEdit *ledRnRadius;
-    QLabel *lbRnSize;
-    QLineEdit *ledRnSize;
+    QLabel *lbSemiaxes;
+    QLineEdit *ledRnA;
+    QLineEdit *ledRnB;
+    QLabel *lbSize;
+    QLineEdit *ledRnDR;
+    QLineEdit *ledRnDZ;
     QLabel *lbRnColor;
     QWidget *wRnColor;
     QHBoxLayout *horizontalLayout_2;
     QLabel *lbRnColorDisplay;
     QPushButton *pbRnChooseColor;
     QSpacerItem *sRn;
+    QPushButton *pbGenCluster;
     QWidget *page_4;
     QVBoxLayout *verticalLayout_6;
     renderWidget *wglRender;
@@ -100,10 +103,7 @@ public:
         if (winMain->objectName().isEmpty())
             winMain->setObjectName(QStringLiteral("winMain"));
         winMain->setWindowModality(Qt::ApplicationModal);
-        winMain->resize(1149, 596);
-        winMain->setStyleSheet(QLatin1String("QMainWindow {\n"
-"background-color: white\n"
-"}"));
+        winMain->resize(743, 500);
         actionUser_Preferences = new QAction(winMain);
         actionUser_Preferences->setObjectName(QStringLiteral("actionUser_Preferences"));
         actionOpen = new QAction(winMain);
@@ -141,7 +141,7 @@ public:
         scarOpts->setWidgetResizable(true);
         scarwWorldOpts = new QWidget();
         scarwWorldOpts->setObjectName(QStringLiteral("scarwWorldOpts"));
-        scarwWorldOpts->setGeometry(QRect(0, 0, 224, 529));
+        scarwWorldOpts->setGeometry(QRect(0, 0, 224, 433));
         verticalLayout_2 = new QVBoxLayout(scarwWorldOpts);
         verticalLayout_2->setObjectName(QStringLiteral("verticalLayout_2"));
         lbRS = new QLabel(scarwWorldOpts);
@@ -230,7 +230,7 @@ public:
         scarRingOpts->setWidgetResizable(true);
         scarwRingOpts = new QWidget();
         scarwRingOpts->setObjectName(QStringLiteral("scarwRingOpts"));
-        scarwRingOpts->setGeometry(QRect(0, 0, 224, 520));
+        scarwRingOpts->setGeometry(QRect(0, 0, 224, 424));
         verticalLayout_4 = new QVBoxLayout(scarwRingOpts);
         verticalLayout_4->setObjectName(QStringLiteral("verticalLayout_4"));
         lbRnNumPt = new QLabel(scarwRingOpts);
@@ -288,25 +288,35 @@ public:
 
         verticalLayout_4->addWidget(wRnNormVec);
 
-        lbRnRadius = new QLabel(scarwRingOpts);
-        lbRnRadius->setObjectName(QStringLiteral("lbRnRadius"));
+        lbSemiaxes = new QLabel(scarwRingOpts);
+        lbSemiaxes->setObjectName(QStringLiteral("lbSemiaxes"));
 
-        verticalLayout_4->addWidget(lbRnRadius);
+        verticalLayout_4->addWidget(lbSemiaxes);
 
-        ledRnRadius = new QLineEdit(scarwRingOpts);
-        ledRnRadius->setObjectName(QStringLiteral("ledRnRadius"));
+        ledRnA = new QLineEdit(scarwRingOpts);
+        ledRnA->setObjectName(QStringLiteral("ledRnA"));
 
-        verticalLayout_4->addWidget(ledRnRadius);
+        verticalLayout_4->addWidget(ledRnA);
 
-        lbRnSize = new QLabel(scarwRingOpts);
-        lbRnSize->setObjectName(QStringLiteral("lbRnSize"));
+        ledRnB = new QLineEdit(scarwRingOpts);
+        ledRnB->setObjectName(QStringLiteral("ledRnB"));
 
-        verticalLayout_4->addWidget(lbRnSize);
+        verticalLayout_4->addWidget(ledRnB);
 
-        ledRnSize = new QLineEdit(scarwRingOpts);
-        ledRnSize->setObjectName(QStringLiteral("ledRnSize"));
+        lbSize = new QLabel(scarwRingOpts);
+        lbSize->setObjectName(QStringLiteral("lbSize"));
 
-        verticalLayout_4->addWidget(ledRnSize);
+        verticalLayout_4->addWidget(lbSize);
+
+        ledRnDR = new QLineEdit(scarwRingOpts);
+        ledRnDR->setObjectName(QStringLiteral("ledRnDR"));
+
+        verticalLayout_4->addWidget(ledRnDR);
+
+        ledRnDZ = new QLineEdit(scarwRingOpts);
+        ledRnDZ->setObjectName(QStringLiteral("ledRnDZ"));
+
+        verticalLayout_4->addWidget(ledRnDZ);
 
         lbRnColor = new QLabel(scarwRingOpts);
         lbRnColor->setObjectName(QStringLiteral("lbRnColor"));
@@ -339,6 +349,11 @@ public:
 
         verticalLayout_4->addItem(sRn);
 
+        pbGenCluster = new QPushButton(scarwRingOpts);
+        pbGenCluster->setObjectName(QStringLiteral("pbGenCluster"));
+
+        verticalLayout_4->addWidget(pbGenCluster);
+
         scarRingOpts->setWidget(scarwRingOpts);
 
         verticalLayout_5->addWidget(scarRingOpts);
@@ -367,7 +382,7 @@ public:
         winMain->setCentralWidget(wCentral);
         menubar = new QMenuBar(winMain);
         menubar->setObjectName(QStringLiteral("menubar"));
-        menubar->setGeometry(QRect(0, 0, 1149, 21));
+        menubar->setGeometry(QRect(0, 0, 743, 21));
         menuFile = new QMenu(menubar);
         menuFile->setObjectName(QStringLiteral("menuFile"));
         menuOptions = new QMenu(menubar);
@@ -382,7 +397,7 @@ public:
 
         retranslateUi(winMain);
 
-        twRenderOpts->setCurrentIndex(0);
+        twRenderOpts->setCurrentIndex(1);
         stwObjectOpts->setCurrentIndex(0);
 
 
@@ -407,11 +422,12 @@ public:
         lbRnNormVecY->setText(QApplication::translate("winMain", "y", nullptr));
         lbRnNormVecZ->setText(QApplication::translate("winMain", "z", nullptr));
         lbRnNormVecX->setText(QApplication::translate("winMain", "x", nullptr));
-        lbRnRadius->setText(QApplication::translate("winMain", "Radius", nullptr));
-        lbRnSize->setText(QApplication::translate("winMain", "Size", nullptr));
+        lbSemiaxes->setText(QApplication::translate("winMain", "Semiaxes", nullptr));
+        lbSize->setText(QApplication::translate("winMain", "Size", nullptr));
         lbRnColor->setText(QApplication::translate("winMain", "Color", nullptr));
         lbRnColorDisplay->setText(QString());
         pbRnChooseColor->setText(QApplication::translate("winMain", "...", nullptr));
+        pbGenCluster->setText(QApplication::translate("winMain", "Create Ellipse", nullptr));
         twRenderOpts->setTabText(twRenderOpts->indexOf(tabRenderOptsObject), QApplication::translate("winMain", "Object", nullptr));
         menuFile->setTitle(QApplication::translate("winMain", "File", nullptr));
         menuOptions->setTitle(QApplication::translate("winMain", "Options", nullptr));

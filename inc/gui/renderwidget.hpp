@@ -5,7 +5,7 @@
 #include <QtCore/qtimer.h>
 #include <QtWidgets/qopenglwidget.h>
 
-#include "simulation_ei.hpp"
+#include "simulation.hpp"
 
 class renderWidget : public QOpenGLWidget {
   Q_OBJECT
@@ -17,6 +17,8 @@ private:
 
   QSurfaceFormat format;
   QOpenGLContext* glMainContext;
+
+public:
   QTimer* timer;
 
 public:
@@ -30,6 +32,9 @@ protected:
 
 public slots:
   void updateObjects();
+
+signals:
+  void initialized();
 };
 
 #endif

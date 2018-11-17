@@ -2,11 +2,13 @@
 #define PI float(M_PI)
 #define PI_2 float(M_PI_2)
 
+
 #include <chrono>
 #include <climits>
 #include <cmath>
 #include <iostream>
 #include <string>
+#include <thread>
 #include <time.h>
 #include <utility>
 
@@ -39,6 +41,8 @@ namespace sl {
   std::vector<GLuint> glClusterPts;
   std::vector<GLuint> glPtPosBufs;
   std::vector<GLuint> glPtColorBufs;
+  GLuint glSelPts;
+  int sCluster = -1;
 
   // Render output computation data
   const glm::vec3 bgPos[] = {
@@ -104,6 +108,10 @@ namespace sl {
 
     // Initialize OpenGL
     glewInit();
+#if _DEBUG
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(gl::msgCallback, 0);
+#endif
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -152,14 +160,14 @@ namespace sl {
     std::string clSource;
     clContext = context;
 
-    loadFile(PTGEN_KERNEL_SRC_PATH, clSource);
+    loadFile(PTGEN_KERNEL_SRC_PATH, &clSource); 
     clPtGenProgram = cl::Program(clContext, clSource);
     clErr = clPtGenProgram.build("-I" KERNEL_PATH);
     if (clErr != 0) {
       std::cerr << "Program build error " << clErr << ": " << clPtGenProgram.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
       throw clErr;
     }
-    loadFile(RNG_KERNEL_SRC_PATH, clSource);
+    loadFile(RNG_KERNEL_SRC_PATH, &clSource);
     clRngProgram = cl::Program(clContext, clSource);
     clErr = clRngProgram.build("-I" KERNEL_PATH);
     if (clErr != 0) {
@@ -179,12 +187,14 @@ namespace sl {
     config = CONFIG_INIT;
   }
 
-  void createEllipse(uint nParticles, float a, float b, vector n, float dr, float dz,
+  void createEllipticCluster(uint nParticles, float a, float b, vector n, float dr, float dz,
     uint nColors, color* palette, float* blurSizes) {
     // Initialize Particle Buffers
     GLuint glEllipsePts;
     GLuint glPtPosBuf;
     GLuint glPtColorBuf;
+
+    std::string glErr;
     glGenVertexArrays(1, &glEllipsePts);
     glBindVertexArray(glEllipsePts);
 
@@ -199,8 +209,9 @@ namespace sl {
     glEnableVertexAttribArray(PT_COLOR);
     glVertexAttribPointer(PT_COLOR, 4, GL_FLOAT, false, 0, (void*)0);
     glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(cl_float4), nullptr, GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
     glFinish();
-    std::string glErr = gl::getErrMsg(glGetError());
 
     int err = 0;
     clPosBuf = cl::BufferGL(clContext, CL_MEM_READ_WRITE, glPtPosBuf, &err);
@@ -228,17 +239,18 @@ namespace sl {
     err = kerGenGaussianSamples.setArg(1, getRngOff());
     err = kerGenGaussianSamples.setArg(2, gSamplesBuf2);
     err = clQueue.enqueueNDRangeKernel(kerGenGaussianSamples, cl::NullRange, cl::NDRange(4096));
-    cl::finish();
+    clQueue.finish();
+
+    float eps = sqrt(1 - (b * b) / (a * a));
+    glm::mat4 rot = glm::rotate(n.z / glm::length(n), glm::vec3(-n.y, n.x, 0.0));
 
     glBindVertexArray(glEllipsePts);
-    glErr = gl::getErrMsg(glGetError());
     glBindBuffer(GL_ARRAY_BUFFER, glPtPosBuf);
-    glErr = gl::getErrMsg(glGetError());
     glFinish();
     err = kerGetEllipticPtDistr.setArg(0, nParticles);
     err = kerGetEllipticPtDistr.setArg(1, b);
-    err = kerGetEllipticPtDistr.setArg(2, sqrt(1 - (b * b) / (a * a)));
-    err = kerGetEllipticPtDistr.setArg(3, cl_float3({ n.x, n.y, n.z }));
+    err = kerGetEllipticPtDistr.setArg(2, eps);
+    err = kerGetEllipticPtDistr.setArg(3, *reinterpret_cast<cl_float16*>(&glm::transpose(rot)));
     err = kerGetEllipticPtDistr.setArg(4, dr);
     err = kerGetEllipticPtDistr.setArg(5, dz);
     err = kerGetEllipticPtDistr.setArg(6, uSamplesBuf1);
@@ -247,11 +259,10 @@ namespace sl {
     err = kerGetEllipticPtDistr.setArg(9, clPosBuf);
     err = clQueue.enqueueAcquireGLObjects(&std::vector<cl::Memory>({ clPosBuf }));
     err = clQueue.enqueueNDRangeKernel(kerGetEllipticPtDistr, cl::NullRange, cl::NDRange(nParticles));
-    cl::finish();
+    clQueue.finish();
     err = clQueue.enqueueReleaseGLObjects(&std::vector<cl::Memory>({ clPosBuf }));
 
     glBindBuffer(GL_ARRAY_BUFFER, glPtColorBuf);
-    glErr = gl::getErrMsg(glGetError());
     err = kerGetPtColors.setArg(0, nColors);
     err = kerGetPtColors.setArg(1, clPaletteBuf);
     err = kerGetPtColors.setArg(2, clBlurSizesBuf);
@@ -259,18 +270,17 @@ namespace sl {
     err = kerGetPtColors.setArg(4, clColorBuf);
     err = clQueue.enqueueAcquireGLObjects(&std::vector<cl::Memory>({ clColorBuf }));
     err = clQueue.enqueueNDRangeKernel(kerGetPtColors, cl::NullRange, cl::NDRange(nParticles));
-    err = cl::finish();
+    err = clQueue.finish();
     err = clQueue.enqueueReleaseGLObjects(&std::vector<cl::Memory>({ clColorBuf }));
     
     glBindVertexArray(0);
-    glErr = gl::getErrMsg(glGetError());
 
     nClusterPts.push_back(nParticles);
     glClusterPts.push_back(glEllipsePts);
     glPtPosBufs.push_back(glPtPosBuf);
     glPtColorBufs.push_back(glPtColorBuf);
   }
-  void clearParticleRings()
+  void clearClusters()
   {
     // Clear particle GPU buffers
     for (int i = 0; i < glClusterPts.size(); i++) {
@@ -282,6 +292,12 @@ namespace sl {
     glClusterPts.clear();
     glPtPosBufs.clear();
     glPtColorBufs.clear();
+  }
+  void selectCluster(int index) {
+    sCluster = index;
+  }
+  void deselectClusters() {
+    sCluster = -1;
   }
 
   void setObserverCamera(camera _observer) {
@@ -395,7 +411,7 @@ namespace sl {
   void close() {
     assert((config & CONFIG_INIT) != 0);
 
-    clearParticleRings();
+    clearClusters();
 
     glDeleteTextures(1, &glBgTexture);
 

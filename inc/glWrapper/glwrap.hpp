@@ -33,6 +33,9 @@ namespace gl {
   bool checkForProgramErr(GLuint program, GLenum errType);
   std::string getProgramInfoLog(GLuint program);
 
+  void GLAPIENTRY msgCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
+    GLsizei length, const GLchar* message, const void* userParam);
+
   std::string getErrMsg(GLenum err);
 }
 

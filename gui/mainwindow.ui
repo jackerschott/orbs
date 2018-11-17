@@ -9,17 +9,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>742</width>
+    <width>743</width>
     <height>500</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
-  </property>
-  <property name="styleSheet">
-   <string notr="true">QMainWindow {
-background-color: white
-}</string>
   </property>
   <widget class="QWidget" name="wCentral">
    <property name="enabled">
@@ -83,7 +78,7 @@ background-color: white
           </size>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="tabRenderOptsWorld">
           <attribute name="title">
@@ -317,24 +312,30 @@ background-color: white
                     </widget>
                    </item>
                    <item>
-                    <widget class="QLabel" name="lbRnRadius">
+                    <widget class="QLabel" name="lbSemiaxes">
                      <property name="text">
-                      <string>Radius</string>
+                      <string>Semiaxes</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QLineEdit" name="ledRnRadius"/>
+                    <widget class="QLineEdit" name="ledRnA"/>
                    </item>
                    <item>
-                    <widget class="QLabel" name="lbRnSize">
+                    <widget class="QLineEdit" name="ledRnB"/>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="lbSize">
                      <property name="text">
                       <string>Size</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QLineEdit" name="ledRnSize"/>
+                    <widget class="QLineEdit" name="ledRnDR"/>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="ledRnDZ"/>
                    </item>
                    <item>
                     <widget class="QLabel" name="lbRnColor">
@@ -388,6 +389,13 @@ background-color: white
                      </property>
                     </spacer>
                    </item>
+                   <item>
+                    <widget class="QPushButton" name="pbGenCluster">
+                     <property name="text">
+                      <string>Create Ellipse</string>
+                     </property>
+                    </widget>
+                   </item>
                   </layout>
                  </widget>
                 </widget>
@@ -416,7 +424,7 @@ background-color: white
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>742</width>
+     <width>743</width>
      <height>21</height>
     </rect>
    </property>

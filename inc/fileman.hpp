@@ -3,6 +3,6 @@
 
 #include <string>
 
-bool loadFile(const char* path, std::string& text, std::string* errMsg = nullptr);
+bool loadFile(const char* path, std::string* text, std::string* errMsg = nullptr);
 
 #endif

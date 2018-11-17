@@ -4,7 +4,7 @@
 #include <QtWidgets/qmainwindow.h>
 
 #include "gui/renderwidget.hpp"
-#include "gui/ui_mainwindow.h"
+#include "gui/ui_mainwindow.hpp"
 
 class mainWindow : public QMainWindow {
   Q_OBJECT
@@ -16,9 +16,11 @@ public:
   virtual ~mainWindow();
 
 public slots:
+  void onWglRenderInitialized();
   void onLedRSTextEdited(const QString& text);
   void onRbBgFromPresetToggled(bool checked);
   void onRbBgFromFileToggled(bool checked);
+  void onPbGenClusterClicked();
 };
 
 #endif

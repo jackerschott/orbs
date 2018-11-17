@@ -20,9 +20,11 @@ namespace sl {
 
   void init(float _rs, cl::Device device, cl::Context context);
 
-  void createEllipse(uint _nParticles, float a, float b, vector n, float dr, float dz,
+  void createEllipticCluster(uint _nParticles, float a, float b, vector n, float dr, float dz,
     uint nColors, color* palette, float* blurSizes);
-  void clearParticleRings();
+  void clearClusters();
+  void selectCluster(int index);
+  void deselectClusters();
 
   void setObserverCamera(camera _observer);
   void setBackgroundTex(uint sData, byte* data, uint width, uint height, uint bpp);

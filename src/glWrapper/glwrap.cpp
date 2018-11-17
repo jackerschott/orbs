@@ -5,6 +5,10 @@
 DEF_STANDARD_TYPES
 
 namespace gl {
+  const char* getErrSource(GLenum source);
+  const char* getErrType(GLenum type);
+  const char* getErrSeverity(GLenum severity);
+
   bool createProgram(const char* vsSrcPath, const char* fsSrcPath, const char** inputNames,
     GLuint* prog, GLuint* vs, GLuint* fs, std::string* errLog) {
     bool success = true;
@@ -14,13 +18,13 @@ namespace gl {
     int len;
 
     *vs = glCreateShader(GL_VERTEX_SHADER);
-    loadFile(vsSrcPath, source);
+    loadFile(vsSrcPath, &source);
     src = source.c_str();
     len = (int)source.length();
     glShaderSource(*vs, 1, &src, &len);
 
     *fs = glCreateShader(GL_FRAGMENT_SHADER);
-    loadFile(fsSrcPath, source);
+    loadFile(fsSrcPath, &source);
     src = source.c_str();
     len = (int)source.length();
     glShaderSource(*fs, 1, &src, &len);
@@ -83,6 +87,51 @@ namespace gl {
     return std::string(log, logLen);
   }
 
+  void GLAPIENTRY msgCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
+    GLsizei length, const GLchar* message, const void* userParam) {
+    if (severity != GL_DEBUG_SEVERITY_NOTIFICATION) {
+      fprintf(stderr, "%s\t %s, type: %s, source: %s\n",
+        getErrSeverity(severity), message, getErrType(type), getErrSource(source));
+    }
+  }
+
+  const char* getErrSource(GLenum source) {
+    switch (source)
+    {
+    case GL_DEBUG_SOURCE_API: return "API";
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM: return "Window system";
+    case GL_DEBUG_SOURCE_SHADER_COMPILER: return "Shader compiler";
+    case GL_DEBUG_SOURCE_THIRD_PARTY: return "Third party";
+    case GL_DEBUG_SOURCE_APPLICATION: return "Application";
+    case GL_DEBUG_SOURCE_OTHER: return "Other";
+    default: return "Unknown error source";
+    }
+  }
+  const char* getErrType(GLenum type) {
+    switch (type)
+    {
+    case GL_DEBUG_TYPE_ERROR: return "Error";
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: return "Deprecated behavior";
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: return "Undefined behavior";
+    case GL_DEBUG_TYPE_PORTABILITY: return "Portability";
+    case GL_DEBUG_TYPE_PERFORMANCE: return "Performance";
+    case GL_DEBUG_TYPE_MARKER: return "Marker";
+    case GL_DEBUG_TYPE_PUSH_GROUP: return "Push group";
+    case GL_DEBUG_TYPE_POP_GROUP: return "Pop Group";
+    case GL_DEBUG_TYPE_OTHER: return "Other";
+    default: return "Unknown error type";
+    }
+  }
+  const char* getErrSeverity(GLenum severity) {
+    switch (severity)
+    {
+    case GL_DEBUG_SEVERITY_HIGH: return "Error";
+    case GL_DEBUG_SEVERITY_MEDIUM: return "Major warning";
+    case GL_DEBUG_SEVERITY_LOW: return "Warning";
+    case GL_DEBUG_SEVERITY_NOTIFICATION: return "Note";
+    default: return "Unknown error severity";
+    }
+  }
   std::string getErrMsg(GLenum err) {
     switch (err)
     {

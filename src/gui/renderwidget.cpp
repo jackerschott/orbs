@@ -72,21 +72,19 @@ void renderWidget::initializeGL() {
   observer.zNear = 0.1f;
   observer.zFar = 100.0f;
 
-  QImage bgTex = QImage(":/img/bgtex1");
+  QImage bgTex = QImage(":/textures/bgtex1");
 
   color palette[] = {
-    { 1.00f, 0.50f, 0.00f, 0.10f },
-    { 1.00f, 1.00f, 1.00f, 1.00f }
+    { 1.00f, 0.50f, 0.00f, 0.10f }
   };
   float blurSizes[] = {
-    0.99f,
-    0.01f
+    1.00f
   };
 
   sl::init(rs, clDevice, clContext);
   sl::setBackgroundTex(bgTex.sizeInBytes(), bgTex.bits(), bgTex.width(), bgTex.height(), bgTex.pixelFormat().bitsPerPixel() / 8);
   sl::setObserverCamera(observer);
-  sl::createEllipse(nRnPts, 15.0f * rs, 10.0f * rs, { 1.0f, -1.0f, 1.0f }, 1.0f * rs, 1.0f * rs, 3, palette, blurSizes);
+  //sl::createEllipse(nRnPts, 15.0f * rs, 10.0f * rs, { 1.0f, -1.0f, 1.0f }, 0.5f * rs, 0.5f * rs, 1, palette, blurSizes);
   
   timer = new QTimer();
   timer->setInterval(1);
@@ -96,6 +94,8 @@ void renderWidget::initializeGL() {
   initTimeMeas(true, 2.0);
 
   initTime = std::chrono::high_resolution_clock::now();
+
+  emit initialized();
 }
 
 void renderWidget::resizeGL(int w, int h) {

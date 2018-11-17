@@ -2,7 +2,7 @@
 
 #include "rng.cl"
 
-__kernel void getEllipticPtDistr(uint nPt, float b, float eps, float3 n,
+__kernel void getEllipticPtDistr(uint nPt, float b, float eps, float16 rot,
   float dr, float dz, __global float* uSamples, __global float* gSamples1, __global float* gSamples2,
   __global float4* pos) {
   uint g = get_global_id(0);
@@ -11,18 +11,18 @@ __kernel void getEllipticPtDistr(uint nPt, float b, float eps, float3 n,
   float g1 = gSamples1[g];
   float g2 = gSamples2[g];
 
-  float phi0 = 2.0 * PI * u;
-  float r0 = b / sqrt(1.0 - eps * eps * cos(phi0) * cos(phi0)) + g1 * dr;
+  float phi0 = (2.0 * PI) * u;
+  float c0 = cos(phi0);
+  float s0 = sin(phi0);
+  float r0 = b / sqrt(1.0 - eps * eps * c0 * c0) + g1 * dr;
 
-  float x0 = r0 * cos(phi0);
-  float y0 = r0 * sin(phi0);
+  float x0 = r0 * c0;
+  float y0 = r0 * s0;
   float z0 = g2 * dz;
 
-  float3 ez = { 0.0, 0.0, 1.0 };
-  float alpha = n.z / length(n);
-  pos[g].x = sin(alpha) * n.x * z0 - (1 - cos(alpha)) * n.x * n.y * y0 + (1 - (1 - cos(alpha)) * n.x * n.x) * x0;
-  pos[g].y = sin(alpha) * n.y * z0 + (1 - (1 - cos(alpha)) * n.y * n.y) * y0 - (1 - cos(alpha)) * n.x * n.y * x0;
-  pos[g].z = ((1 - cos(alpha)) * (-n.y * n.y - n.x * n.x) + 1) * z0 - sin(alpha) * n.y * y0 - sin(alpha) * n.x * x0;
+  pos[g].x = rot.s0 * x0 + rot.s1 * y0 + rot.s2 * z0 + rot.s3;
+  pos[g].y = rot.s4 * x0 + rot.s5 * y0 + rot.s6 * z0 + rot.s7;
+  pos[g].z = rot.s8 * x0 + rot.s9 * y0 + rot.sA * z0 + rot.sB;
   pos[g].w = 1.0;
 }
 

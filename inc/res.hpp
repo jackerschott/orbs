@@ -1,7 +1,3 @@
-// Device: NVIDIA GeForce GTX 1080 Ti with OpenCL 1.2 CUDA
-// OpenGL Version: 4.6.0 NVIDIA 397.44
-// OpenGL Shading Language Version: 4.60 NVIDIA
-
 #ifndef RES_HPP
 #define RES_HPP
 
@@ -28,15 +24,23 @@
 #endif
 #endif
 
+#ifdef _DEBUG
 #ifdef __unix__
-#define GIT_FOLDER_PATH "../"
+#define INSTALL_PATH "../"
 #endif
 #ifdef _WIN32
-#define GIT_FOLDER_PATH "../../"
+#define INSTALL_PATH "../../"
+#endif
+#else
+#define INSTALL_PATH "./"
 #endif
 
 // OpenGL
-#define SHADER_PATH GIT_FOLDER_PATH "src/shaders/"
+#ifdef _DEBUG
+#define SHADER_PATH INSTALL_PATH "src/shaders/"
+#else
+#define SHADER_PATH INSTALL_PATH "shaders/"
+#endif
 
 #define PT_VERTEX_SHADER_SRC_PATH SHADER_PATH "pt_vert.shader"
 #define PT_FRAGMENT_SHADER_SRC_PATH SHADER_PATH "pt_frag.shader"
@@ -63,7 +67,11 @@ enum bgShaderUniform {};
 extern const char* glBgShaderInNames[];
 
 // OpenCL
-#define KERNEL_PATH GIT_FOLDER_PATH "src/kernels/"
+#ifdef _DEBUG
+#define KERNEL_PATH INSTALL_PATH "src/kernels/"
+#else
+#define KERNEL_PATH INSTALL_PATH "kernels/"
+#endif
 
 #define PTGEN_KERNEL_SRC_PATH KERNEL_PATH "ptgen.cl"
 #define PTGEN_NUM_KERNELS 2
