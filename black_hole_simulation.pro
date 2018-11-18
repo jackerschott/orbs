@@ -4,9 +4,12 @@ unix:TARGET = black_hole_simulation
 win32:TARGET = black_hole_simulation.exe
 
 unix:LIBS += -lOpenCL -lGLEW -lGL -lSDL2
-QMAKE_CXXFLAGS += -std=c++17
-CONFIG += c++17
+
+QMAKE_CXXFLAGS += -std=c++17 # CONFIG += c++17
 CONFIG += debug
+
+unix:CONFIG += x11
+win32:CONFIG += windows
 
 DESTDIR=./bin
 UI_DIR=./tmp
@@ -21,10 +24,8 @@ QT += core
 QT += gui
 QT += widgets
 
-# Input
 HEADERS += inc/fileman.hpp \
            inc/randutils.hpp \
-           inc/render.hpp \
            inc/res.hpp \
            inc/tmain.hpp \
            inc/tmeas.hpp \
@@ -34,7 +35,7 @@ HEADERS += inc/fileman.hpp \
            inc/gui/mainwindow.hpp \
            inc/gui/renderwidget.hpp \
            tmp/ui_mainwindow.h
-FORMS += gui/mainwindow.ui
+
 SOURCES += src/fileman.cpp \
            src/main.cpp \
            src/res.cpp \
@@ -45,4 +46,7 @@ SOURCES += src/fileman.cpp \
            src/glWrapper/glwrap.cpp \
            src/gui/mainwindow.cpp \
            src/gui/renderwidget.cpp
+
+FORMS += gui/mainwindow.ui
+
 RESOURCES += res/mainwindow.qrc
