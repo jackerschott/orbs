@@ -23,23 +23,15 @@
 #endif
 #endif
 
-#ifdef _DEBUG
-#ifdef __unix__
+#ifdef __unix
 #define INSTALL_PATH "/home/stephan/Projects/black_hole_simulation/"
 #endif
 #ifdef _WIN32
 #define INSTALL_PATH "../../"
 #endif
-#else
-#define INSTALL_PATH "../../"
-#endif
 
 // OpenGL
-#ifdef _DEBUG
 #define SHADER_PATH INSTALL_PATH "src/shaders/"
-#else
-#define SHADER_PATH INSTALL_PATH "src/shaders/"
-#endif
 
 #define PT_VERTEX_SHADER_SRC_PATH SHADER_PATH "pt_vert.shader"
 #define PT_FRAGMENT_SHADER_SRC_PATH SHADER_PATH "pt_frag.shader"
@@ -66,11 +58,7 @@ enum bgShaderUniform {};
 extern const char* glBgShaderInNames[];
 
 // OpenCL
-#ifdef _DEBUG
 #define KERNEL_PATH INSTALL_PATH "src/kernels/"
-#else
-#define KERNEL_PATH INSTALL_PATH "src/kernels/"
-#endif
 
 #define PTGEN_KERNEL_SRC_PATH KERNEL_PATH "ptgen.cl"
 #define PTGEN_NUM_KERNELS 2
