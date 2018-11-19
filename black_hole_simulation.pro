@@ -10,6 +10,7 @@ CONFIG += debug
 
 unix:CONFIG += x11
 win32:CONFIG += windows
+DEFINES += _DEBUG
 
 DESTDIR=./bin
 UI_DIR=./tmp
@@ -33,8 +34,7 @@ HEADERS += inc/fileman.hpp \
            inc/clWrapper/clwrap.hpp \
            inc/glWrapper/glwrap.hpp \
            inc/gui/mainwindow.hpp \
-           inc/gui/renderwidget.hpp \
-           tmp/ui_mainwindow.h
+           inc/gui/renderwidget.hpp
 
 SOURCES += src/fileman.cpp \
            src/main.cpp \

@@ -197,10 +197,10 @@ namespace sl {
     clBlurSizesBuf = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nColors * sizeof(float), blurSizes, &err);
     clColorBuf = cl::Buffer(clContext, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_USE_HOST_PTR, nParticles * sizeof(cl_float4), colorBuf, &err);
 
-    cl::Buffer uSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(uint), &err);
-    cl::Buffer uSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(uint), &err);
-    cl::Buffer gSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(float), &err);
-    cl::Buffer gSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(float), &err);
+    cl::Buffer uSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), &err);
+    cl::Buffer uSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), &err);
+    cl::Buffer gSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), &err);
+    cl::Buffer gSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), &err);
 
     err = kerGenFloatSamples.setArg(0, nParticles);
     err = kerGenFloatSamples.setArg(1, getRngOff());
@@ -221,11 +221,12 @@ namespace sl {
 
     float eps = sqrt(1 - (b * b) / (a * a));
     glm::mat4 rot = glm::rotate(n.z / glm::length(n), glm::vec3(-n.y, n.x, 0.0));
+    glm::mat4 rotArg = glm::transpose(rot);
 
     err = kerGetEllipticPtDistr.setArg(0, nParticles);
     err = kerGetEllipticPtDistr.setArg(1, b);
     err = kerGetEllipticPtDistr.setArg(2, eps);
-    err = kerGetEllipticPtDistr.setArg(3, *reinterpret_cast<cl_float16*>(&glm::transpose(rot)));
+    err = kerGetEllipticPtDistr.setArg(3, *reinterpret_cast<cl_float16*>(&rotArg));
     err = kerGetEllipticPtDistr.setArg(4, dr);
     err = kerGetEllipticPtDistr.setArg(5, dz);
     err = kerGetEllipticPtDistr.setArg(6, uSamplesBuf1);
@@ -312,6 +313,12 @@ namespace sl {
   }
   void setBackgroundTex(uint sData, byte* data, uint width, uint height, uint bpp) {
     assert((config & CONFIG_INIT) != 0 && (config & CONFIG_HAS_BG_TEX) == 0);
+
+    // for (int i = 0; i <= sData; i++) {
+    //   if (data[i] != '\0' && data[i] != '\255') {
+    //     std::cout << (int)data[i] << std::endl;
+    //   }
+    // }
 
     // Set background shader inputs
     glBindVertexArray(glBackground);
