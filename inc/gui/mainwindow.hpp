@@ -20,6 +20,7 @@ public slots:
   void onLedRSTextEdited(const QString& text);
   void onRbBgFromPresetToggled(bool checked);
   void onRbBgFromFileToggled(bool checked);
+  void onPbEcChooseColorClicked();
   void onPbGenClusterClicked();
 };
 

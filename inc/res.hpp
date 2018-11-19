@@ -14,7 +14,7 @@
   typedef unsigned int uint; \
   typedef long long int64; \
   typedef unsigned long long uint64;
-#elif
+#else
 #define DEF_STANDARD_TYPES \
   typedef unsigned char byte; \
   typedef unsigned int uint; \
@@ -31,14 +31,14 @@
 #define INSTALL_PATH "../../"
 #endif
 #else
-#define INSTALL_PATH "./"
+#define INSTALL_PATH "../../"
 #endif
 
 // OpenGL
 #ifdef _DEBUG
 #define SHADER_PATH INSTALL_PATH "src/shaders/"
 #else
-#define SHADER_PATH INSTALL_PATH "shaders/"
+#define SHADER_PATH INSTALL_PATH "src/shaders/"
 #endif
 
 #define PT_VERTEX_SHADER_SRC_PATH SHADER_PATH "pt_vert.shader"
@@ -69,7 +69,7 @@ extern const char* glBgShaderInNames[];
 #ifdef _DEBUG
 #define KERNEL_PATH INSTALL_PATH "src/kernels/"
 #else
-#define KERNEL_PATH INSTALL_PATH "kernels/"
+#define KERNEL_PATH INSTALL_PATH "src/kernels/"
 #endif
 
 #define PTGEN_KERNEL_SRC_PATH KERNEL_PATH "ptgen.cl"

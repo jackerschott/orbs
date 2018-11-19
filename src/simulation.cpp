@@ -2,7 +2,6 @@
 #define PI float(M_PI)
 #define PI_2 float(M_PI_2)
 
-
 #include <chrono>
 #include <climits>
 #include <cmath>
@@ -108,10 +107,10 @@ namespace sl {
 
     // Initialize OpenGL
     glewInit();
-#if _DEBUG
+//#if _DEBUG
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(gl::msgCallback, 0);
-#endif
+//#endif
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -283,7 +282,7 @@ namespace sl {
   void clearClusters()
   {
     // Clear particle GPU buffers
-    for (int i = 0; i < glClusterPts.size(); i++) {
+    for (uint i = 0; i < glClusterPts.size(); i++) {
       glDeleteBuffers(1, &glPtPosBufs[i]);
       glDeleteBuffers(1, &glPtColorBufs[i]);
       glDeleteVertexArrays(1, &glClusterPts[i]);
@@ -390,7 +389,7 @@ namespace sl {
 
     // Render Particles
     glUseProgram(ptRenderProg);
-    for (int i = 0; i < glClusterPts.size(); i++) {
+    for (uint i = 0; i < glClusterPts.size(); i++) {
       glBindVertexArray(glClusterPts[i]);
       glDrawArrays(GL_POINTS, 0, (int)nClusterPts[i]);
       glBindVertexArray(0);
@@ -429,7 +428,7 @@ namespace sl {
   }
 
   uint64 getRngOff() {
-    uint64 dt = time(0);
+    uint64 dt = (uint64)time(0);
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     t1 = std::chrono::floor<std::chrono::seconds>(t1);

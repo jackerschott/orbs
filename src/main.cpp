@@ -8,12 +8,12 @@
 
 #include "clWrapper/clwrap.hpp"
 #include "glWrapper/glwrap.hpp"
-#include "../inc/gui/mainwindow.hpp"
+#include "gui/mainwindow.hpp"
 #include "tmeas.hpp"
 
 int main(int argc, char** argv) {
   QApplication app(argc, argv);
-  mainWindow windowMain;
+  mainWindow windowMain; 
   windowMain.show();
 
   return app.exec();

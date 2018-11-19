@@ -5,16 +5,11 @@
   <property name="windowModality">
    <enum>Qt::ApplicationModal</enum>
   </property>
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>743</width>
-    <height>500</height>
-   </rect>
-  </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Black hole simulation</string>
+  </property>
+  <property name="tabShape">
+   <enum>QTabWidget::Rounded</enum>
   </property>
   <widget class="QWidget" name="wCentral">
    <property name="enabled">
@@ -96,7 +91,7 @@
                 <x>0</x>
                 <y>0</y>
                 <width>224</width>
-                <height>433</height>
+                <height>452</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -206,7 +201,7 @@
          </widget>
          <widget class="QWidget" name="tabRenderOptsObject">
           <attribute name="title">
-           <string>Object</string>
+           <string>Cluster</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout">
            <item>
@@ -214,7 +209,7 @@
              <property name="currentIndex">
               <number>0</number>
              </property>
-             <widget class="QWidget" name="pageRn">
+             <widget class="QWidget" name="pageEc">
               <layout class="QVBoxLayout" name="verticalLayout_5">
                <property name="leftMargin">
                 <number>0</number>
@@ -226,39 +221,39 @@
                 <number>0</number>
                </property>
                <item>
-                <widget class="QScrollArea" name="scarRingOpts">
+                <widget class="QScrollArea" name="scarEcOpts">
                  <property name="widgetResizable">
                   <bool>true</bool>
                  </property>
-                 <widget class="QWidget" name="scarwRingOpts">
+                 <widget class="QWidget" name="scarwEcOpts">
                   <property name="geometry">
                    <rect>
                     <x>0</x>
                     <y>0</y>
                     <width>224</width>
-                    <height>424</height>
+                    <height>443</height>
                    </rect>
                   </property>
                   <layout class="QVBoxLayout" name="verticalLayout_4">
                    <item>
-                    <widget class="QLabel" name="lbRnNumPt">
+                    <widget class="QLabel" name="lbEcNumPt">
                      <property name="text">
                       <string>Number of particles</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QLineEdit" name="ledRnNumPt"/>
+                    <widget class="QLineEdit" name="ledEcNumPt"/>
                    </item>
                    <item>
-                    <widget class="QLabel" name="lbRnNormVec">
+                    <widget class="QLabel" name="lbEcNormVec">
                      <property name="text">
                       <string>Normal vector</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QWidget" name="wRnNormVec" native="true">
+                    <widget class="QWidget" name="wEcNormVec" native="true">
                      <layout class="QFormLayout" name="formLayout">
                       <property name="horizontalSpacing">
                        <number>6</number>
@@ -279,30 +274,30 @@
                        <number>0</number>
                       </property>
                       <item row="1" column="0">
-                       <widget class="QLabel" name="lbRnNormVecY">
+                       <widget class="QLabel" name="lbEcNormVecY">
                         <property name="text">
                          <string>y</string>
                         </property>
                        </widget>
                       </item>
                       <item row="1" column="1">
-                       <widget class="QLineEdit" name="ledRnNormVecY"/>
+                       <widget class="QLineEdit" name="ledEcNormVecY"/>
                       </item>
                       <item row="2" column="0">
-                       <widget class="QLabel" name="lbRnNormVecZ">
+                       <widget class="QLabel" name="lbEcNormVecZ">
                         <property name="text">
                          <string>z</string>
                         </property>
                        </widget>
                       </item>
                       <item row="0" column="1">
-                       <widget class="QLineEdit" name="ledRnNormVecX"/>
+                       <widget class="QLineEdit" name="ledEcNormVecX"/>
                       </item>
                       <item row="2" column="1">
-                       <widget class="QLineEdit" name="ledRnNormVecZ"/>
+                       <widget class="QLineEdit" name="ledEcNormVecZ"/>
                       </item>
                       <item row="0" column="0">
-                       <widget class="QLabel" name="lbRnNormVecX">
+                       <widget class="QLabel" name="lbEcNormVecX">
                         <property name="text">
                          <string>x</string>
                         </property>
@@ -312,56 +307,50 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="QLabel" name="lbSemiaxes">
+                    <widget class="QLabel" name="lbEcSemiaxes">
                      <property name="text">
                       <string>Semiaxes</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QLineEdit" name="ledRnA"/>
+                    <widget class="QLineEdit" name="ledEcA"/>
                    </item>
                    <item>
-                    <widget class="QLineEdit" name="ledRnB"/>
+                    <widget class="QLineEdit" name="ledEcB"/>
                    </item>
                    <item>
-                    <widget class="QLabel" name="lbSize">
+                    <widget class="QLabel" name="lbEcSize">
                      <property name="text">
                       <string>Size</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QLineEdit" name="ledRnDR"/>
+                    <widget class="QLineEdit" name="ledEcDR"/>
                    </item>
                    <item>
-                    <widget class="QLineEdit" name="ledRnDZ"/>
+                    <widget class="QLineEdit" name="ledEcDZ"/>
                    </item>
                    <item>
-                    <widget class="QLabel" name="lbRnColor">
+                    <widget class="QLabel" name="lbEcColor">
                      <property name="text">
                       <string>Color</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QWidget" name="wRnColor" native="true">
+                    <widget class="QWidget" name="wEcColor" native="true">
                      <layout class="QHBoxLayout" name="horizontalLayout_2">
                       <item>
-                       <widget class="QLabel" name="lbRnColorDisplay">
-                        <property name="styleSheet">
-                         <string notr="true">QLabel {
-	background-color : red;
-	border: 1px solid gray
-}</string>
-                        </property>
+                       <widget class="QLabel" name="lbEcColorDisplay">
                         <property name="text">
                          <string/>
                         </property>
                        </widget>
                       </item>
                       <item>
-                       <widget class="QPushButton" name="pbRnChooseColor">
+                       <widget class="QPushButton" name="pbEcChooseColor">
                         <property name="maximumSize">
                          <size>
                           <width>30</width>
@@ -377,7 +366,7 @@
                     </widget>
                    </item>
                    <item>
-                    <spacer name="sRn">
+                    <spacer name="spacerEc">
                      <property name="orientation">
                       <enum>Qt::Vertical</enum>
                      </property>
@@ -392,7 +381,7 @@
                    <item>
                     <widget class="QPushButton" name="pbGenCluster">
                      <property name="text">
-                      <string>Create Ellipse</string>
+                      <string>Create Elliptic Cluster</string>
                      </property>
                     </widget>
                    </item>
@@ -424,7 +413,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>743</width>
+     <width>687</width>
      <height>21</height>
     </rect>
    </property>
@@ -467,6 +456,26 @@
    <header>../inc/gui/renderwidget.hpp</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>twRenderOpts</tabstop>
+  <tabstop>scarOpts</tabstop>
+  <tabstop>ledRS</tabstop>
+  <tabstop>rbBgFromPreset</tabstop>
+  <tabstop>rbBgFromFile</tabstop>
+  <tabstop>ledBgPath</tabstop>
+  <tabstop>pbChooseBgPath</tabstop>
+  <tabstop>scarEcOpts</tabstop>
+  <tabstop>ledEcNumPt</tabstop>
+  <tabstop>ledEcNormVecX</tabstop>
+  <tabstop>ledEcNormVecY</tabstop>
+  <tabstop>ledEcNormVecZ</tabstop>
+  <tabstop>ledEcA</tabstop>
+  <tabstop>ledEcB</tabstop>
+  <tabstop>ledEcDR</tabstop>
+  <tabstop>ledEcDZ</tabstop>
+  <tabstop>pbEcChooseColor</tabstop>
+  <tabstop>pbGenCluster</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
