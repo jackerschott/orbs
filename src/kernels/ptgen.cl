@@ -10,6 +10,7 @@ __kernel void getEllipticPtDistr(uint nPt, float b, float eps, float16 rot,
   float g2 = gSamples2[g];
 
   if (g >= 1000 && g <= 1010) {
+    printf("u = %f\n", u);
     printf("g1 = %f\n", g1);
     printf("g2 = %f\n", g2);
   }

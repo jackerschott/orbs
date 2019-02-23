@@ -47,9 +47,11 @@ namespace sl {
     { -1.0f, -1.0f,  0.0f },
     {  1.0f, -1.0f,  0.0f },
     {  1.0f,  1.0f,  0.0f },
+    { -1.0f, -1.0f,  0.0f },
+    {  1.0f,  1.0f,  0.0f },
     { -1.0f,  1.0f,  0.0f }
   };
-  glm::vec2 bgTexCoord[4];
+  glm::vec2 bgTexCoord[6];
   glm::mat4 perspv;
   GLint viewProjn;
 
@@ -108,10 +110,10 @@ namespace sl {
 
     // Initialize OpenGL
     glewInit();
-#if _DEBUG
+    #if _DEBUG
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(gl::msgCallback, 0);
-#endif
+    #endif
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -120,10 +122,12 @@ namespace sl {
     std::string errLog;
     if (!gl::createProgram(PT_VERTEX_SHADER_SRC_PATH, PT_FRAGMENT_SHADER_SRC_PATH,
       glPtShaderInNames, &ptRenderProg, &ptVertShader, &ptFragShader, &errLog)) {
+      std::cerr << "pt:" << std::endl;
       std::cerr << errLog << std::endl;
     }
     if (!gl::createProgram(BG_VERTEX_SHADER_SRC_PATH, BG_FRAGMENT_SHADER_SRC_PATH,
       glBgShaderInNames, &bgRenderProg, &bgVertShader, &bgFragShader, &errLog)) {
+      std::cerr << "bg:" << std::endl;
       std::cerr << errLog << std::endl;
     }
 
@@ -199,18 +203,22 @@ namespace sl {
     clBlurSizesBuf = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nColors * sizeof(float), blurSizes, &err);
     clColorBuf = cl::Buffer(clContext, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_USE_HOST_PTR, nParticles * sizeof(cl_float4), colorBuf, &err);
 
-    cl::Buffer uSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY, nParticles * sizeof(float), &err);
-    cl::Buffer uSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(float), &err);
-    cl::Buffer gSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(float), &err);
-    cl::Buffer gSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(float), &err);
+    float* uSamples1 = new float[nParticles];
+    float* uSamples2 = new float[nParticles];
+    float* gSamples1 = new float[nParticles];
+    float* gSamples2 = new float[nParticles];
+    cl::Buffer uSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), uSamples1, &err);
+    cl::Buffer uSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), uSamples2, &err);
+    cl::Buffer gSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), gSamples1, &err);
+    cl::Buffer gSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), gSamples2, &err);
 
     err = kerGenFloatSamples.setArg(0, nParticles);
     err = kerGenFloatSamples.setArg(1, getRngOff());
     err = kerGenFloatSamples.setArg(2, uSamplesBuf1);
-    err = clQueue.enqueueNDRangeKernel(kerGenFloatSamples, cl::NullRange, cl::NDRange(4096));
+    err = clQueue.enqueueNDRangeKernel(kerGenFloatSamples, cl::NullRange, cl::NDRange(0x1000));
     err = kerGenFloatSamples.setArg(1, getRngOff());
     err = kerGenFloatSamples.setArg(2, uSamplesBuf2);
-    err = clQueue.enqueueNDRangeKernel(kerGenFloatSamples, cl::NullRange, cl::NDRange(4096));
+    err = clQueue.enqueueNDRangeKernel(kerGenFloatSamples, cl::NullRange, cl::NDRange(0x1000));
 
     err = kerGenGaussianSamples.setArg(0, nParticles);
     err = kerGenGaussianSamples.setArg(1, getRngOff());
@@ -275,15 +283,18 @@ namespace sl {
 
     delete[] posBuf;
     delete[] colorBuf;
+    delete[] uSamples1;
+    delete[] uSamples2;
+    delete[] gSamples1;
+    delete[] gSamples2;
 
     std::chrono::time_point t2 = std::chrono::high_resolution_clock::now();
     float calcTime = 0.001f * std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
     std::cout << "Cluster calculation time: " << calcTime << " s" << std::endl;
   }
-  void clearClusters()
-  {
+  void clearClusters() {
     // Clear particle GPU buffers
-    for (int i = 0; i < glClusterPts.size(); i++) {
+    for (int i = 0; i < (int)glClusterPts.size(); i++) {
       glDeleteBuffers(1, &glPtPosBufs[i]);
       glDeleteBuffers(1, &glPtColorBufs[i]);
       glDeleteVertexArrays(1, &glClusterPts[i]);
@@ -376,10 +387,12 @@ namespace sl {
     float theta1 = acos(observer.lookDir.z / observer.lookDir.length()) - fovY2;
     float theta2 = theta1 + 2.0f * fovY2;
 
-    bgTexCoord[0] = { 1.0 - phi2 / (2.0f * M_PI), theta1 / M_PI };
-    bgTexCoord[1] = { 1.0 - phi1 / (2.0f * M_PI), theta1 / M_PI };
-    bgTexCoord[2] = { 1.0 - phi1 / (2.0f * M_PI), theta2 / M_PI };
-    bgTexCoord[3] = { 1.0 - phi2 / (2.0f * M_PI), theta2 / M_PI };
+    bgTexCoord[0] = glm::vec2(1.0 - phi2 / (2.0f * M_PI), theta1 / M_PI);
+    bgTexCoord[1] = glm::vec2(1.0 - phi1 / (2.0f * M_PI), theta1 / M_PI);
+    bgTexCoord[2] = glm::vec2(1.0 - phi1 / (2.0f * M_PI), theta2 / M_PI);
+    bgTexCoord[3] = glm::vec2(1.0 - phi2 / (2.0f * M_PI), theta1 / M_PI);
+    bgTexCoord[4] = glm::vec2(1.0 - phi1 / (2.0f * M_PI), theta2 / M_PI);
+    bgTexCoord[5] = glm::vec2(1.0 - phi2 / (2.0f * M_PI), theta2 / M_PI);
 
     glUseProgram(bgRenderProg);
     glBindVertexArray(glBackground);
@@ -390,13 +403,13 @@ namespace sl {
     glActiveTexture(GL_TEXTURE0 + 0);
     glBindTexture(GL_TEXTURE_2D, glBgTexture);
     // Render Background
-    glDrawArrays(GL_QUADS, 0, 4);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
     glUseProgram(0);
 
     // Render Particles
     glUseProgram(ptRenderProg);
-    for (int i = 0; i < glClusterPts.size(); i++) {
+    for (int i = 0; i < (int)glClusterPts.size(); i++) {
       glBindVertexArray(glClusterPts[i]);
       glDrawArrays(GL_POINTS, 0, (int)(nClusterPts[i]));
       glBindVertexArray(0);

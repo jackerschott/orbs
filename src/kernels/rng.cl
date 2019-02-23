@@ -5,9 +5,9 @@ float normPdf(float x);
 
 __kernel void genSamples(uint nSamples, ulong off, __global uint* samples) {
   uint g = get_global_id(0);
-  uint perKernel = nSamples / get_global_size(0);
+  uint perKernel = nSamples / get_global_size(0) + 1;
   
-#define STREAM_GAP 1099511627776UL
+  #define STREAM_GAP 1099511627776UL
   mwc64x_state_t rng;
   MWC64X_SeedStreams(&rng, off, STREAM_GAP);
 
@@ -20,7 +20,7 @@ __kernel void genFloatSamples(uint nSamples, ulong off, __global float* samples)
   uint g = get_global_id(0);
   uint perKernel = nSamples / get_global_size(0) + 1;
 
-#define STREAM_GAP 1099511627776UL
+  #define STREAM_GAP 1099511627776UL
   mwc64x_state_t rng;
   MWC64X_SeedStreams(&rng, off, STREAM_GAP);
 
@@ -34,7 +34,7 @@ __kernel void genGaussianSamples(uint nSamples, ulong off, __global float* sampl
   uint g = get_global_id(0);
   uint perKernel = nSamples / get_global_size(0);
 
-#define STREAM_GAP 1099511627776UL
+  #define STREAM_GAP 1099511627776UL
   mwc64x_state_t rng;
   MWC64X_SeedStreams(&rng, off, STREAM_GAP);
   for (uint i = 0; i < perKernel; i++) {
