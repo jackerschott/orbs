@@ -18,7 +18,7 @@ __kernel void genSamples(uint nSamples, ulong off, __global uint* samples) {
 
 __kernel void genFloatSamples(uint nSamples, ulong off, __global float* samples) {
   uint g = get_global_id(0);
-  uint perKernel = nSamples / get_global_size(0);
+  uint perKernel = nSamples / get_global_size(0) + 1;
 
 #define STREAM_GAP 1099511627776UL
   mwc64x_state_t rng;

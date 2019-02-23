@@ -23,18 +23,18 @@
 #endif
 #endif
 
-#ifdef __unix
-#define INSTALL_PATH "/home/stephan/Projects/black_hole_simulation/"
+#ifdef __linux
+#define INSTALL_PATH "./"
 #endif
 #ifdef _WIN32
-#define INSTALL_PATH "../../"
+#define INSTALL_PATH "./../../"
 #endif
 
 // OpenGL
 #define SHADER_PATH INSTALL_PATH "src/shaders/"
 
-#define PT_VERTEX_SHADER_SRC_PATH SHADER_PATH "pt_vert.shader"
-#define PT_FRAGMENT_SHADER_SRC_PATH SHADER_PATH "pt_frag.shader"
+#define PT_VERTEX_SHADER_SRC_PATH SHADER_PATH "pt.vert"
+#define PT_FRAGMENT_SHADER_SRC_PATH SHADER_PATH "pt.frag"
 #define NUM_PT_SHADER_ATTR 2
 #define NUM_PT_SHADER_UNIFORMS 1
 enum ptShaderIn {
@@ -47,8 +47,8 @@ enum ptShaderUniform {
 extern const char* glPtShaderInNames[];
 extern const char* glPtShaderUniNames[];
 
-#define BG_VERTEX_SHADER_SRC_PATH SHADER_PATH "bg_vert.shader"
-#define BG_FRAGMENT_SHADER_SRC_PATH SHADER_PATH "bg_frag.shader"
+#define BG_VERTEX_SHADER_SRC_PATH SHADER_PATH "bg.vert"
+#define BG_FRAGMENT_SHADER_SRC_PATH SHADER_PATH "bg.frag"
 #define NUM_BG_SHADER_ATTR 2
 enum bgShaderIn {
   BG_POS,

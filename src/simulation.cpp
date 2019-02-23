@@ -157,9 +157,9 @@ namespace sl {
     // Initialize GPU computation programs
     int clErr;
     std::string clSource;
-    clContext = context;
+    clContext = cl::Context(cl::Device::getDefault());//context;
 
-    loadFile(PTGEN_KERNEL_SRC_PATH, &clSource); 
+    loadFile(PTGEN_KERNEL_SRC_PATH, &clSource);
     clPtGenProgram = cl::Program(clContext, clSource);
     clErr = clPtGenProgram.build("-I" KERNEL_PATH);
     if (clErr != 0) {
@@ -218,6 +218,9 @@ namespace sl {
     clBlurSizesBuf = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nColors * sizeof(float), blurSizes, &err);
     clColorBuf = cl::BufferGL(clContext, CL_MEM_READ_WRITE, glPtColorBuf, &err);
 
+    std::vector<cl::Memory> glMem({ clPosBuf, clColorBuf });
+    clQueue.enqueueAcquireGLObjects(&glMem);
+
     cl::Buffer uSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(uint), &err);
     cl::Buffer uSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(uint), &err);
     cl::Buffer gSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, nParticles * sizeof(float), &err);
@@ -242,6 +245,7 @@ namespace sl {
 
     float eps = sqrt(1 - (b * b) / (a * a));
     glm::mat4 rot = glm::rotate(n.z / glm::length(n), glm::vec3(-n.y, n.x, 0.0));
+    glm::mat4 cl_rot = glm::transpose(rot);
 
     glBindVertexArray(glEllipsePts);
     glBindBuffer(GL_ARRAY_BUFFER, glPtPosBuf);
@@ -249,17 +253,16 @@ namespace sl {
     err = kerGetEllipticPtDistr.setArg(0, nParticles);
     err = kerGetEllipticPtDistr.setArg(1, b);
     err = kerGetEllipticPtDistr.setArg(2, eps);
-    err = kerGetEllipticPtDistr.setArg(3, *reinterpret_cast<cl_float16*>(&glm::transpose(rot)));
+    err = kerGetEllipticPtDistr.setArg(3, *reinterpret_cast<cl_float16*>(&cl_rot));
     err = kerGetEllipticPtDistr.setArg(4, dr);
     err = kerGetEllipticPtDistr.setArg(5, dz);
     err = kerGetEllipticPtDistr.setArg(6, uSamplesBuf1);
     err = kerGetEllipticPtDistr.setArg(7, gSamplesBuf1);
     err = kerGetEllipticPtDistr.setArg(8, gSamplesBuf2);
     err = kerGetEllipticPtDistr.setArg(9, clPosBuf);
-    err = clQueue.enqueueAcquireGLObjects(&std::vector<cl::Memory>({ clPosBuf }));
+    std::vector<cl::Memory> posMem({ clPosBuf });
     err = clQueue.enqueueNDRangeKernel(kerGetEllipticPtDistr, cl::NullRange, cl::NDRange(nParticles));
     clQueue.finish();
-    err = clQueue.enqueueReleaseGLObjects(&std::vector<cl::Memory>({ clPosBuf }));
 
     glBindBuffer(GL_ARRAY_BUFFER, glPtColorBuf);
     err = kerGetPtColors.setArg(0, nColors);
@@ -267,11 +270,10 @@ namespace sl {
     err = kerGetPtColors.setArg(2, clBlurSizesBuf);
     err = kerGetPtColors.setArg(3, uSamplesBuf2);
     err = kerGetPtColors.setArg(4, clColorBuf);
-    err = clQueue.enqueueAcquireGLObjects(&std::vector<cl::Memory>({ clColorBuf }));
     err = clQueue.enqueueNDRangeKernel(kerGetPtColors, cl::NullRange, cl::NDRange(nParticles));
     err = clQueue.finish();
-    err = clQueue.enqueueReleaseGLObjects(&std::vector<cl::Memory>({ clColorBuf }));
-    
+
+    clQueue.enqueueReleaseGLObjects(&glMem);
     glBindVertexArray(0);
 
     nClusterPts.push_back(nParticles);

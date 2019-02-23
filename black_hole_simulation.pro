@@ -3,7 +3,7 @@ TEMPLATE = app
 unix:TARGET = black_hole_simulation
 win32:TARGET = black_hole_simulation.exe
 
-unix:LIBS += -lOpenCL -lGLEW -lGL -lSDL2
+unix:LIBS += -lOpenCL -lGLEW -lGL
 
 QMAKE_CXXFLAGS += -std=c++17 # CONFIG += c++17
 CONFIG += debug

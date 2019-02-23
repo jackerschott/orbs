@@ -14,6 +14,7 @@ namespace glxew {
 #include <GL/glxew.h>
 }
 #endif
+#include <string>
 
 std::vector<double> renderTime;
 
@@ -44,6 +45,12 @@ void renderWidget::initializeGL() {
   cl::Platform clPlatform = cl::Platform::getDefault();
   cl::Device clDevice = cl::Device::getDefault();
 
+  std::cout << "Device: \t" << clDevice.getInfo<CL_DEVICE_NAME>() << std::endl;
+  std::cout << "Platform: \t" << clPlatform.getInfo<CL_PLATFORM_NAME>() << std::endl;
+
+  // std::string ext = clDevice.getInfo<CL_DEVICE_EXTENSIONS>();
+  // std::cout << ext << std::endl;
+
   #ifdef _WIN32
   cl_context_properties clContextProps[] = {
     CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
@@ -60,7 +67,7 @@ void renderWidget::initializeGL() {
     0
   };
   #endif
-  cl::Context clContext(clDevice, clContextProps);
+  cl::Context clContext(clDevice/*, clContextProps*/);
 
   float rs = 1.0f;
   uint nRnPts = 10000;
