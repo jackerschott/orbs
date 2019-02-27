@@ -1,11 +1,7 @@
 #define _USE_MATH_DEFINES
 
-#include "gui/renderwidget.hpp"
-#include "tmeas.hpp"
+#include "renderwidget.hpp"
 
-#include <chrono>
-#include <cmath>
-#include <iostream>
 #ifdef _WIN32
 #include <GL/wglew.h>
 #endif
@@ -14,7 +10,13 @@ namespace glxew {
 #include <GL/glxew.h>
 }
 #endif
+
+#include <chrono>
+#include <cmath>
+#include <iostream>
 #include <string>
+
+#include "tmeas.hpp"
 
 std::vector<double> renderTime;
 

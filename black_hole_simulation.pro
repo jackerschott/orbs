@@ -18,32 +18,23 @@ MOC_DIR=./tmp
 RCC_DIR=./tmp
 OBJECTS_DIR=./tmp
 
-INCLUDEPATH += ./inc
+INCLUDEPATH += ./inc ./inc/gui ./inc/clWrapper ./inc/glWrapper ./tmp
 DEFINES += CL_TARGET_OPENCL_VERSION=120
 
 QT += core
 QT += gui
 QT += widgets
 
-HEADERS += inc/fileman.hpp \
-           inc/randutils.hpp \
-           inc/res.hpp \
-           inc/tmain.hpp \
+HEADERS += inc/res.hpp \
            inc/tmeas.hpp \
-           inc/simulation_ei.hpp \
-           inc/clWrapper/clwrap.hpp \
-           inc/glWrapper/glwrap.hpp \
+           inc/simulation_gl_320_es.hpp \
            inc/gui/mainwindow.hpp \
            inc/gui/renderwidget.hpp
 
-SOURCES += src/fileman.cpp \
-           src/main.cpp \
+SOURCES += src/main.cpp \
            src/res.cpp \
-           src/simulation_ei.cpp \
-           src/tmain.cpp \
+           src/simulation_gl_320_es.cpp \
            src/tmeas.cpp \
-           src/clWrapper/clwrap.cpp \
-           src/glWrapper/glwrap.cpp \
            src/gui/mainwindow.cpp \
            src/gui/renderwidget.cpp
 

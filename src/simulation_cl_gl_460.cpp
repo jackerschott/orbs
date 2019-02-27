@@ -13,7 +13,7 @@
 
 #include "clWrapper/clwrap.hpp"
 #include "glWrapper/glwrap.hpp"
-#include "simulation.hpp"
+#include "simulation_cl_gl_460.hpp"
 
 namespace sl {
   // Physics data
@@ -48,6 +48,8 @@ namespace sl {
     { -1.0f, -1.0f,  0.0f },
     {  1.0f, -1.0f,  0.0f },
     {  1.0f,  1.0f,  0.0f },
+    { -1.0f, -1.0f,  0.0f },
+    {  1.0f,  1.0f,  0.0f },
     { -1.0f,  1.0f,  0.0f }
   };
   glm::vec2 bgTexCoord[4];
@@ -77,6 +79,15 @@ namespace sl {
   slConfig config = CONFIG_CLOSED;
 
   uint64 getRngOff();
+  void buildClusterProg();
+  void buildBgProg();
+  bool getShaderSrc(const char* path, char* src);
+  void GLAPIENTRY msgCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
+    GLsizei length, const GLchar* message, const void* userParam);
+  const char* getErrSource(GLenum source);
+  const char* getErrType(GLenum type);
+  const char* getErrSeverity(GLenum severity);
+  std::string getErrMsg(int err);
 
   bool isInit() {
     return (config & CONFIG_INIT) != 0;
@@ -107,27 +118,20 @@ namespace sl {
 
     // Initialize OpenGL
     glewInit();
-//#if _DEBUG
+    #if _DEBUG
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(gl::msgCallback, 0);
-//#endif
+    #endif
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Build rendering programs
-    std::string errLog;
-    if (!gl::createProgram(PT_VERTEX_SHADER_SRC_PATH, PT_FRAGMENT_SHADER_SRC_PATH,
-      glPtShaderInNames, &ptRenderProg, &ptVertShader, &ptFragShader, &errLog)) {
-      std::cerr << errLog << std::endl;
-    }
-    if (!gl::createProgram(BG_VERTEX_SHADER_SRC_PATH, BG_FRAGMENT_SHADER_SRC_PATH,
-      glBgShaderInNames, &bgRenderProg, &bgVertShader, &bgFragShader, &errLog)) {
-      std::cerr << errLog << std::endl;
-    }
+    buildClusterProg();
+    buildBgProg();
 
     glUseProgram(ptRenderProg);
-    viewProjn = glGetUniformLocation(ptRenderProg, glPtShaderUniNames[PT_VIEW_PROJ]);
+    viewProjn = glGetUniformLocation(ptRenderProg, "viewProj");
     glUseProgram(0);
 
     // Initialize Background rendering Buffers
@@ -281,8 +285,7 @@ namespace sl {
     glPtPosBufs.push_back(glPtPosBuf);
     glPtColorBufs.push_back(glPtColorBuf);
   }
-  void clearClusters()
-  {
+  void clearClusters() {
     // Clear particle GPU buffers
     for (uint i = 0; i < glClusterPts.size(); i++) {
       glDeleteBuffers(1, &glPtPosBufs[i]);
@@ -371,10 +374,12 @@ namespace sl {
     float theta1 = acos(observer.lookDir.z / observer.lookDir.length()) - fovY2;
     float theta2 = theta1 + 2.0f * fovY2;
 
-    bgTexCoord[0] = { 1.0 - phi2 / (2.0f * M_PI), theta1 / M_PI };
-    bgTexCoord[1] = { 1.0 - phi1 / (2.0f * M_PI), theta1 / M_PI };
-    bgTexCoord[2] = { 1.0 - phi1 / (2.0f * M_PI), theta2 / M_PI };
-    bgTexCoord[3] = { 1.0 - phi2 / (2.0f * M_PI), theta2 / M_PI };
+    bgTexCoord[0] = glm::vec2(1.0 - phi2 / (2.0f * M_PI), theta1 / M_PI);
+    bgTexCoord[1] = glm::vec2(1.0 - phi1 / (2.0f * M_PI), theta1 / M_PI);
+    bgTexCoord[2] = glm::vec2(1.0 - phi1 / (2.0f * M_PI), theta2 / M_PI);
+    bgTexCoord[3] = glm::vec2(1.0 - phi2 / (2.0f * M_PI), theta1 / M_PI);
+    bgTexCoord[4] = glm::vec2(1.0 - phi1 / (2.0f * M_PI), theta2 / M_PI);
+    bgTexCoord[5] = glm::vec2(1.0 - phi2 / (2.0f * M_PI), theta2 / M_PI);
 
     glUseProgram(bgRenderProg);
     glBindVertexArray(glBackground);
@@ -385,7 +390,7 @@ namespace sl {
     glActiveTexture(GL_TEXTURE0 + 0);
     glBindTexture(GL_TEXTURE_2D, glBgTexture);
     // Render Background
-    glDrawArrays(GL_QUADS, 0, 4);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
     glUseProgram(0);
 
@@ -436,4 +441,283 @@ namespace sl {
     t1 = std::chrono::floor<std::chrono::seconds>(t1);
     return dt * 1000000000ULL + (uint64)std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
   }
+
+    void buildClusterProg() {
+    char* src;
+    int len;
+    int success;
+    char log[0x400];
+
+    // Create shaders
+    cluster_vs = glCreateShader(GL_VERTEX_SHADER);
+    if (!getShaderSrc(SHADER_PATH "cluster.vert", &src, &len)) {
+      std::cerr << SHADER_PATH "cluster.vert" << " could not be opened." << std::endl;
+      throw;
+    }
+    glShaderSource(cluster_vs, 1, &src, &len);
+    delete[] src;
+
+    cluster_fs = glCreateShader(GL_FRAGMENT_SHADER);
+    if (!getShaderSrc(SHADER_PATH "cluster.frag", &src, &len)) {
+      std::cerr << SHADER_PATH "cluster.frag" << "could not be opened." << std::endl;
+      throw;
+    }
+    glShaderSource(cluster_fs, 1, &src, &len);
+    delete[] src;
+
+    // Compile shaders
+    cluster_prog = glCreateProgram();
+    glCompileShader(cluster_vs);
+    glGetShaderiv(cluster_vs, GL_COMPILE_STATUS, &success);
+    if (!success) {
+      glGetShaderInfoLog(cluster_vs, sizeof(log), NULL, log);
+      std::cerr << "Cluster vertex shader:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+    glAttachShader(cluster_prog, cluster_vs);
+
+    glCompileShader(cluster_fs);
+    glGetShaderiv(cluster_fs, GL_COMPILE_STATUS, &success);
+    if (!success) {
+      glGetShaderInfoLog(cluster_fs, sizeof(log), NULL, log);
+      std::cerr << "Cluster fragment shader:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+    glAttachShader(cluster_prog, cluster_fs);
+
+    // Bind attribute locations
+    glBindAttribLocation(cluster_prog, 0, "pos");
+    glBindAttribLocation(cluster_prog, 1, "color");
+
+    // Link Program
+    glLinkProgram(cluster_prog);
+    glGetProgramiv(cluster_prog, GL_LINK_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(cluster_prog, sizeof(log), NULL, log);
+      std::cerr << "Cluster program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+
+    // Validate Program
+    glValidateProgram(cluster_prog);
+    glGetProgramiv(cluster_prog, GL_VALIDATE_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(cluster_prog, sizeof(log), NULL, log);
+      std::cerr << "Cluster program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+  }
+  void buildBgProg() {
+    char* src;
+    int len;
+    int success;
+    char log[0x400];
+
+    // Create shaders
+    bg_vs = glCreateShader(GL_VERTEX_SHADER);
+    if (!getShaderSrc(SHADER_PATH "bg.vert", &src, &len)) {
+      std::cerr << SHADER_PATH "bg.vert" << " could not be opened." << std::endl;
+      throw;
+    }
+    glShaderSource(bg_vs, 1, &src, &len);
+    delete[] src;
+
+    bg_fs = glCreateShader(GL_FRAGMENT_SHADER);
+    if (!getShaderSrc(SHADER_PATH "bg.frag", &src, &len)) {
+      std::cerr << SHADER_PATH "bg.frag" << "could not be opened." << std::endl;
+      throw;
+    }
+    glShaderSource(bg_fs, 1, &src, &len);
+    delete[] src;
+
+    // Compile shaders
+    bg_prog = glCreateProgram();
+    glCompileShader(bg_vs);
+    glGetShaderiv(bg_vs, GL_COMPILE_STATUS, &success);
+    if (!success) {
+      glGetShaderInfoLog(bg_vs, sizeof(log), NULL, log);
+      std::cerr << "Bg vertex shader:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+    glAttachShader(bg_prog, bg_vs);
+
+    glCompileShader(bg_fs);
+    glGetShaderiv(bg_fs, GL_COMPILE_STATUS, &success);
+    if (!success) {
+      glGetShaderInfoLog(bg_fs, sizeof(log), NULL, log);
+      std::cerr << "Bg fragment shader:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+    glAttachShader(bg_prog, bg_fs);
+
+    // Bind attribute locations
+    glBindAttribLocation(bg_prog, 0, "pos");
+    glBindAttribLocation(bg_prog, 1, "texCoord");
+
+    // Link Program
+    glLinkProgram(bg_prog);
+    glGetProgramiv(bg_prog, GL_LINK_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(bg_prog, sizeof(log), NULL, log);
+      std::cerr << "Bg program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+
+    // Validate Program
+    glValidateProgram(bg_prog);
+    glGetProgramiv(bg_prog, GL_VALIDATE_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(bg_prog, sizeof(log), NULL, log);
+      std::cerr << "Bg program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+  }
+  bool getShaderSrc(const char* path, char** src, int* srcLen) {
+    FILE* fp = fopen(path, "r");
+    if (fp == NULL)
+      return false;
+    
+    fseek(fp, 0, SEEK_END);
+    *srcLen = (int)ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    *src = new char[*srcLen];
+    *src[0] = '\0';
+    char* line = NULL;
+    unsigned long len = 0;
+    long read;
+    while ((read = getline(&line, &len, fp)) != -1) {
+      strcat(*src, line);
+    }
+
+    fclose(fp);
+    if (line)
+      free(line);
+    return true;
+  }
+  void GLAPIENTRY msgCallback(GLenum source, GLenum type, UNUSED GLuint id, GLenum severity,
+    UNUSED GLsizei length, const GLchar* message, UNUSED const void* userParam) {
+    if (severity != GL_DEBUG_SEVERITY_NOTIFICATION) {
+      fprintf(stderr, "%s\t %s, type: %s, source: %s\n",
+        getErrSeverity(severity), message, getErrType(type), getErrSource(source));
+    }
+  }
+  const char* getErrSource(GLenum source) {
+    switch (source)
+    {
+    case GL_DEBUG_SOURCE_API: return "API";
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM: return "Window system";
+    case GL_DEBUG_SOURCE_SHADER_COMPILER: return "Shader compiler";
+    case GL_DEBUG_SOURCE_THIRD_PARTY: return "Third party";
+    case GL_DEBUG_SOURCE_APPLICATION: return "Application";
+    case GL_DEBUG_SOURCE_OTHER: return "Other";
+    default: return "Unknown error source";
+    }
+  }
+  const char* getErrType(GLenum type) {
+    switch (type)
+    {
+    case GL_DEBUG_TYPE_ERROR: return "Error";
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: return "Deprecated behavior";
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: return "Undefined behavior";
+    case GL_DEBUG_TYPE_PORTABILITY: return "Portability";
+    case GL_DEBUG_TYPE_PERFORMANCE: return "Performance";
+    case GL_DEBUG_TYPE_MARKER: return "Marker";
+    case GL_DEBUG_TYPE_PUSH_GROUP: return "Push group";
+    case GL_DEBUG_TYPE_POP_GROUP: return "Pop Group";
+    case GL_DEBUG_TYPE_OTHER: return "Other";
+    default: return "Unknown error type";
+    }
+  }
+  const char* getErrSeverity(GLenum severity) {
+    switch (severity)
+    {
+    case GL_DEBUG_SEVERITY_HIGH: return "Error";
+    case GL_DEBUG_SEVERITY_MEDIUM: return "Major warning";
+    case GL_DEBUG_SEVERITY_LOW: return "Warning";
+    case GL_DEBUG_SEVERITY_NOTIFICATION: return "Note";
+    default: return "Unknown error severity";
+    }
+  }
+
+  std::string getErrMsg(int err) {
+		switch (err) {
+		case 0: return "CL_SUCCESS";
+		case -1: return "CL_DEVICE_NOT_FOUND";
+		case -2: return "CL_DEVICE_NOT_AVAILABLE";
+		case -3: return "CL_COMPILER_NOT_AVAILABLE";
+		case -4: return "CL_MEM_OBJECT_ALLOCATION_FAILURE";
+		case -5: return "CL_OUT_OF_RESOURCES";
+		case -6: return "CL_OUT_OF_HOST_MEMORY";
+		case -7: return "CL_PROFILING_INFO_NOT_AVAILABLE";
+		case -8: return "CL_MEM_COPY_OVERLAP";
+		case -9: return "CL_IMAGE_FORMAT_MISMATCH";
+		case -10: return "CL_IMAGE_FORMAT_NOT_SUPPORTED";
+		case -11: return "CL_BUILD_PROGRAM_FAILURE";
+		case -12: return "CL_MAP_FAILURE";
+		case -13: return "CL_MISALIGNED_SUB_BUFFER_OFFSET";
+		case -14: return "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST";
+		case -15: return "CL_COMPILE_PROGRAM_FAILURE";
+		case -16: return "CL_LINKER_NOT_AVAILABLE";
+		case -17: return "CL_LINK_PROGRAM_FAILURE";
+		case -18: return "CL_DEVICE_PARTITION_FAILED";
+		case -19: return "CL_KERNEL_ARG_INFO_NOT_AVAILABLE";
+
+		case -30: return "CL_INVALID_VALUE";
+		case -31: return "CL_INVALID_DEVICE_TYPE";
+		case -32: return "CL_INVALID_PLATFORM";
+		case -33: return "CL_INVALID_DEVICE";
+		case -34: return "CL_INVALID_CONTEXT";
+		case -35: return "CL_INVALID_QUEUE_PROPERTIES";
+		case -36: return "CL_INVALID_COMMAND_QUEUE";
+		case -37: return "CL_INVALID_HOST_PTR";
+		case -38: return "CL_INVALID_MEM_OBJECT";
+		case -39: return "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR";
+		case -40: return "CL_INVALID_IMAGE_SIZE";
+		case -41: return "CL_INVALID_SAMPLER";
+		case -42: return "CL_INVALID_BINARY";
+		case -43: return "CL_INVALID_BUILD_OPTIONS";
+		case -44: return "CL_INVALID_PROGRAM";
+		case -45: return "CL_INVALID_PROGRAM_EXECUTABLE";
+		case -46: return "CL_INVALID_KERNEL_NAME";
+		case -47: return "CL_INVALID_KERNEL_DEFINITION";
+		case -48: return "CL_INVALID_KERNEL";
+		case -49: return "CL_INVALID_ARG_INDEX";
+		case -50: return "CL_INVALID_ARG_VALUE";
+		case -51: return "CL_INVALID_ARG_SIZE";
+		case -52: return "CL_INVALID_KERNEL_ARGS";
+		case -53: return "CL_INVALID_WORK_DIMENSION";
+		case -54: return "CL_INVALID_WORK_GROUP_SIZE";
+		case -55: return "CL_INVALID_WORK_ITEM_SIZE";
+		case -56: return "CL_INVALID_GLOBAL_OFFSET";
+		case -57: return "CL_INVALID_EVENT_WAIT_LIST";
+		case -58: return "CL_INVALID_EVENT";
+		case -59: return "CL_INVALID_OPERATION";
+		case -60: return "CL_INVALID_GL_OBJECT";
+		case -61: return "CL_INVALID_BUFFER_SIZE";
+		case -62: return "CL_INVALID_MIP_LEVEL";
+		case -63: return "CL_INVALID_GLOBAL_WORK_SIZE";
+		case -64: return "CL_INVALID_PROPERTY";
+		case -65: return "CL_INVALID_IMAGE_DESCRIPTOR";
+		case -66: return "CL_INVALID_COMPILER_OPTIONS";
+		case -67: return "CL_INVALID_LINKER_OPTIONS";
+		case -68: return "CL_INVALID_DEVICE_PARTITION_COUNT";
+
+		case -1000: return "CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR";
+		case -1001: return "CL_PLATFORM_NOT_FOUND_KHR";
+		case -1002: return "CL_INVALID_D3D10_DEVICE_KHR";
+		case -1003: return "CL_INVALID_D3D10_RESOURCE_KHR";
+		case -1004: return "CL_D3D10_RESOURCE_ALREADY_ACQUIRED_KHR";
+		case -1005: return "CL_D3D10_RESOURCE_NOT_ACQUIRED_KHR";
+		default: return "Unknown OpenCL error";
+		}
+	}
 }

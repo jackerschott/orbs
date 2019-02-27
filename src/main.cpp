@@ -2,13 +2,15 @@
 #if !TEST_WITHOUT_QT
 
 #include <QtWidgets/QApplication>
+
+#include "mainwindow.hpp"
+
 #include <iostream>
 #include <fstream>
 #include <thread>
 
 #include "clWrapper/clwrap.hpp"
 #include "glWrapper/glwrap.hpp"
-#include "gui/mainwindow.hpp"
 #include "tmeas.hpp"
 
 int main(int argc, char** argv) {

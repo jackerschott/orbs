@@ -2,10 +2,10 @@
 #define RENDERWIDGET_HPP
 
 #include <GL/glew.h>
-#include <QtCore/qtimer.h>
 #include <QtWidgets/qopenglwidget.h> 
+#include <QtCore/qtimer.h>
 
-#include "simulation_ei.hpp"
+#include "simulation_gl_320_es.hpp"
 
 class renderWidget : public QOpenGLWidget {
   Q_OBJECT
