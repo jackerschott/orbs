@@ -7,8 +7,6 @@
 #include <iostream>
 #include <thread>
 
-#include "fileman.hpp"
-
 QColor clusterColor = QColor(255, 128, 0, 26);
 QPixmap* clusterColorFill;
 

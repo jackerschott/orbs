@@ -33,7 +33,7 @@
 #define UNUSED __attribute__((unused))
 
 // OpenGL
-#define SHADER_PATH INSTALL_PATH "src/shader_460/"
+//#define SHADER_PATH INSTALL_PATH "src/shader_460/"
 
 #define PT_VERTEX_SHADER_SRC_PATH SHADER_PATH "pt.vert"
 #define PT_FRAGMENT_SHADER_SRC_PATH SHADER_PATH "pt.frag"
@@ -60,7 +60,7 @@ enum bgShaderUniform {};
 extern const char* glBgShaderInNames[];
 
 // OpenCL
-#define KERNEL_PATH INSTALLshader_460nel/"
+#define KERNEL_PATH INSTALL_PATH "shader_460/"
 
 #define PTGEN_KERNEL_SRC_PAshader_460 "ptgen.cl"
 #define PTGEN_NUM_KERNELS 2shader_460

@@ -1,6 +1,3 @@
-#define TEST_WITHOUT_QT false
-#if !TEST_WITHOUT_QT
-
 #include <QtWidgets/QApplication>
 
 #include "mainwindow.hpp"
@@ -9,8 +6,6 @@
 #include <fstream>
 #include <thread>
 
-#include "clWrapper/clwrap.hpp"
-#include "glWrapper/glwrap.hpp"
 #include "tmeas.hpp"
 
 int main(int argc, char** argv) {
@@ -20,11 +15,3 @@ int main(int argc, char** argv) {
 
   return app.exec();
 }
-
-#else
-#include "tmain.hpp"
-
-int main(int argc, char** argv) {
-  return tmain(argc, argv);
-}
-#endif

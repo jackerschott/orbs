@@ -1,9 +1,12 @@
 #ifndef SIMULATONEI_HPP
 #define SIMULATONEI_HPP
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include "CL/cl.hpp"
 #include "GL/glew.h"
 #include "glm/glm.hpp"
+#include "glm/gtx/transform.hpp"
 #include "res.hpp"
 
 DEF_STANDARD_TYPES
@@ -18,7 +21,7 @@ namespace sl {
   bool isClosed();
   void setObserverCameraAspect(float aspect);
 
-  void init(float _rs, cl::Device device, cl::Context context);
+  void init(float _rs);
 
   void createEllipticCluster(uint _nParticles, float a, float b, vector n, float dr, float dz,
     uint nColors, color* palette, float* blurSizes);
