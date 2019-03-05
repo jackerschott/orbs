@@ -29,6 +29,10 @@ namespace sl {
   GLuint cluster_vs;
   GLuint cluster_fs;
 
+  // GPU Computation programs
+  GLuint cluster_comp_prog;
+  GLuint cluster_cs;
+
   // GPU buffers
   GLuint glBg;
   GLuint glBgTexture;
@@ -53,7 +57,7 @@ namespace sl {
   };
   glm::vec2 bgTexCoord[6];
   glm::mat4 perspv;
-  GLint viewProjn;
+  GLint viewPj;
 
   // GPU computation programs
   cl::Program clPtGenProgram;
@@ -107,7 +111,7 @@ namespace sl {
     glm::mat4 vp = perspv * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
 
     glUseProgram(cluster_prog);
-    glUniformMatrix4fv(viewProjn, 1, false, &vp[0][0]);
+    glUniformMatrix4fv(viewPj, 1, false, &vp[0][0]);
     glUseProgram(0);
   }
 
@@ -131,10 +135,11 @@ namespace sl {
     buildBgProg();
 
     glUseProgram(cluster_prog);
-    viewProjn = glGetUniformLocation(cluster_prog, "viewProj");
+    viewPj = glGetUniformLocation(cluster_prog, "viewPj");
     glUseProgram(0);
 
     // TODO: Build computation programs
+    buildClusterCompProg();
 
     // Initialize Background rendering Buffers
     glGenVertexArrays(1, &glBg);
@@ -165,106 +170,7 @@ namespace sl {
 
   void createEllipticCluster(uint nParticles, float a, float b, vector n, float dr, float dz,
     uint nColors, color* palette, float* blurSizes) {
-    std::chrono::time_point t1 = std::chrono::high_resolution_clock::now();
-    
     // TODO: Generate Particle Cluster with OpenGL Compute Shaders
-
-    // int err = 0;
-    // posBuf = new cl_float4[nParticles];
-    // colorBuf = new cl_float4[nParticles];
-    // clPosBuf = cl::Buffer(clContext, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_USE_HOST_PTR, nParticles * sizeof(cl_float4), posBuf, &err);
-    // clPaletteBuf = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nColors * sizeof(cl_float4), palette, &err);
-    // clBlurSizesBuf = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nColors * sizeof(float), blurSizes, &err);
-    // clColorBuf = cl::Buffer(clContext, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_USE_HOST_PTR, nParticles * sizeof(cl_float4), colorBuf, &err);
-
-    // float* uSamples1 = new float[nParticles];
-    // float* uSamples2 = new float[nParticles];
-    // float* gSamples1 = new float[nParticles];
-    // float* gSamples2 = new float[nParticles];
-    // cl::Buffer uSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), uSamples1, &err);
-    // cl::Buffer uSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), uSamples2, &err);
-    // cl::Buffer gSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), gSamples1, &err);
-    // cl::Buffer gSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), gSamples2, &err);
-
-    // err = kerGenFloatSamples.setArg(0, nParticles);
-    // err = kerGenFloatSamples.setArg(1, getRngOff());
-    // err = kerGenFloatSamples.setArg(2, uSamplesBuf1);
-    // err = clQueue.enqueueNDRangeKernel(kerGenFloatSamples, cl::NullRange, cl::NDRange(0x1000));
-    // err = kerGenFloatSamples.setArg(1, getRngOff());
-    // err = kerGenFloatSamples.setArg(2, uSamplesBuf2);
-    // err = clQueue.enqueueNDRangeKernel(kerGenFloatSamples, cl::NullRange, cl::NDRange(0x1000));
-
-    // err = kerGenGaussianSamples.setArg(0, nParticles);
-    // err = kerGenGaussianSamples.setArg(1, getRngOff());
-    // err = kerGenGaussianSamples.setArg(2, gSamplesBuf1);
-    // err = clQueue.enqueueNDRangeKernel(kerGenGaussianSamples, cl::NullRange, cl::NDRange(4096));
-    // err = kerGenGaussianSamples.setArg(1, getRngOff());
-    // err = kerGenGaussianSamples.setArg(2, gSamplesBuf2);
-    // err = clQueue.enqueueNDRangeKernel(kerGenGaussianSamples, cl::NullRange, cl::NDRange(4096));
-    // clQueue.finish();
-
-    // float eps = sqrt(1 - (b * b) / (a * a));
-    // glm::mat4 rot = glm::rotate(n.z / glm::length(n), glm::vec3(-n.y, n.x, 0.0));
-    // glm::mat4 rotArg = glm::transpose(rot);
-
-    // err = kerGetEllipticPtDistr.setArg(0, nParticles);
-    // err = kerGetEllipticPtDistr.setArg(1, b);
-    // err = kerGetEllipticPtDistr.setArg(2, eps);
-    // err = kerGetEllipticPtDistr.setArg(3, *reinterpret_cast<cl_float16*>(&rotArg));
-    // err = kerGetEllipticPtDistr.setArg(4, dr);
-    // err = kerGetEllipticPtDistr.setArg(5, dz);
-    // err = kerGetEllipticPtDistr.setArg(6, uSamplesBuf1);
-    // err = kerGetEllipticPtDistr.setArg(7, gSamplesBuf1);
-    // err = kerGetEllipticPtDistr.setArg(8, gSamplesBuf2);
-    // err = kerGetEllipticPtDistr.setArg(9, clPosBuf);
-    // err = clQueue.enqueueNDRangeKernel(kerGetEllipticPtDistr, cl::NullRange, cl::NDRange(nParticles));
-    // clQueue.finish();
-    // err = clQueue.enqueueReadBuffer(clPosBuf, false, 0, nParticles * sizeof(cl_float4), posBuf);
-
-    // err = kerGetPtColors.setArg(0, nColors);
-    // err = kerGetPtColors.setArg(1, clPaletteBuf);
-    // err = kerGetPtColors.setArg(2, clBlurSizesBuf);
-    // err = kerGetPtColors.setArg(3, uSamplesBuf2);
-    // err = kerGetPtColors.setArg(4, clColorBuf);
-    // err = clQueue.enqueueNDRangeKernel(kerGetPtColors, cl::NullRange, cl::NDRange(nParticles));
-    // err = clQueue.finish();
-    // err = clQueue.enqueueReadBuffer(clColorBuf, false, 0, nParticles * sizeof(cl_float4), colorBuf);
-    // clQueue.finish();
-
-    // Initialize Particle Buffers
-    GLuint glEllipsePts;
-    GLuint glPtPosBuf;
-    GLuint glPtColorBuf;
-    glGenVertexArrays(1, &glEllipsePts);
-    glBindVertexArray(glEllipsePts);
-
-    glGenBuffers(1, &glPtPosBuf);
-    glBindBuffer(GL_ARRAY_BUFFER, glPtPosBuf);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(PT_POS, 4, GL_FLOAT, false, 0, (void*)0);
-    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(cl_float4), posBuf, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &glPtColorBuf);
-    glBindBuffer(GL_ARRAY_BUFFER, glPtColorBuf);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(PT_COLOR, 4, GL_FLOAT, false, 0, (void*)0);
-    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(cl_float4), colorBuf, GL_STATIC_DRAW);
-
-    nClusterPts.push_back(nParticles);
-    glClusterPts.push_back(glEllipsePts);
-    glPtPosBufs.push_back(glPtPosBuf);
-    glPtColorBufs.push_back(glPtColorBuf);
-
-    delete[] posBuf;
-    delete[] colorBuf;
-    // delete[] uSamples1;
-    // delete[] uSamples2;
-    // delete[] gSamples1;
-    // delete[] gSamples2;
-
-    std::chrono::time_point t2 = std::chrono::high_resolution_clock::now();
-    float calcTime = 0.001f * std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-    std::cout << "Cluster calculation time: " << calcTime << " s" << std::endl;
   }
   void clearClusters() {
     // Clear particle GPU buffers
@@ -297,7 +203,7 @@ namespace sl {
     perspv = glm::perspective(observer.fov, observer.aspect, observer.zNear, observer.zFar);
     glm::mat4 vp = perspv * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
     glUseProgram(cluster_prog);
-    glUniformMatrix4fv(viewProjn, 1, false, &vp[0][0]);
+    glUniformMatrix4fv(viewPj, 1, false, &vp[0][0]);
     glUseProgram(0);
 
     config = (slConfig)(config | CONFIG_HAS_CAMERA);
@@ -339,7 +245,7 @@ namespace sl {
     glm::mat4 vp = perspv * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
 
     glUseProgram(cluster_prog);
-    glUniformMatrix4fv(viewProjn, 1, false, &vp[0][0]);
+    glUniformMatrix4fv(viewPj, 1, false, &vp[0][0]);
     glUseProgram(0);
   }
 
@@ -567,6 +473,17 @@ namespace sl {
       throw;
     }
   }
+
+  void buildClusterCompProg() {
+    char* src;
+    int len;
+    int success;
+    char log[0x400];
+
+    cluster_cs = glCreateShader(GL_COMPUTE_SHADER);
+    
+  }
+
   bool getShaderSrc(const char* path, char** src, int* srcLen) {
     FILE* fp = fopen(path, "r");
     if (fp == NULL)
