@@ -12,6 +12,6 @@ layout(location = 2) uniform mat4 viewPj;
 out vec4 fColor;
 
 void main() {
-  gl_Position = viewProj * pos;
+  gl_Position = viewPj * pos;
   fColor = color;
 }
