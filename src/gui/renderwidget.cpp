@@ -49,6 +49,7 @@ void renderWidget::initializeGL() {
 
   std::cout << "Device: \t" << clDevice.getInfo<CL_DEVICE_NAME>() << std::endl;
   std::cout << "Platform: \t" << clPlatform.getInfo<CL_PLATFORM_NAME>() << std::endl;
+  std::cout << std::endl;
 
   // std::string ext = clDevice.getInfo<CL_DEVICE_EXTENSIONS>();
   // std::cout << ext << std::endl;

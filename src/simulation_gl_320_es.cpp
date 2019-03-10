@@ -2,7 +2,7 @@
 #define PI float(M_PI)
 #define PI_2 float(M_PI_2)
 
-#define SHADER_PATH "src/shader_320_es/"
+#define SHADER_PATH "/home/jona/Projects/BlackHoleSimulation/src/shader_320_es/"
 
 #include <chrono>
 #include <climits>
@@ -86,6 +86,7 @@ namespace sl {
   uint64 getRngOff();
   void buildClusterProg();
   void buildBgProg();
+  void buildClusterCompProg();
   bool getShaderSrc(const char* path, char** src, int* srcLen);
   void GLAPIENTRY msgCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
     GLsizei length, const GLchar* message, const void* userParam);
@@ -138,7 +139,7 @@ namespace sl {
     viewPj = glGetUniformLocation(cluster_prog, "viewPj");
     glUseProgram(0);
 
-    // TODO: Build computation programs
+    // Build computation programs
     buildClusterCompProg();
 
     // Initialize Background rendering Buffers
@@ -168,9 +169,30 @@ namespace sl {
     config = CONFIG_INIT;
   }
 
-  void createEllipticCluster(uint nParticles, float a, float b, vector n, float dr, float dz,
-    uint nColors, color* palette, float* blurSizes) {
+  void createEllipticCluster(int nParticles, float a, float b, vector n, float dr, float dz,
+    int nColors, color* palette, float* blurSizes) {
     // TODO: Generate Particle Cluster with OpenGL Compute Shaders
+
+    GLuint sampleBuf;
+    glGenBuffers(1, &sampleBuf);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, sampleBuf);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, nParticles * sizeof(float), NULL, GL_STREAM_READ);
+
+    ulong off = getRngOff();
+
+    glUseProgram(cluster_comp_prog);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, sampleBuf);
+    glUniform1ui(0, nParticles);
+    glUniform2ui(1, (uint)((off >> 8 * sizeof(uint)) & UINT_MAX), (uint)(off & UINT_MAX));
+    glDispatchCompute(4096 / 64, 1, 1);
+    glUseProgram(0);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, sampleBuf);
+    float* samples = (float*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, nParticles * sizeof(float), GL_MAP_READ_BIT);
+
+    for (int i = 0; i < nParticles; ++i) {
+      std::cout << samples[i] << std::endl;
+    }
   }
   void clearClusters() {
     // Clear particle GPU buffers
@@ -479,9 +501,69 @@ namespace sl {
     int len;
     int success;
     char log[0x400];
+    const char* searchPaths[] = { "/uint64.comp", "/skip_mwc.comp", "/mwc64x_rng.comp" };
 
+    // Load shader includes
+    if (!getShaderSrc(SHADER_PATH "uint64.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "uint64.comp" << " could not be opened." << std::endl;
+      throw;
+    }
+    glNamedStringARB(GL_SHADER_INCLUDE_ARB, strlen("/uint64.comp"), "/uint64.comp", len, src);
+    delete[] src;
+    if (!getShaderSrc(SHADER_PATH "skip_mwc.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "skip_mwc.comp" << " could not be opened." << std::endl;
+      throw;
+    }
+    glNamedStringARB(GL_SHADER_INCLUDE_ARB, strlen("/skip_mwc.comp"), "/skip_mwc.comp", len, src);
+    delete[] src;
+    if (!getShaderSrc(SHADER_PATH "mwc64x_rng.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "mwc64x_rng.comp" << " could not be opened." << std::endl;
+      throw;
+    }
+    glNamedStringARB(GL_SHADER_INCLUDE_ARB, strlen("/mwc64x_rng.comp"), "/mwc64x_rng.comp", len, src);
+    delete[] src;
+
+    // Create shader
     cluster_cs = glCreateShader(GL_COMPUTE_SHADER);
-    
+    if (!getShaderSrc(SHADER_PATH "uniform_rng.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "uniform_rng.comp" << "could not be opened." << std::endl;
+      throw;
+    }
+    glShaderSource(cluster_cs, 1, &src, &len);
+    delete[] src;
+
+    // Compile shaders
+    cluster_comp_prog = glCreateProgram();
+    glCompileShaderIncludeARB(cluster_cs, 1, searchPaths, NULL);
+    //glCompileShader(cluster_cs);
+    glGetShaderiv(cluster_cs, GL_COMPILE_STATUS, &success);
+    if (!success) {
+      glGetShaderInfoLog(cluster_cs, sizeof(log), NULL, log);
+      std::cerr << "Cluster compute shader:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+    glAttachShader(cluster_comp_prog, cluster_cs);
+
+    // Link Program
+    glLinkProgram(cluster_comp_prog);
+    glGetProgramiv(cluster_comp_prog, GL_LINK_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(cluster_comp_prog, sizeof(log), NULL, log);
+      std::cerr << "Cluster compute program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+
+    // Validate Program
+    glValidateProgram(cluster_comp_prog);
+    glGetProgramiv(cluster_comp_prog, GL_VALIDATE_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(cluster_comp_prog, sizeof(log), NULL, log);
+      std::cerr << "Cluster compute program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
   }
 
   bool getShaderSrc(const char* path, char** src, int* srcLen) {
@@ -493,18 +575,17 @@ namespace sl {
     *srcLen = (int)ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    *src = new char[*srcLen];
+    *src = (char*)malloc(*srcLen + 1);
     *src[0] = '\0';
     char* line = NULL;
     unsigned long len = 0;
-    long read;
-    while ((read = getline(&line, &len, fp)) != -1) {
+    while (getline(&line, &len, fp) != -1) {
       strcat(*src, line);
     }
 
-    fclose(fp);
     if (line)
       free(line);
+    fclose(fp);
     return true;
   }
   void GLAPIENTRY msgCallback(GLenum source, GLenum type, UNUSED GLuint id, GLenum severity,

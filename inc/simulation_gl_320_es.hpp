@@ -23,8 +23,8 @@ namespace sl {
 
   void init(float _rs);
 
-  void createEllipticCluster(uint _nParticles, float a, float b, vector n, float dr, float dz,
-    uint nColors, color* palette, float* blurSizes);
+  void createEllipticCluster(int nParticles, float a, float b, vector n, float dr, float dz,
+    int nColors, color* palette, float* blurSizes);
   void clearClusters();
   void selectCluster(int index);
   void deselectClusters();
