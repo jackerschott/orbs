@@ -18,7 +18,7 @@ MOC_DIR=./tmp
 RCC_DIR=./tmp
 OBJECTS_DIR=./tmp
 
-INCLUDEPATH += ./inc ./inc/gui ./inc/clWrapper ./inc/glWrapper ./tmp
+INCLUDEPATH += ./inc ./inc/gui ./inc/glinc ./tmp
 DEFINES += CL_TARGET_OPENCL_VERSION=120
 
 QT += core
