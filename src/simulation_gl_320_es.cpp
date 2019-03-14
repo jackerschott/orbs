@@ -2,16 +2,20 @@
 #define PI float(M_PI)
 #define PI_2 float(M_PI_2)
 
-#define SHADER_PATH "/home/jona/Projects/BlackHoleSimulation/src/shader_320_es/"
+#define INSTALL_PATH "/home/jona/Projects/BlackHoleSimulation/"
+#define SHADER_PATH INSTALL_PATH "src/shader_320_es/"
+#define TMP_PATH INSTALL_PATH "tmp/"
 
 #include <chrono>
 #include <climits>
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <time.h>
 #include <utility>
 
+#include "glinc.hpp"
 #include "simulation_gl_320_es.hpp"
 
 namespace sl {
@@ -87,7 +91,8 @@ namespace sl {
   void buildClusterProg();
   void buildBgProg();
   void buildClusterCompProg();
-  bool getShaderSrc(const char* path, char** src, int* srcLen);
+  bool readShaderSrc(const char* path, char** src, int* srcLen);
+  void writeShaderSrc(const char* path, char* src, int srcLen);
   void GLAPIENTRY msgCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
     GLsizei length, const GLchar* message, const void* userParam);
   const char* getErrSource(GLenum source);
@@ -365,7 +370,7 @@ namespace sl {
 
     // Create shaders
     cluster_vs = glCreateShader(GL_VERTEX_SHADER);
-    if (!getShaderSrc(SHADER_PATH "cluster.vert", &src, &len)) {
+    if (!readShaderSrc(SHADER_PATH "cluster.vert", &src, &len)) {
       std::cerr << SHADER_PATH "cluster.vert" << " could not be opened." << std::endl;
       throw;
     }
@@ -373,7 +378,7 @@ namespace sl {
     delete[] src;
 
     cluster_fs = glCreateShader(GL_FRAGMENT_SHADER);
-    if (!getShaderSrc(SHADER_PATH "cluster.frag", &src, &len)) {
+    if (!readShaderSrc(SHADER_PATH "cluster.frag", &src, &len)) {
       std::cerr << SHADER_PATH "cluster.frag" << "could not be opened." << std::endl;
       throw;
     }
@@ -434,7 +439,7 @@ namespace sl {
 
     // Create shaders
     bg_vs = glCreateShader(GL_VERTEX_SHADER);
-    if (!getShaderSrc(SHADER_PATH "bg.vert", &src, &len)) {
+    if (!readShaderSrc(SHADER_PATH "bg.vert", &src, &len)) {
       std::cerr << SHADER_PATH "bg.vert" << " could not be opened." << std::endl;
       throw;
     }
@@ -442,7 +447,7 @@ namespace sl {
     delete[] src;
 
     bg_fs = glCreateShader(GL_FRAGMENT_SHADER);
-    if (!getShaderSrc(SHADER_PATH "bg.frag", &src, &len)) {
+    if (!readShaderSrc(SHADER_PATH "bg.frag", &src, &len)) {
       std::cerr << SHADER_PATH "bg.frag" << "could not be opened." << std::endl;
       throw;
     }
@@ -501,41 +506,42 @@ namespace sl {
     int len;
     int success;
     char log[0x400];
-    const char* searchPaths[] = { "/uint64.comp", "/skip_mwc.comp", "/mwc64x_rng.comp" };
 
     // Load shader includes
-    if (!getShaderSrc(SHADER_PATH "uint64.comp", &src, &len)) {
+    if (!readShaderSrc(SHADER_PATH "uint64.comp", &src, &len)) {
       std::cerr << SHADER_PATH "uint64.comp" << " could not be opened." << std::endl;
       throw;
     }
-    glNamedStringARB(GL_SHADER_INCLUDE_ARB, strlen("/uint64.comp"), "/uint64.comp", len, src);
+    glinc::addIncludeSrc("uint64.comp", src);
     delete[] src;
-    if (!getShaderSrc(SHADER_PATH "skip_mwc.comp", &src, &len)) {
+    if (!readShaderSrc(SHADER_PATH "skip_mwc.comp", &src, &len)) {
       std::cerr << SHADER_PATH "skip_mwc.comp" << " could not be opened." << std::endl;
       throw;
     }
-    glNamedStringARB(GL_SHADER_INCLUDE_ARB, strlen("/skip_mwc.comp"), "/skip_mwc.comp", len, src);
+    glinc::addIncludeSrc("skip_mwc.comp", src);
     delete[] src;
-    if (!getShaderSrc(SHADER_PATH "mwc64x_rng.comp", &src, &len)) {
+    if (!readShaderSrc(SHADER_PATH "mwc64x_rng.comp", &src, &len)) {
       std::cerr << SHADER_PATH "mwc64x_rng.comp" << " could not be opened." << std::endl;
       throw;
     }
-    glNamedStringARB(GL_SHADER_INCLUDE_ARB, strlen("/mwc64x_rng.comp"), "/mwc64x_rng.comp", len, src);
+    glinc::addIncludeSrc("mwc64x_rng.comp", src);
     delete[] src;
 
     // Create shader
     cluster_cs = glCreateShader(GL_COMPUTE_SHADER);
-    if (!getShaderSrc(SHADER_PATH "uniform_rng.comp", &src, &len)) {
+    if (!readShaderSrc(SHADER_PATH "uniform_rng.comp", &src, &len)) {
       std::cerr << SHADER_PATH "uniform_rng.comp" << "could not be opened." << std::endl;
       throw;
     }
-    glShaderSource(cluster_cs, 1, &src, &len);
+    char* src_ = (char*)glinc::insertIncludes(src);
+    int len_ = strlen(src_);
+    writeShaderSrc(TMP_PATH "uniform_rng.comp", src_, len_);
+    glShaderSource(cluster_cs, 1, &src_, &len_);
     delete[] src;
 
     // Compile shaders
     cluster_comp_prog = glCreateProgram();
-    glCompileShaderIncludeARB(cluster_cs, 1, searchPaths, NULL);
-    //glCompileShader(cluster_cs);
+    glCompileShader(cluster_cs);
     glGetShaderiv(cluster_cs, GL_COMPILE_STATUS, &success);
     if (!success) {
       glGetShaderInfoLog(cluster_cs, sizeof(log), NULL, log);
@@ -566,27 +572,30 @@ namespace sl {
     }
   }
 
-  bool getShaderSrc(const char* path, char** src, int* srcLen) {
-    FILE* fp = fopen(path, "r");
-    if (fp == NULL)
-      return false;
-    
-    fseek(fp, 0, SEEK_END);
-    *srcLen = (int)ftell(fp);
-    fseek(fp, 0, SEEK_SET);
+  bool readShaderSrc(const char* path, char** src, int* srcLen) {
+    std::ifstream fs;
+    fs.open(path);
 
-    *src = (char*)malloc(*srcLen + 1);
-    *src[0] = '\0';
-    char* line = NULL;
-    unsigned long len = 0;
-    while (getline(&line, &len, fp) != -1) {
-      strcat(*src, line);
+    std::string out;
+    std::string line;
+    if (fs.is_open()) {
+      while (std::getline(fs, line)) {
+        out += line + '\n';
+      }
     }
+    else return false;
+    fs.close();
 
-    if (line)
-      free(line);
-    fclose(fp);
+    *srcLen = out.length();
+    *src = new char[*srcLen + 1];
+    strcpy(*src, out.c_str());
     return true;
+  }
+  void writeShaderSrc(const char* path, char* src, int srcLen) {
+    std::ofstream fs;
+    fs.open(path);
+    fs << std::string(src, srcLen);
+    fs.close();
   }
   void GLAPIENTRY msgCallback(GLenum source, GLenum type, UNUSED GLuint id, GLenum severity,
     UNUSED GLsizei length, const GLchar* message, UNUSED const void* userParam) {

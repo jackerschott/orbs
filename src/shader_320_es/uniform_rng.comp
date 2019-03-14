@@ -1,11 +1,10 @@
 #version 320 es
-#extension GL_ARB_shading_language_include : require
 
 #define UINT_MAX 0xFFFFFFFFU
 
-#include "/uint64.comp"
-#include "/skip_mwc.comp"
-#include "/mwc64x_rng.comp"
+#include "uint64.comp"
+#include "skip_mwc.comp"
+#include "mwc64x_rng.comp"
 
 uniform uint nSamples;
 uniform uvec2 off;
