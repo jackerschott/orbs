@@ -77,7 +77,7 @@ void evalTimeMeas(std::vector<double>* meanSecTimes, std::vector<double>* stdDev
     for (uint i = 0; i < nLaps; i++) {
       stdDevMeanSecTime += (rTimes[i * nSections] - stdDevMeanSecTime) * (rTimes[i * nSections] - stdDevMeanSecTime);
     }
-    stdDevMeanSecTime = sqrt(stdDevMeanSecTime / (nLaps * (nLaps - 1)));
+    stdDevMeanSecTime = sqrt(stdDevMeanSecTime / (nLaps - 1));
     (*meanSecTimes).push_back(meanSecTime);
     (*stdDevMeanSecTimes).push_back(stdDevMeanSecTime);
   }
