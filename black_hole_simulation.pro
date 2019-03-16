@@ -28,7 +28,6 @@ HEADERS += inc/res.hpp \
            inc/glinc/glinc.hpp
 
 SOURCES += src/main.cpp \
-           src/res.cpp \
            src/simulation_gl_320_es.cpp \
            src/tmeas.cpp \
            src/gui/mainwindow.cpp \
