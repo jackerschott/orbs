@@ -1,5 +1,6 @@
 #define MWC64X_A 4294883355U
-#define MWC64X_M uvec2(4294883354U, 4294883354U)
+// long representation: 18446383549859758079
+#define MWC64X_M uvec2(4294967295U, 4294883354U)
 
 void MWC64X_Step(inout uvec2 s) {
   uint x = s.x;

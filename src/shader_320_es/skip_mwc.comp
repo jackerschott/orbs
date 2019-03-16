@@ -39,7 +39,8 @@ uvec2 MWC_SkipImpl_Mod64(uvec2 curr, uvec2 A, uvec2 M, uvec2 distance) {
 }
 
 uvec2 MWC_SeedImpl_Mod64(uvec2 A, uvec2 M, uint vecSize, uint vecOffset, uvec2 streamBase, uvec2 streamGap, uint stream_id) {
-  #define MWC_BASEID uvec2(949333985U, 3922919429U)
+  // long representation: 4077358422479273989
+  #define MWC_BASEID uvec2(3922919429U, 949333985U)
 
   uvec2 dist = uint64_add(streamBase, uint64_mul(uint64_fromUint(stream_id * vecSize + vecOffset), streamGap));
   uvec2 m = MWC_PowMod64(A, dist, M);
