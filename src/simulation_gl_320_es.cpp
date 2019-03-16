@@ -2,7 +2,8 @@
 #define PI float(M_PI)
 #define PI_2 float(M_PI_2)
 
-#define INSTALL_PATH "/home/jona/Projects/BlackHoleSimulation/"
+// This improvisational install path is only working if the binary is executed from workspace/project folder!
+#define INSTALL_PATH "./"
 #define SHADER_PATH INSTALL_PATH "src/shader_320_es/"
 #define TMP_PATH INSTALL_PATH "tmp/"
 
