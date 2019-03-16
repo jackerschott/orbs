@@ -3,10 +3,10 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 
-#include "CL/cl.hpp"
-#include "GL/glew.h"
-#include "glm/glm.hpp"
-#include "glm/gtx/transform.hpp"
+#include <GL/glew.h>
+#include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
+
 #include "res.hpp"
 
 DEF_STANDARD_TYPES
@@ -23,8 +23,8 @@ namespace sl {
 
   void init(float _rs);
 
-  void createEllipticCluster(int nParticles, float a, float b, vector n, float dr, float dz,
-    int nColors, color* palette, float* blurSizes);
+  void createEllipticCluster(uint nParticles, float a, float b, vector n, float dr, float dz,
+    uint nColors, color* palette, float* blurSizes);
   void clearClusters();
   void selectCluster(int index);
   void deselectClusters();
