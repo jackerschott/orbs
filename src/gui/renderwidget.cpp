@@ -1,22 +1,12 @@
 #define _USE_MATH_DEFINES
 
-#include "renderwidget.hpp"
-
-#ifdef _WIN32
-#include <GL/wglew.h>
-#endif
-#ifdef __unix__
-namespace glxew {
-#include <GL/glxew.h>
-}
-#endif
-
 #include <chrono>
 #include <cmath>
 #include <iostream>
 #include <string>
 
 #include "tmeas.hpp"
+#include "renderwidget.hpp"
 
 std::vector<double> renderTime;
 
@@ -44,36 +34,7 @@ renderWidget::~renderWidget() {
 }
 
 void renderWidget::initializeGL() {
-  cl::Platform clPlatform = cl::Platform::getDefault();
-  cl::Device clDevice = cl::Device::getDefault();
-
-  std::cout << "Device: \t" << clDevice.getInfo<CL_DEVICE_NAME>() << std::endl;
-  std::cout << "Platform: \t" << clPlatform.getInfo<CL_PLATFORM_NAME>() << std::endl;
-  std::cout << std::endl;
-
-  // std::string ext = clDevice.getInfo<CL_DEVICE_EXTENSIONS>();
-  // std::cout << ext << std::endl;
-
-  // #ifdef _WIN32
-  // cl_context_properties clContextProps[] = {
-  //   CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
-  //   CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
-  //   CL_CONTEXT_PLATFORM, (cl_context_properties)clPlatform(),
-  //   0
-  // };
-  // #endif
-  // #ifdef __linux
-  // cl_context_properties clContextProps[] = {
-  //   CL_GL_CONTEXT_KHR, (cl_context_properties)glxew::glXGetCurrentContext(),
-  //   CL_GLX_DISPLAY_KHR, (cl_context_properties)glxew::glXGetCurrentDrawable(),
-  //   CL_CONTEXT_PLATFORM, (cl_context_properties)clPlatform(),
-  //   0
-  // };
-  // #endif
-  //cl::Context clContext(clDevice/*, clContextProps*/);
-
   float rs = 1.0f;
-  //uint nRnPts = 10000;
 
   observer.pos = { 30.0f, 0.0f, 0.0f };
   observer.lookDir = -observer.pos;
@@ -85,17 +46,9 @@ void renderWidget::initializeGL() {
 
   QImage bgTex = QImage(":/textures/star_space_map_e.jpg");
 
-  // color palette[] = {
-  //   { 1.00f, 0.50f, 0.00f, 0.10f }
-  // };
-  // float blurSizes[] = {
-  //   1.00f
-  // };
-
   sl::init(rs);
   sl::setBackgroundTex(bgTex.sizeInBytes(), bgTex.bits(), bgTex.width(), bgTex.height(), bgTex.pixelFormat().bitsPerPixel() / 8);
   sl::setObserverCamera(observer);
-  //sl::createEllipse(nRnPts, 15.0f * rs, 10.0f * rs, { 1.0f, -1.0f, 1.0f }, 0.5f * rs, 0.5f * rs, 1, palette, blurSizes);
   
   timer = new QTimer();
   timer->setInterval(1);
