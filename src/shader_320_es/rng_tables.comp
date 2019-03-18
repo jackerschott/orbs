@@ -1,10 +1,10 @@
-#define INT_MAX 2147483647
-#define UINT_MAX 4294967295
+#define INT_MAX 0x7FFFFFFF
+#define UINT_MAX 0xFFFFFFFFU
 
-const float fac = 1.0 / INT_MAX;
-const float ufac = 1.0 / UINT_MAX;
+const float fac = 1.0 / float(INT_MAX);
+const float ufac = 1.0 / float(UINT_MAX);
 
-const uint n = 128;
+const uint n = 128U;
 const float a = 0.009912563035336457;
 const int iar0 = 1991057937;
 const float xr[] = float[](
@@ -136,7 +136,7 @@ const float xr[] = float[](
   4.265479863033068e-01,
   3.628714310284204e-01,
   2.723208647046670e-01,
-  0.000000000000000e+00,
+  0.000000000000000e+00
 );
 const float yt[] = float[](
   2.669629083902502e-03,
@@ -266,7 +266,7 @@ const float yt[] = float[](
   9.130436479920374e-01,
   9.362826817083704e-01,
   9.635996931557668e-01,
-  9.999999999999988e-01,
+  9.999999999999988e-01
 );
 const int ixRatio[] = int[](
   2147483647,
@@ -396,5 +396,5 @@ const int ixRatio[] = int[](
   1918584481,
   1826899878,
   1611602771,
-  0000000000,
+  0000000000
 );

@@ -2,16 +2,22 @@
 #define PI float(M_PI)
 #define PI_2 float(M_PI_2)
 
-#define SHADER_PATH "src/shader_320_es/"
+// This improvisational install path is only working if the binary is executed from workspace/project folder!
+#define INSTALL_PATH "./"
+#define SHADER_PATH INSTALL_PATH "src/shader_320_es/"
+#define TMP_PATH INSTALL_PATH "tmp/"
 
 #include <chrono>
 #include <climits>
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <time.h>
 #include <utility>
+#include <vector>
 
+#include "glinc.hpp"
 #include "simulation_gl_320_es.hpp"
 
 namespace sl {
@@ -25,9 +31,19 @@ namespace sl {
   GLuint bg_vs;
   GLuint bg_fs;
 
-  GLuint cluster_prog;
+  GLuint clusterRender_prog;
   GLuint cluster_vs;
   GLuint cluster_fs;
+
+  // GPU Computation programs
+  GLuint uniformRng_prog;
+  GLuint uniformRng_cs;
+  GLuint gaussRng_prog;
+  GLuint gaussRng_cs;
+  GLuint clusterPos_prog;
+  GLuint clusterPos_cs;
+  GLuint clusterCol_prog;
+  GLuint clusterCol_cs;
 
   // GPU buffers
   GLuint glBg;
@@ -35,10 +51,10 @@ namespace sl {
   GLuint glBgPosBuf;
   GLuint glBgTexCoordBuf;
 
-  std::vector<uint> nClusterPts;
-  std::vector<GLuint> glClusterPts;
-  std::vector<GLuint> glPtPosBufs;
-  std::vector<GLuint> glPtColorBufs;
+  std::vector<uint> nClusterVerts;
+  std::vector<GLuint> glClusterVerts;
+  std::vector<GLuint> glClusterPosBufs;
+  std::vector<GLuint> glClusterColBufs;
   GLuint glSelPts;
   int sCluster = -1;
 
@@ -53,28 +69,7 @@ namespace sl {
   };
   glm::vec2 bgTexCoord[6];
   glm::mat4 perspv;
-  GLint viewProjn;
-
-  // GPU computation programs
-  cl::Program clPtGenProgram;
-  cl::Program clRngProgram;
-  cl::Context clContext;
-  cl::CommandQueue clQueue;
-
-  cl::Kernel kerGetEllipticPtDistr;
-  cl::Kernel kerGetPtColors;
-
-  cl::Kernel kerGenSamples;
-  cl::Kernel kerGenFloatSamples;
-  cl::Kernel kerGenGaussianSamples;
-
-  // GPU computation buffers
-  cl::Buffer clPosBuf;
-  cl::Buffer clPaletteBuf;
-  cl::Buffer clBlurSizesBuf;
-  cl::Buffer clColorBuf;
-  cl_float4* posBuf;
-  cl_float4* colorBuf;
+  GLint viewPj;
 
   // Organisation Details
   slConfig config = CONFIG_CLOSED;
@@ -82,7 +77,12 @@ namespace sl {
   uint64 getRngOff();
   void buildClusterProg();
   void buildBgProg();
-  bool getShaderSrc(const char* path, char** src, int* srcLen);
+  void buildUniformRngCompProg();
+  void buildGaussRngCompProg();
+  void buildClusterPosCompProg();
+  void buildClusterColCompProg();
+  bool readShaderSrc(const char* path, char** src, int* srcLen);
+  void writeShaderSrc(const char* path, char* src, int srcLen);
   void GLAPIENTRY msgCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
     GLsizei length, const GLchar* message, const void* userParam);
   const char* getErrSource(GLenum source);
@@ -106,8 +106,8 @@ namespace sl {
     perspv = glm::perspective(observer.fov, observer.aspect, observer.zNear, observer.zFar);
     glm::mat4 vp = perspv * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
 
-    glUseProgram(cluster_prog);
-    glUniformMatrix4fv(viewProjn, 1, false, &vp[0][0]);
+    glUseProgram(clusterRender_prog);
+    glUniformMatrix4fv(viewPj, 1, false, &vp[0][0]);
     glUseProgram(0);
   }
 
@@ -130,11 +130,15 @@ namespace sl {
     buildClusterProg();
     buildBgProg();
 
-    glUseProgram(cluster_prog);
-    viewProjn = glGetUniformLocation(cluster_prog, "viewProj");
+    glUseProgram(clusterRender_prog);
+    viewPj = glGetUniformLocation(clusterRender_prog, "viewPj");
     glUseProgram(0);
 
-    // TODO: Build computation programs
+    // Build computation programs
+    buildUniformRngCompProg();
+    buildGaussRngCompProg();
+    buildClusterPosCompProg();
+    buildClusterColCompProg();
 
     // Initialize Background rendering Buffers
     glGenVertexArrays(1, &glBg);
@@ -165,118 +169,157 @@ namespace sl {
 
   void createEllipticCluster(uint nParticles, float a, float b, vector n, float dr, float dz,
     uint nColors, color* palette, float* blurSizes) {
-    std::chrono::time_point t1 = std::chrono::high_resolution_clock::now();
+    glFinish();
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     
-    // TODO: Generate Particle Cluster with OpenGL Compute Shaders
-
-    // int err = 0;
-    // posBuf = new cl_float4[nParticles];
-    // colorBuf = new cl_float4[nParticles];
-    // clPosBuf = cl::Buffer(clContext, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_USE_HOST_PTR, nParticles * sizeof(cl_float4), posBuf, &err);
-    // clPaletteBuf = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nColors * sizeof(cl_float4), palette, &err);
-    // clBlurSizesBuf = cl::Buffer(clContext, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, nColors * sizeof(float), blurSizes, &err);
-    // clColorBuf = cl::Buffer(clContext, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_USE_HOST_PTR, nParticles * sizeof(cl_float4), colorBuf, &err);
-
-    // float* uSamples1 = new float[nParticles];
-    // float* uSamples2 = new float[nParticles];
-    // float* gSamples1 = new float[nParticles];
-    // float* gSamples2 = new float[nParticles];
-    // cl::Buffer uSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), uSamples1, &err);
-    // cl::Buffer uSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), uSamples2, &err);
-    // cl::Buffer gSamplesBuf1 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), gSamples1, &err);
-    // cl::Buffer gSamplesBuf2 = cl::Buffer(clContext, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, nParticles * sizeof(float), gSamples2, &err);
-
-    // err = kerGenFloatSamples.setArg(0, nParticles);
-    // err = kerGenFloatSamples.setArg(1, getRngOff());
-    // err = kerGenFloatSamples.setArg(2, uSamplesBuf1);
-    // err = clQueue.enqueueNDRangeKernel(kerGenFloatSamples, cl::NullRange, cl::NDRange(0x1000));
-    // err = kerGenFloatSamples.setArg(1, getRngOff());
-    // err = kerGenFloatSamples.setArg(2, uSamplesBuf2);
-    // err = clQueue.enqueueNDRangeKernel(kerGenFloatSamples, cl::NullRange, cl::NDRange(0x1000));
-
-    // err = kerGenGaussianSamples.setArg(0, nParticles);
-    // err = kerGenGaussianSamples.setArg(1, getRngOff());
-    // err = kerGenGaussianSamples.setArg(2, gSamplesBuf1);
-    // err = clQueue.enqueueNDRangeKernel(kerGenGaussianSamples, cl::NullRange, cl::NDRange(4096));
-    // err = kerGenGaussianSamples.setArg(1, getRngOff());
-    // err = kerGenGaussianSamples.setArg(2, gSamplesBuf2);
-    // err = clQueue.enqueueNDRangeKernel(kerGenGaussianSamples, cl::NullRange, cl::NDRange(4096));
-    // clQueue.finish();
-
-    // float eps = sqrt(1 - (b * b) / (a * a));
-    // glm::mat4 rot = glm::rotate(n.z / glm::length(n), glm::vec3(-n.y, n.x, 0.0));
-    // glm::mat4 rotArg = glm::transpose(rot);
-
-    // err = kerGetEllipticPtDistr.setArg(0, nParticles);
-    // err = kerGetEllipticPtDistr.setArg(1, b);
-    // err = kerGetEllipticPtDistr.setArg(2, eps);
-    // err = kerGetEllipticPtDistr.setArg(3, *reinterpret_cast<cl_float16*>(&rotArg));
-    // err = kerGetEllipticPtDistr.setArg(4, dr);
-    // err = kerGetEllipticPtDistr.setArg(5, dz);
-    // err = kerGetEllipticPtDistr.setArg(6, uSamplesBuf1);
-    // err = kerGetEllipticPtDistr.setArg(7, gSamplesBuf1);
-    // err = kerGetEllipticPtDistr.setArg(8, gSamplesBuf2);
-    // err = kerGetEllipticPtDistr.setArg(9, clPosBuf);
-    // err = clQueue.enqueueNDRangeKernel(kerGetEllipticPtDistr, cl::NullRange, cl::NDRange(nParticles));
-    // clQueue.finish();
-    // err = clQueue.enqueueReadBuffer(clPosBuf, false, 0, nParticles * sizeof(cl_float4), posBuf);
-
-    // err = kerGetPtColors.setArg(0, nColors);
-    // err = kerGetPtColors.setArg(1, clPaletteBuf);
-    // err = kerGetPtColors.setArg(2, clBlurSizesBuf);
-    // err = kerGetPtColors.setArg(3, uSamplesBuf2);
-    // err = kerGetPtColors.setArg(4, clColorBuf);
-    // err = clQueue.enqueueNDRangeKernel(kerGetPtColors, cl::NullRange, cl::NDRange(nParticles));
-    // err = clQueue.finish();
-    // err = clQueue.enqueueReadBuffer(clColorBuf, false, 0, nParticles * sizeof(cl_float4), colorBuf);
-    // clQueue.finish();
-
-    // Initialize Particle Buffers
-    GLuint glEllipsePts;
-    GLuint glPtPosBuf;
-    GLuint glPtColorBuf;
-    glGenVertexArrays(1, &glEllipsePts);
-    glBindVertexArray(glEllipsePts);
-
-    glGenBuffers(1, &glPtPosBuf);
-    glBindBuffer(GL_ARRAY_BUFFER, glPtPosBuf);
+    // Initialize cluster buffers
+    GLuint clusterVerts;
+    GLuint posBuf;
+    GLuint colorBuf;
+    glGenVertexArrays(1, &clusterVerts);
+    glGenBuffers(1, &posBuf);
+    glGenBuffers(1, &colorBuf);
+    
+    glBindVertexArray(clusterVerts);
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf);
+    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(glm::vec4), NULL, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(PT_POS, 4, GL_FLOAT, false, 0, (void*)0);
-    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(cl_float4), posBuf, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 4, GL_FLOAT, false, 0, (void*)0);
 
-    glGenBuffers(1, &glPtColorBuf);
-    glBindBuffer(GL_ARRAY_BUFFER, glPtColorBuf);
+    glBindBuffer(GL_ARRAY_BUFFER, colorBuf);
+    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(glm::vec4), NULL, GL_STATIC_DRAW);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(PT_COLOR, 4, GL_FLOAT, false, 0, (void*)0);
-    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(cl_float4), colorBuf, GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 4, GL_FLOAT, false, 0, (void*)0);
+    glBindVertexArray(0);
 
-    nClusterPts.push_back(nParticles);
-    glClusterPts.push_back(glEllipsePts);
-    glPtPosBufs.push_back(glPtPosBuf);
-    glPtColorBufs.push_back(glPtColorBuf);
+    // Initialize buffers
+    GLuint uSamples1Buf;
+    GLuint uSamples2Buf;
+    GLuint nSamples1Buf;
+    GLuint nSamples2Buf;
+    GLuint paletteBuf;
+    GLuint blurSizesBuf;
+    glGenBuffers(1, &uSamples1Buf);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uSamples1Buf);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, nParticles * sizeof(float), NULL, GL_STREAM_READ);
+    glGenBuffers(1, &uSamples2Buf);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uSamples2Buf);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, nParticles * sizeof(float), NULL, GL_STREAM_READ);
+    glGenBuffers(1, &nSamples1Buf);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, nSamples1Buf);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, nParticles * sizeof(float), NULL, GL_STREAM_READ);
+    glGenBuffers(1, &nSamples2Buf);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, nSamples2Buf);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, nParticles * sizeof(float), NULL, GL_STREAM_READ);
+    glGenBuffers(1, &paletteBuf);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, paletteBuf);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, nColors * sizeof(glm::vec4), palette, GL_STREAM_READ);
+    glGenBuffers(1, &blurSizesBuf);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, blurSizesBuf);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, nColors * sizeof(float), blurSizes, GL_STREAM_READ);
 
-    delete[] posBuf;
-    delete[] colorBuf;
-    // delete[] uSamples1;
-    // delete[] uSamples2;
-    // delete[] gSamples1;
-    // delete[] gSamples2;
+    // Generate uniform samples
+    uint64 off_ = getRngOff();
+    glm::uvec2 off = glm::uvec2((uint)((off_ >> 8 * sizeof(uint)) & UINT_MAX), (uint)(off_ & UINT_MAX));
+    glUseProgram(uniformRng_prog);
+    glUniform1ui(0, nParticles);
+    glUniform2ui(1, off.x, off.y);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, uSamples1Buf);
+    glDispatchCompute(0x10 / 4, 0x10 / 4, 0x10 / 4);
 
-    std::chrono::time_point t2 = std::chrono::high_resolution_clock::now();
-    float calcTime = 0.001f * std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-    std::cout << "Cluster calculation time: " << calcTime << " s" << std::endl;
+    off_ = getRngOff();
+    off = glm::uvec2((uint)((off_ >> 8 * sizeof(uint)) & UINT_MAX), (uint)(off_ & UINT_MAX));
+    glUniform2ui(1, off.x, off.y);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, uSamples2Buf);
+    glDispatchCompute(0x10 / 4, 0x10 / 4, 0x10 / 4);
+    glUseProgram(0);
+
+    // Generate gaussian samples
+    off_ = getRngOff();
+    off = glm::uvec2((uint)((off_ >> 8 * sizeof(uint)) & UINT_MAX), (uint)(off_ & UINT_MAX));
+    glUseProgram(gaussRng_prog);
+    glUniform1ui(0, nParticles);
+    glUniform2ui(1, off.x, off.y);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, nSamples1Buf);
+    glDispatchCompute(0x10 / 4, 0x10 / 4, 0x10 / 4);
+
+    off_ = getRngOff();
+    off = glm::uvec2((uint)((off_ >> 8 * sizeof(uint)) & UINT_MAX), (uint)(off_ & UINT_MAX));
+    glUniform2ui(1, off.x, off.y);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, nSamples2Buf);
+    glDispatchCompute(0x10 / 4, 0x10 / 4, 0x10 / 4);
+    glUseProgram(0);
+
+    glFinish();
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+
+    float eps = sqrt(1 - b * b / (a * a));
+    glm::mat4 rot = glm::rotate(n.z / glm::length(n), glm::vec3(-n.y, n.x, 0.0));
+    glUseProgram(clusterPos_prog);
+    glUniform1ui(0, nParticles);
+    glUniform1f(1, b);
+    glUniform1f(2, eps);
+    glUniformMatrix4fv(3, 1, false, &rot[0][0]);
+    glUniform1f(4, dr);
+    glUniform1f(5, dz);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, uSamples1Buf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, nSamples1Buf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, nSamples2Buf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, posBuf);
+    glDispatchCompute(0x10 / 4, 0x10 / 4, 0x10 / 4);
+    glUseProgram(0);
+
+    glUseProgram(clusterCol_prog);
+    glUniform1ui(0, nParticles);
+    glUniform1ui(1, nColors);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, paletteBuf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, blurSizesBuf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, uSamples2Buf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, colorBuf);
+    glDispatchCompute(0x10 / 4, 0x10 / 4, 0x10 / 4);
+    glUseProgram(0);
+
+    nClusterVerts.push_back(nParticles);
+    glClusterVerts.push_back(clusterVerts);
+    glClusterPosBufs.push_back(posBuf);
+    glClusterColBufs.push_back(colorBuf);
+
+    glFinish();
+    std::chrono::high_resolution_clock::time_point t3 = std::chrono::high_resolution_clock::now();
+    float dt1 = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() * 1.0e-9;
+    float dt2 = std::chrono::duration_cast<std::chrono::nanoseconds>(t3 - t2).count() * 1.0e-9;
+    float dt = std::chrono::duration_cast<std::chrono::nanoseconds>(t3 - t1).count() * 1.0e-9;
+    std::cout << "Sample computation time for " << nParticles << " particles: " << dt1 << " s" << std::endl;
+    std::cout << "Cluster computation time for " << nParticles << " particles: " << dt2 << " s" << std::endl;
+    std::cout << "Total computation time for " << nParticles << " particles: " << dt << " s" << std::endl;
+    std::cout << std::endl;
+
+    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, uSamples1Buf);
+    // float* uSamples1 = (float*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, nParticles * sizeof(float), GL_MAP_READ_BIT);
+    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, uSamples2Buf);
+    // float* uSamples2 = (float*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, nParticles * sizeof(float), GL_MAP_READ_BIT);
+    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, nSamples1Buf);
+    // float* nSamples1 = (float*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, nParticles * sizeof(float), GL_MAP_READ_BIT);
+    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, nSamples2Buf);
+    // float* nSamples2 = (float*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, nParticles * sizeof(float), GL_MAP_READ_BIT);
+
+    // std::ofstream out;
+    // out.open("tmp/samples.txt");
+    // for (uint i = 0; i < nParticles; ++i) {
+    //   out << uSamples1[i] << '\t' << uSamples2[i] << '\t' << nSamples1[i] << '\t' << nSamples2[i] << std::endl;
+    // }
   }
   void clearClusters() {
     // Clear particle GPU buffers
-    for (int i = 0; i < (int)glClusterPts.size(); i++) {
-      glDeleteBuffers(1, &glPtPosBufs[i]);
-      glDeleteBuffers(1, &glPtColorBufs[i]);
-      glDeleteVertexArrays(1, &glClusterPts[i]);
+    for (int i = 0; i < (int)glClusterVerts.size(); i++) {
+      glDeleteBuffers(1, &glClusterPosBufs[i]);
+      glDeleteBuffers(1, &glClusterColBufs[i]);
+      glDeleteVertexArrays(1, &glClusterVerts[i]);
     }
-    nClusterPts.clear();
-    glClusterPts.clear();
-    glPtPosBufs.clear();
-    glPtColorBufs.clear();
+    nClusterVerts.clear();
+    glClusterVerts.clear();
+    glClusterPosBufs.clear();
+    glClusterColBufs.clear();
   }
   void selectCluster(int index) {
     sCluster = index;
@@ -296,20 +339,14 @@ namespace sl {
     // Set View Projection Matrix
     perspv = glm::perspective(observer.fov, observer.aspect, observer.zNear, observer.zFar);
     glm::mat4 vp = perspv * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
-    glUseProgram(cluster_prog);
-    glUniformMatrix4fv(viewProjn, 1, false, &vp[0][0]);
+    glUseProgram(clusterRender_prog);
+    glUniformMatrix4fv(viewPj, 1, false, &vp[0][0]);
     glUseProgram(0);
 
     config = (slConfig)(config | CONFIG_HAS_CAMERA);
   }
   void setBackgroundTex(UNUSED uint sData, byte* data, uint width, uint height, UNUSED uint bpp) {
     assert((config & CONFIG_INIT) != 0 && (config & CONFIG_HAS_BG_TEX) == 0);
-
-    // for (int i = 0; i <= sData; i++) {
-    //   if (data[i] != '\0' && data[i] != '\255') {
-    //     std::cout << (int)data[i] << std::endl;
-    //   }
-    // }
 
     // Set background shader inputs
     glBindVertexArray(glBg);
@@ -338,8 +375,8 @@ namespace sl {
     // Set new view projection matrix
     glm::mat4 vp = perspv * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
 
-    glUseProgram(cluster_prog);
-    glUniformMatrix4fv(viewProjn, 1, false, &vp[0][0]);
+    glUseProgram(clusterRender_prog);
+    glUniformMatrix4fv(viewPj, 1, false, &vp[0][0]);
     glUseProgram(0);
   }
 
@@ -347,7 +384,7 @@ namespace sl {
 
   }
   void updateParticlesRelatvistic(UNUSED float time) {
-
+    
   }
   void renderClassic() {
     assert(config == CONFIG_INIT_FOR_RENDER);
@@ -382,13 +419,15 @@ namespace sl {
     glUseProgram(0);
 
     // Render Particles
-    glUseProgram(cluster_prog);
-    for (int i = 0; i < (int)glClusterPts.size(); i++) {
-      glBindVertexArray(glClusterPts[i]);
-      glDrawArrays(GL_POINTS, 0, (int)(nClusterPts[i]));
+    glUseProgram(clusterRender_prog);
+    for (int i = 0; i < (int)glClusterVerts.size(); i++) {
+      glBindVertexArray(glClusterVerts[i]);
+      glDrawArrays(GL_POINTS, 0, (int)(nClusterVerts[i]));
       glBindVertexArray(0);
     }
     glUseProgram(0);
+
+    glFinish();
 
     config = (slConfig)(config & ~CONFIG_RENDERING);
   }
@@ -412,11 +451,11 @@ namespace sl {
     glDeleteBuffers(1, &glBgTexCoordBuf);
     glDeleteVertexArrays(1, &glBg);
 
-    glDetachShader(cluster_prog, cluster_vs);
+    glDetachShader(clusterRender_prog, cluster_vs);
     glDeleteShader(cluster_vs);
-    glDetachShader(cluster_prog, cluster_fs);
+    glDetachShader(clusterRender_prog, cluster_fs);
     glDeleteShader(cluster_fs);
-    glDeleteProgram(cluster_prog);
+    glDeleteProgram(clusterRender_prog);
 
     config = CONFIG_CLOSED;
   }
@@ -437,7 +476,7 @@ namespace sl {
 
     // Create shaders
     cluster_vs = glCreateShader(GL_VERTEX_SHADER);
-    if (!getShaderSrc(SHADER_PATH "cluster.vert", &src, &len)) {
+    if (!readShaderSrc(SHADER_PATH "cluster.vert", &src, &len)) {
       std::cerr << SHADER_PATH "cluster.vert" << " could not be opened." << std::endl;
       throw;
     }
@@ -445,7 +484,7 @@ namespace sl {
     delete[] src;
 
     cluster_fs = glCreateShader(GL_FRAGMENT_SHADER);
-    if (!getShaderSrc(SHADER_PATH "cluster.frag", &src, &len)) {
+    if (!readShaderSrc(SHADER_PATH "cluster.frag", &src, &len)) {
       std::cerr << SHADER_PATH "cluster.frag" << "could not be opened." << std::endl;
       throw;
     }
@@ -453,7 +492,7 @@ namespace sl {
     delete[] src;
 
     // Compile shaders
-    cluster_prog = glCreateProgram();
+    clusterRender_prog = glCreateProgram();
     glCompileShader(cluster_vs);
     glGetShaderiv(cluster_vs, GL_COMPILE_STATUS, &success);
     if (!success) {
@@ -462,7 +501,7 @@ namespace sl {
       std::cerr << log << std::endl;
       throw;
     }
-    glAttachShader(cluster_prog, cluster_vs);
+    glAttachShader(clusterRender_prog, cluster_vs);
 
     glCompileShader(cluster_fs);
     glGetShaderiv(cluster_fs, GL_COMPILE_STATUS, &success);
@@ -472,27 +511,27 @@ namespace sl {
       std::cerr << log << std::endl;
       throw;
     }
-    glAttachShader(cluster_prog, cluster_fs);
+    glAttachShader(clusterRender_prog, cluster_fs);
 
     // Bind attribute locations
-    glBindAttribLocation(cluster_prog, 0, "pos");
-    glBindAttribLocation(cluster_prog, 1, "color");
+    glBindAttribLocation(clusterRender_prog, 0, "pos");
+    glBindAttribLocation(clusterRender_prog, 1, "color");
 
     // Link Program
-    glLinkProgram(cluster_prog);
-    glGetProgramiv(cluster_prog, GL_LINK_STATUS, &success);
+    glLinkProgram(clusterRender_prog);
+    glGetProgramiv(clusterRender_prog, GL_LINK_STATUS, &success);
     if (!success) {
-      glGetProgramInfoLog(cluster_prog, sizeof(log), NULL, log);
+      glGetProgramInfoLog(clusterRender_prog, sizeof(log), NULL, log);
       std::cerr << "Cluster program:" << std::endl;
       std::cerr << log << std::endl;
       throw;
     }
 
     // Validate Program
-    glValidateProgram(cluster_prog);
-    glGetProgramiv(cluster_prog, GL_VALIDATE_STATUS, &success);
+    glValidateProgram(clusterRender_prog);
+    glGetProgramiv(clusterRender_prog, GL_VALIDATE_STATUS, &success);
     if (!success) {
-      glGetProgramInfoLog(cluster_prog, sizeof(log), NULL, log);
+      glGetProgramInfoLog(clusterRender_prog, sizeof(log), NULL, log);
       std::cerr << "Cluster program:" << std::endl;
       std::cerr << log << std::endl;
       throw;
@@ -506,7 +545,7 @@ namespace sl {
 
     // Create shaders
     bg_vs = glCreateShader(GL_VERTEX_SHADER);
-    if (!getShaderSrc(SHADER_PATH "bg.vert", &src, &len)) {
+    if (!readShaderSrc(SHADER_PATH "bg.vert", &src, &len)) {
       std::cerr << SHADER_PATH "bg.vert" << " could not be opened." << std::endl;
       throw;
     }
@@ -514,7 +553,7 @@ namespace sl {
     delete[] src;
 
     bg_fs = glCreateShader(GL_FRAGMENT_SHADER);
-    if (!getShaderSrc(SHADER_PATH "bg.frag", &src, &len)) {
+    if (!readShaderSrc(SHADER_PATH "bg.frag", &src, &len)) {
       std::cerr << SHADER_PATH "bg.frag" << "could not be opened." << std::endl;
       throw;
     }
@@ -567,28 +606,271 @@ namespace sl {
       throw;
     }
   }
-  bool getShaderSrc(const char* path, char** src, int* srcLen) {
-    FILE* fp = fopen(path, "r");
-    if (fp == NULL)
-      return false;
-    
-    fseek(fp, 0, SEEK_END);
-    *srcLen = (int)ftell(fp);
-    fseek(fp, 0, SEEK_SET);
 
-    *src = new char[*srcLen];
-    *src[0] = '\0';
-    char* line = NULL;
-    unsigned long len = 0;
-    long read;
-    while ((read = getline(&line, &len, fp)) != -1) {
-      strcat(*src, line);
+  void buildUniformRngCompProg() {
+    char* src;
+    int len;
+    int success;
+    char log[0x400];
+
+    // Load shader includes
+    if (!readShaderSrc(SHADER_PATH "uint64.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "uint64.comp" << " could not be opened." << std::endl;
+      throw;
+    }
+    glinc::addIncludeSrc("uint64.comp", src);
+    delete[] src;
+    if (!readShaderSrc(SHADER_PATH "skip_mwc.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "skip_mwc.comp" << " could not be opened." << std::endl;
+      throw;
+    }
+    glinc::addIncludeSrc("skip_mwc.comp", src);
+    delete[] src;
+    if (!readShaderSrc(SHADER_PATH "mwc64x_rng.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "mwc64x_rng.comp" << " could not be opened." << std::endl;
+      throw;
+    }
+    glinc::addIncludeSrc("mwc64x_rng.comp", src);
+    delete[] src;
+
+    // Create shader
+    uniformRng_cs = glCreateShader(GL_COMPUTE_SHADER);
+    if (!readShaderSrc(SHADER_PATH "uniform_rng.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "uniform_rng.comp" << "could not be opened." << std::endl;
+      throw;
+    }
+    char* src_ = (char*)glinc::insertIncludes(src);
+    int len_ = strlen(src_);
+    writeShaderSrc(TMP_PATH "uniform_rng.comp", src_, len_);
+    glShaderSource(uniformRng_cs, 1, &src_, &len_);
+    delete[] src;
+
+    // Compile shaders
+    uniformRng_prog = glCreateProgram();
+    glCompileShader(uniformRng_cs);
+    glGetShaderiv(uniformRng_cs, GL_COMPILE_STATUS, &success);
+    if (!success) {
+      glGetShaderInfoLog(uniformRng_cs, sizeof(log), NULL, log);
+      std::cerr << "Uniform rng compute shader:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+    glAttachShader(uniformRng_prog, uniformRng_cs);
+
+    // Link Program
+    glLinkProgram(uniformRng_prog);
+    glGetProgramiv(uniformRng_prog, GL_LINK_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(uniformRng_prog, sizeof(log), NULL, log);
+      std::cerr << "Uniform rng compute program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
     }
 
-    fclose(fp);
-    if (line)
-      free(line);
+    // Validate Program
+    glValidateProgram(uniformRng_prog);
+    glGetProgramiv(uniformRng_prog, GL_VALIDATE_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(uniformRng_prog, sizeof(log), NULL, log);
+      std::cerr << "Uniform rng compute program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+  }
+  void buildGaussRngCompProg() {
+    char* src;
+    int len;
+    int success;
+    char log[0x400];
+
+    // Load shader includes
+    if (!readShaderSrc(SHADER_PATH "uint64.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "uint64.comp" << " could not be opened." << std::endl;
+      throw;
+    }
+    glinc::addIncludeSrc("uint64.comp", src);
+    delete[] src;
+    if (!readShaderSrc(SHADER_PATH "skip_mwc.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "skip_mwc.comp" << " could not be opened." << std::endl;
+      throw;
+    }
+    glinc::addIncludeSrc("skip_mwc.comp", src);
+    delete[] src;
+    if (!readShaderSrc(SHADER_PATH "mwc64x_rng.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "mwc64x_rng.comp" << " could not be opened." << std::endl;
+      throw;
+    }
+    glinc::addIncludeSrc("mwc64x_rng.comp", src);
+    delete[] src;
+    if (!readShaderSrc(SHADER_PATH "rng_tables.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "rng_tables.comp" << " could not be opened." << std::endl;
+    }
+    glinc::addIncludeSrc("rng_tables.comp", src);
+    delete[] src;
+
+    // Create shader
+    gaussRng_cs = glCreateShader(GL_COMPUTE_SHADER);
+    if (!readShaderSrc(SHADER_PATH "gauss_rng.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "gauss_rng.comp" << "could not be opened." << std::endl;
+      throw;
+    }
+    char* src_ = glinc::insertIncludes(src);
+    int len_ = strlen(src_);
+    writeShaderSrc(TMP_PATH "gauss_rng.comp", src_, len_);
+    glShaderSource(gaussRng_cs, 1, &src_, &len_);
+    delete[] src;
+
+    // Compile shaders
+    gaussRng_prog = glCreateProgram();
+    glCompileShader(gaussRng_cs);
+    glGetShaderiv(gaussRng_cs, GL_COMPILE_STATUS, &success);
+    if (!success) {
+      glGetShaderInfoLog(gaussRng_cs, sizeof(log), NULL, log);
+      std::cerr << "Gauss rng compute shader:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+    glAttachShader(gaussRng_prog, gaussRng_cs);
+
+    // Link Program
+    glLinkProgram(gaussRng_prog);
+    glGetProgramiv(gaussRng_prog, GL_LINK_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(gaussRng_prog, sizeof(log), NULL, log);
+      std::cerr << "Gauss rng compute program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+
+    // Validate Program
+    glValidateProgram(gaussRng_prog);
+    glGetProgramiv(gaussRng_prog, GL_VALIDATE_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(gaussRng_prog, sizeof(log), NULL, log);
+      std::cerr << "Gauss rng compute program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+  }
+  void buildClusterPosCompProg() {
+    char* src;
+    int len;
+    int success;
+    char log[0x400];
+
+    // Create shader
+    clusterPos_cs = glCreateShader(GL_COMPUTE_SHADER);
+    if (!readShaderSrc(SHADER_PATH "clusterpos.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "clusterpos.comp" << "could not be opened." << std::endl;
+      throw;
+    }
+    glShaderSource(clusterPos_cs, 1, &src, &len);
+    delete[] src;
+
+    // Compile shaders
+    clusterPos_prog = glCreateProgram();
+    glCompileShader(clusterPos_cs);
+    glGetShaderiv(clusterPos_cs, GL_COMPILE_STATUS, &success);
+    if (!success) {
+      glGetShaderInfoLog(clusterPos_cs, sizeof(log), NULL, log);
+      std::cerr << "Cluster position compute shader:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+    glAttachShader(clusterPos_prog, clusterPos_cs);
+
+    // Link Program
+    glLinkProgram(clusterPos_prog);
+    glGetProgramiv(clusterPos_prog, GL_LINK_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(clusterPos_prog, sizeof(log), NULL, log);
+      std::cerr << "Cluster position compute program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+
+    // Validate Program
+    glValidateProgram(clusterPos_prog);
+    glGetProgramiv(clusterPos_prog, GL_VALIDATE_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(clusterPos_prog, sizeof(log), NULL, log);
+      std::cerr << "Cluster position compute program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+  }
+  void buildClusterColCompProg() {
+    char* src;
+    int len;
+    int success;
+    char log[0x400];
+
+    // Create shader
+    clusterCol_cs = glCreateShader(GL_COMPUTE_SHADER);
+    if (!readShaderSrc(SHADER_PATH "clustercol.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "clustercol.comp" << "could not be opened." << std::endl;
+      throw;
+    }
+    glShaderSource(clusterCol_cs, 1, &src, &len);
+    delete[] src;
+
+    // Compile shaders
+    clusterCol_prog = glCreateProgram();
+    glCompileShader(clusterCol_cs);
+    glGetShaderiv(clusterCol_cs, GL_COMPILE_STATUS, &success);
+    if (!success) {
+      glGetShaderInfoLog(clusterCol_cs, sizeof(log), NULL, log);
+      std::cerr << "Cluster color compute shader:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+    glAttachShader(clusterCol_prog, clusterCol_cs);
+
+    // Link Program
+    glLinkProgram(clusterCol_prog);
+    glGetProgramiv(clusterCol_prog, GL_LINK_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(clusterCol_prog, sizeof(log), NULL, log);
+      std::cerr << "Cluster color compute program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+
+    // Validate Program
+    glValidateProgram(clusterCol_prog);
+    glGetProgramiv(clusterCol_prog, GL_VALIDATE_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(clusterCol_prog, sizeof(log), NULL, log);
+      std::cerr << "Cluster color compute program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+  }
+
+  bool readShaderSrc(const char* path, char** src, int* srcLen) {
+    std::ifstream fs;
+    fs.open(path);
+
+    std::string out;
+    std::string line;
+    if (fs.is_open()) {
+      while (std::getline(fs, line)) {
+        out += line + '\n';
+      }
+    }
+    else return false;
+    fs.close();
+
+    *srcLen = out.length();
+    *src = new char[*srcLen + 1];
+    strcpy(*src, out.c_str());
     return true;
+  }
+  void writeShaderSrc(const char* path, char* src, int srcLen) {
+    std::ofstream fs;
+    fs.open(path);
+    fs << std::string(src, srcLen);
+    fs.close();
   }
   void GLAPIENTRY msgCallback(GLenum source, GLenum type, UNUSED GLuint id, GLenum severity,
     UNUSED GLsizei length, const GLchar* message, UNUSED const void* userParam) {

@@ -1,0 +1,39 @@
+#version 320 es
+
+#define PI 3.14159265358979323846
+
+layout(location = 0) uniform uint nPt;
+layout(location = 1) uniform float p;
+layout(location = 2) uniform float eps;
+layout(location = 3) uniform mat4 rot;
+layout(location = 4) uniform float dr;
+layout(location = 5) uniform float dz;
+
+layout(binding = 0) buffer uSamplesBuf { float uSamples[]; };
+layout(binding = 1) buffer nSamples1Buf { float nSamples1[]; };
+layout(binding = 2) buffer nSamples2Buf { float nSamples2[]; };
+layout(binding = 3) buffer posBuf { vec4 pos[]; };
+
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+void main() {
+  uint g = gl_GlobalInvocationID.x
+    + gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_GlobalInvocationID.y
+    + gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_NumWorkGroups.y * gl_WorkGroupSize.y * gl_GlobalInvocationID.z;
+  uint gsize = gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_NumWorkGroups.y * gl_WorkGroupSize.y * gl_NumWorkGroups.z * gl_WorkGroupSize.z;
+  uint perInv = nPt / gsize + uint(nPt % gsize == 0U);
+
+  for (uint i = g * perInv; i < (g + 1U) * perInv; ++i) {
+    if (i >= nPt)
+      return;
+    float u = uSamples[i];
+    float n1 = nSamples1[i];
+    float n2 = nSamples2[i];
+
+    float phi = 2.0 * PI * u;
+    float c = cos(phi);
+    float s = sin(phi);
+    float r = p * inversesqrt(1.0 - eps * eps * c * c) + n1 * dr;
+
+    pos[i] = rot * vec4(r * c, r * s, n2 * dz, 1.0);
+  }
+}
