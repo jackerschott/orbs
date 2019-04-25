@@ -36,6 +36,9 @@ namespace sl {
   GLuint cluster_fs;
 
   // GPU Computation programs
+  GLuint test_prog;
+  GLuint test_cs;
+
   GLuint uniformRng_prog;
   GLuint uniformRng_cs;
   GLuint gaussRng_prog;
@@ -69,10 +72,11 @@ namespace sl {
   };
   glm::vec2 bgTexCoord[6];
   glm::mat4 perspv;
-  GLint viewPj;
 
   // Organisation Details
   slConfig config = CONFIG_CLOSED;
+
+  void buildTestProg();
 
   uint64 getRngOff();
   void buildClusterProg();
@@ -107,7 +111,8 @@ namespace sl {
     glm::mat4 vp = perspv * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
 
     glUseProgram(clusterRender_prog);
-    glUniformMatrix4fv(viewPj, 1, false, &vp[0][0]);
+    GLint viewPj_loc = glGetUniformLocation(clusterRender_prog, "viewPj");
+    glUniformMatrix4fv(viewPj_loc, 1, false, &vp[0][0]);
     glUseProgram(0);
   }
 
@@ -130,11 +135,9 @@ namespace sl {
     buildClusterProg();
     buildBgProg();
 
-    glUseProgram(clusterRender_prog);
-    viewPj = glGetUniformLocation(clusterRender_prog, "viewPj");
-    glUseProgram(0);
-
     // Build computation programs
+    // buildTestProg();
+
     buildUniformRngCompProg();
     buildGaussRngCompProg();
     buildClusterPosCompProg();
@@ -169,6 +172,43 @@ namespace sl {
 
   void createEllipticCluster(uint nParticles, float a, float b, vector n, float dr, float dz,
     uint nColors, color* palette, float* blurSizes) {
+    
+    /// TEST
+    // glm::vec2 phi[1024];
+    // for (int i = 0; i < 1024; ++i) {
+    //   phi[i] = glm::vec2(float(-M_PI_2) + float(i) / 1023.0f * float(M_PI), 0.80f);
+    // }
+
+    // glm::vec2 m = glm::vec2(0.80f, 0.0f);
+    // GLuint phiBuf;
+    // GLuint resBuf;
+    // glGenBuffers(1, &phiBuf);
+    // glGenBuffers(1, &resBuf);
+    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, phiBuf);
+    // glBufferData(GL_SHADER_STORAGE_BUFFER, 1024 * sizeof(glm::vec2), phi, GL_STREAM_READ);
+    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, resBuf);
+    // glBufferData(GL_SHADER_STORAGE_BUFFER, 1024 * sizeof(glm::vec2), NULL, GL_STREAM_READ);
+
+    // glUseProgram(test_prog);
+    // glUniform2f(0, m.x, m.y);
+    // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, phiBuf);
+    // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, resBuf);
+    // glDispatchCompute(1024, 1, 1);
+    // glUseProgram(0);
+
+    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, resBuf);
+    // glm::vec2* res = (glm::vec2*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, 1024 * sizeof(glm::vec2), GL_MAP_READ_BIT);
+
+    // std::ofstream out;
+    // out.open("samples.txt");
+    // if (!out.is_open()) throw;
+    // for (int i = 0; i < 1024; ++i) {
+    //   out << phi[i].x << ";" << phi[i].y << ", ";
+    //   out << res[i].x << ";" << res[i].y << std::endl;
+    // }
+    // return;
+    /// TEST
+    
     glFinish();
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     
@@ -339,8 +379,14 @@ namespace sl {
     // Set View Projection Matrix
     perspv = glm::perspective(observer.fov, observer.aspect, observer.zNear, observer.zFar);
     glm::mat4 vp = perspv * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
+
+    // Set uniforms
     glUseProgram(clusterRender_prog);
-    glUniformMatrix4fv(viewPj, 1, false, &vp[0][0]);
+    GLint cPos_loc = glGetUniformLocation(clusterRender_prog, "cPos");
+    glUniform4fv(cPos_loc, 1, &_observer.pos[0]);
+
+    GLint viewPj_loc = glGetUniformLocation(clusterRender_prog, "viewPj");
+    glUniformMatrix4fv(viewPj_loc, 1, false, &vp[0][0]);
     glUseProgram(0);
 
     config = (slConfig)(config | CONFIG_HAS_CAMERA);
@@ -376,7 +422,11 @@ namespace sl {
     glm::mat4 vp = perspv * glm::lookAt(observer.pos, observer.pos + observer.lookDir, observer.upDir);
 
     glUseProgram(clusterRender_prog);
-    glUniformMatrix4fv(viewPj, 1, false, &vp[0][0]);
+    GLint cPos_loc = glGetUniformLocation(clusterRender_prog, "cPos");
+    glUniform4fv(cPos_loc, 1, &observer.pos[0]);
+
+    GLint viewPj_loc = glGetUniformLocation(clusterRender_prog, "viewPj");
+    glUniformMatrix4fv(viewPj_loc, 1, false, &vp[0][0]);
     glUseProgram(0);
   }
 
@@ -460,6 +510,77 @@ namespace sl {
     config = CONFIG_CLOSED;
   }
 
+  void buildTestProg() {
+    char* src;
+    int len;
+    int success;
+    char log[0x400];
+
+    // Load shader includes
+    if (!readShaderSrc(SHADER_PATH "render/float.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "render/float.glsl" << " could not be opened." << std::endl;
+      throw;
+    }
+    glinc::addIncludeSrc("float.glsl", src);
+    delete[] src;
+    if (!readShaderSrc(SHADER_PATH "render/complex.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "render/complex.glsl" << " could not be opened." << std::endl;
+      throw;
+    }
+    glinc::addIncludeSrc("complex.glsl", src);
+    delete[] src;
+    if (!readShaderSrc(SHADER_PATH "render/elliptic.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "render/elliptic.glsl" << " could not be opened." << std::endl;
+      throw;
+    }
+    glinc::addIncludeSrc("elliptic.glsl", src);
+    delete[] src;
+
+    // Create shader
+    test_cs = glCreateShader(GL_COMPUTE_SHADER);
+    if (!readShaderSrc(SHADER_PATH "test/test_elliptic.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "test/test_elliptic.comp" << "could not be opened." << std::endl;
+      throw;
+    }
+    char* src_ = (char*)glinc::insertIncludes(src);
+    int len_ = strlen(src_);
+    writeShaderSrc(TMP_PATH "test_elliptic.comp", src_, len_);
+    glShaderSource(test_cs, 1, &src_, &len_);
+    delete[] src;
+
+    // Compile shaders
+    test_prog = glCreateProgram();
+    glCompileShader(test_cs);
+    glGetShaderiv(test_cs, GL_COMPILE_STATUS, &success);
+    if (!success) {
+      glGetShaderInfoLog(test_cs, sizeof(log), NULL, log);
+      std::cerr << "Test elliptic compute shader:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+    glAttachShader(test_prog, test_cs);
+
+    // Link Program
+    glLinkProgram(test_prog);
+    glGetProgramiv(test_prog, GL_LINK_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(test_prog, sizeof(log), NULL, log);
+      std::cerr << "Test elliptic compute program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+
+    // Validate Program
+    glValidateProgram(test_prog);
+    glGetProgramiv(test_prog, GL_VALIDATE_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(test_prog, sizeof(log), NULL, log);
+      std::cerr << "Test elliptic compute program:" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+  }
+
   uint64 getRngOff() {
     uint64 dt = time(0);
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
@@ -474,18 +595,47 @@ namespace sl {
     int success;
     char log[0x400];
 
-    // Create shaders
-    cluster_vs = glCreateShader(GL_VERTEX_SHADER);
-    if (!readShaderSrc(SHADER_PATH "cluster.vert", &src, &len)) {
-      std::cerr << SHADER_PATH "cluster.vert" << " could not be opened." << std::endl;
+    // Load shader includes
+    if (!readShaderSrc(SHADER_PATH "render/float.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "render/float.glsl" << " could not be opened." << std::endl;
       throw;
     }
-    glShaderSource(cluster_vs, 1, &src, &len);
+    glinc::addIncludeSrc("float.glsl", src);
+    delete[] src;
+    if (!readShaderSrc(SHADER_PATH "render/complex.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "render/complex.glsl" << " could not be opened." << std::endl;
+      throw;
+    }
+    glinc::addIncludeSrc("complex.glsl", src);
+    delete[] src;
+    if (!readShaderSrc(SHADER_PATH "render/elliptic.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "render/elliptic.glsl" << " could not be opened." << std::endl;
+      throw;
+    }
+    glinc::addIncludeSrc("elliptic.glsl", src);
+    delete[] src;
+    if (!readShaderSrc(SHADER_PATH "render/geodesic.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "render/geodesic.glsl" << " could not be opened." << std::endl;
+      throw;
+    }
+    glinc::addIncludeSrc("geodesic.glsl", src);
+    delete[] src;
+
+    // Create shaders
+    cluster_vs = glCreateShader(GL_VERTEX_SHADER);
+    if (!readShaderSrc(SHADER_PATH "render/cluster.vert", &src, &len)) {
+      std::cerr << SHADER_PATH "render/cluster.vert" << " could not be opened." << std::endl;
+      throw;
+    }
+    char* src_ = (char*)glinc::insertIncludes(src);
+    int len_ = strlen(src_);
+    writeShaderSrc(TMP_PATH "cluster.vert", src_, len_);
+    glShaderSource(cluster_vs, 1, &src_, &len_);
     delete[] src;
 
     cluster_fs = glCreateShader(GL_FRAGMENT_SHADER);
-    if (!readShaderSrc(SHADER_PATH "cluster.frag", &src, &len)) {
-      std::cerr << SHADER_PATH "cluster.frag" << "could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "render/cluster.frag", &src, &len)) {
+      std::cerr << SHADER_PATH "render/cluster.frag" << "could not be opened." << std::endl;
       throw;
     }
     glShaderSource(cluster_fs, 1, &src, &len);
@@ -545,16 +695,16 @@ namespace sl {
 
     // Create shaders
     bg_vs = glCreateShader(GL_VERTEX_SHADER);
-    if (!readShaderSrc(SHADER_PATH "bg.vert", &src, &len)) {
-      std::cerr << SHADER_PATH "bg.vert" << " could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "render/bg.vert", &src, &len)) {
+      std::cerr << SHADER_PATH "render/bg.vert" << " could not be opened." << std::endl;
       throw;
     }
     glShaderSource(bg_vs, 1, &src, &len);
     delete[] src;
 
     bg_fs = glCreateShader(GL_FRAGMENT_SHADER);
-    if (!readShaderSrc(SHADER_PATH "bg.frag", &src, &len)) {
-      std::cerr << SHADER_PATH "bg.frag" << "could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "render/bg.frag", &src, &len)) {
+      std::cerr << SHADER_PATH "render/bg.frag" << "could not be opened." << std::endl;
       throw;
     }
     glShaderSource(bg_fs, 1, &src, &len);
@@ -614,34 +764,34 @@ namespace sl {
     char log[0x400];
 
     // Load shader includes
-    if (!readShaderSrc(SHADER_PATH "uint64.comp", &src, &len)) {
-      std::cerr << SHADER_PATH "uint64.comp" << " could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "gen_cluster/uint64.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "gen_cluster/uint64.glsl" << " could not be opened." << std::endl;
       throw;
     }
-    glinc::addIncludeSrc("uint64.comp", src);
+    glinc::addIncludeSrc("uint64.glsl", src);
     delete[] src;
-    if (!readShaderSrc(SHADER_PATH "skip_mwc.comp", &src, &len)) {
-      std::cerr << SHADER_PATH "skip_mwc.comp" << " could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "gen_cluster/rng_mwc_skip.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "gen_cluster/rng_mwc_skip.glsl" << " could not be opened." << std::endl;
       throw;
     }
-    glinc::addIncludeSrc("skip_mwc.comp", src);
+    glinc::addIncludeSrc("rng_mwc_skip.glsl", src);
     delete[] src;
-    if (!readShaderSrc(SHADER_PATH "mwc64x_rng.comp", &src, &len)) {
-      std::cerr << SHADER_PATH "mwc64x_rng.comp" << " could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "gen_cluster/rng_mwc64x.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "gen_cluster/rng_mwc64x.glsl" << " could not be opened." << std::endl;
       throw;
     }
-    glinc::addIncludeSrc("mwc64x_rng.comp", src);
+    glinc::addIncludeSrc("rng_mwc64x.glsl", src);
     delete[] src;
 
     // Create shader
     uniformRng_cs = glCreateShader(GL_COMPUTE_SHADER);
-    if (!readShaderSrc(SHADER_PATH "uniform_rng.comp", &src, &len)) {
-      std::cerr << SHADER_PATH "uniform_rng.comp" << "could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "gen_cluster/rng_uniform.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "gen_cluster/rng_uniform.comp" << "could not be opened." << std::endl;
       throw;
     }
     char* src_ = (char*)glinc::insertIncludes(src);
     int len_ = strlen(src_);
-    writeShaderSrc(TMP_PATH "uniform_rng.comp", src_, len_);
+    writeShaderSrc(TMP_PATH "rng_uniform.comp", src_, len_);
     glShaderSource(uniformRng_cs, 1, &src_, &len_);
     delete[] src;
 
@@ -684,39 +834,39 @@ namespace sl {
     char log[0x400];
 
     // Load shader includes
-    if (!readShaderSrc(SHADER_PATH "uint64.comp", &src, &len)) {
-      std::cerr << SHADER_PATH "uint64.comp" << " could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "gen_cluster/uint64.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "gen_cluster/uint64.glsl" << " could not be opened." << std::endl;
       throw;
     }
-    glinc::addIncludeSrc("uint64.comp", src);
+    glinc::addIncludeSrc("uint64.glsl", src);
     delete[] src;
-    if (!readShaderSrc(SHADER_PATH "skip_mwc.comp", &src, &len)) {
-      std::cerr << SHADER_PATH "skip_mwc.comp" << " could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "gen_cluster/rng_mwc_skip.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "gen_cluster/rng_mwc_skip.glsl" << " could not be opened." << std::endl;
       throw;
     }
-    glinc::addIncludeSrc("skip_mwc.comp", src);
+    glinc::addIncludeSrc("rng_mwc_skip.glsl", src);
     delete[] src;
-    if (!readShaderSrc(SHADER_PATH "mwc64x_rng.comp", &src, &len)) {
-      std::cerr << SHADER_PATH "mwc64x_rng.comp" << " could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "gen_cluster/rng_mwc64x.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "gen_cluster/rng_mwc64x.glsl" << " could not be opened." << std::endl;
       throw;
     }
-    glinc::addIncludeSrc("mwc64x_rng.comp", src);
+    glinc::addIncludeSrc("rng_mwc64x.glsl", src);
     delete[] src;
-    if (!readShaderSrc(SHADER_PATH "rng_tables.comp", &src, &len)) {
-      std::cerr << SHADER_PATH "rng_tables.comp" << " could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "gen_cluster/rng_tables.glsl", &src, &len)) {
+      std::cerr << SHADER_PATH "gen_cluster/rng_tables.glsl" << " could not be opened." << std::endl;
     }
-    glinc::addIncludeSrc("rng_tables.comp", src);
+    glinc::addIncludeSrc("rng_tables.glsl", src);
     delete[] src;
 
     // Create shader
     gaussRng_cs = glCreateShader(GL_COMPUTE_SHADER);
-    if (!readShaderSrc(SHADER_PATH "gauss_rng.comp", &src, &len)) {
-      std::cerr << SHADER_PATH "gauss_rng.comp" << "could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "gen_cluster/rng_gauss.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "gen_cluster/rng_gauss.comp" << "could not be opened." << std::endl;
       throw;
     }
     char* src_ = glinc::insertIncludes(src);
     int len_ = strlen(src_);
-    writeShaderSrc(TMP_PATH "gauss_rng.comp", src_, len_);
+    writeShaderSrc(TMP_PATH "rng_gauss.comp", src_, len_);
     glShaderSource(gaussRng_cs, 1, &src_, &len_);
     delete[] src;
 
@@ -760,8 +910,8 @@ namespace sl {
 
     // Create shader
     clusterPos_cs = glCreateShader(GL_COMPUTE_SHADER);
-    if (!readShaderSrc(SHADER_PATH "clusterpos.comp", &src, &len)) {
-      std::cerr << SHADER_PATH "clusterpos.comp" << "could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "gen_cluster/clusterpos.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "gen_cluster/clusterpos.comp" << "could not be opened." << std::endl;
       throw;
     }
     glShaderSource(clusterPos_cs, 1, &src, &len);
@@ -807,8 +957,8 @@ namespace sl {
 
     // Create shader
     clusterCol_cs = glCreateShader(GL_COMPUTE_SHADER);
-    if (!readShaderSrc(SHADER_PATH "clustercol.comp", &src, &len)) {
-      std::cerr << SHADER_PATH "clustercol.comp" << "could not be opened." << std::endl;
+    if (!readShaderSrc(SHADER_PATH "gen_cluster/clustercol.comp", &src, &len)) {
+      std::cerr << SHADER_PATH "gen_cluster/clustercol.comp" << "could not be opened." << std::endl;
       throw;
     }
     glShaderSource(clusterCol_cs, 1, &src, &len);
