@@ -1,3 +1,6 @@
+#ifndef RNG_MWC_SKIP_GLSL
+#define RNG_MWC_SKIP_GLSL
+
 uvec2 MWC_AddMod64(uvec2 a, uvec2 b, uvec2 M) {
   uvec2 v = uint64_add(a, b);
   if (uint64_isGreaterOrEqual(v, M) || uint64_isSmaller(v, a))
@@ -51,3 +54,5 @@ uvec2 MWC_SeedImpl_Mod64(uvec2 A, uvec2 M, uint vecSize, uint vecOffset, uvec2 s
   uint64_div_mod(x, A, quot, rem);
   return uvec2(uint64_toUint(quot), uint64_toUint(rem));
 }
+
+#endif

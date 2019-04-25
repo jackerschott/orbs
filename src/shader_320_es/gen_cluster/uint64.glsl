@@ -1,3 +1,6 @@
+#ifndef UINT64_GLSL
+#define UINT64_GLSL
+
 #define UINT64_ZERO uvec2(0U, 0U)
 #define UINT64_ONE uvec2(0U, 1U)
 
@@ -161,3 +164,5 @@ bool uint64_toBool(uvec2 a) {
 uint uint64_toUint(uvec2 a) {
   return a.y;
 }
+
+#endif

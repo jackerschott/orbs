@@ -2,9 +2,9 @@
 
 #define UINT_MAX 0xFFFFFFFFU
 
-#include "uint64.comp"
-#include "skip_mwc.comp"
-#include "mwc64x_rng.comp"
+#include "uint64.glsl"
+#include "rng_mwc_skip.glsl"
+#include "rng_mwc64x.glsl"
 
 layout(location = 0) uniform uint nSamples;
 layout(location = 1) uniform uvec2 off;
