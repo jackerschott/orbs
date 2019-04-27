@@ -48,9 +48,9 @@ mainWindow::~mainWindow() {
   delete ui;
 }
 void mainWindow::onWglRenderInitialized() {
-  uint nParticles = 100000;
-  float a = 15.0f;
-  float b = 10.0f;
+  uint nParticles = 1000000;
+  float a = 20.0f;
+  float b = 15.0f;
   float nx = 1.0f;
   float ny = -1.0f;
   float nz = 1.0f;
@@ -59,7 +59,7 @@ void mainWindow::onWglRenderInitialized() {
 
   glm::vec3 n = { nx, ny, nz };
   color palette[] = {
-    { 1.00f, 0.50f, 0.00f, 0.3f }
+    { 1.00f, 0.50f, 0.00f, 0.1f }
   };
   float blurSizes[] = {
     1.00f

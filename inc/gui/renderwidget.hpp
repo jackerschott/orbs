@@ -5,7 +5,7 @@
 #include <QtWidgets/qopenglwidget.h> 
 #include <QtCore/qtimer.h>
 
-#include "simulation_gl_320_es.hpp"
+#include "simulation.hpp"
 
 class renderWidget : public QOpenGLWidget {
   Q_OBJECT

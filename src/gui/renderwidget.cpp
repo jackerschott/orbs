@@ -89,8 +89,9 @@ void renderWidget::updateObjects() {
   double t = std::chrono::duration_cast<std::chrono::nanoseconds>(currTime - initTime).count() / 1.0e9;
   // TODO: Use t
 
-  double phi = 2.0 * M_PI * t / 60.0;
-  double theta = M_PI_2 + sin(2.0 * M_PI * t / 30.0);
+  double T = 60.0;
+  double phi = 2.0 * M_PI * t / T;
+  double theta = M_PI_2 + sin(2.0 * M_PI * 2.0 * t / T);
   double r = 30.0;
   observer.pos = {
     r * sin(theta) * cos(phi),
