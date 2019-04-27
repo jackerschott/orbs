@@ -1,11 +1,11 @@
 #ifndef FLOAT_GLSL
 #define FLOAT_GLSL
 
-#define PI      3.141592741
-#define PI2     6.283185482
-#define PI_2    1.570796371
-#define LN2     0.6931471825
-#define SQRT3   1.732050776
+#define PI      3.14159265358979323846
+#define PI2     6.28318530717958647693
+#define PI_2    1.57079632679489661923
+#define LN2     0.69314718055994530942
+#define SQRT3   1.73205080756887729353
 
 void swap(inout float f1, inout float f2);
 float mul_pow2(float f, int p);

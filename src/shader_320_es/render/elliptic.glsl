@@ -47,7 +47,7 @@ vec2 elliptic_f(vec2 phi, vec2 m) {
   }
   else if (phi.x == -PI_2) {
     float sh = sinh(phi.y);
-    float ch = sinh(phi.x);
+    float ch = cosh(phi.y);
 
     vec2 x = C_FROM_REAL(-sh * sh);
     vec2 y = C_ONE - (ch * ch) * m;
@@ -207,8 +207,8 @@ vec2 RJ(vec2 x, vec2 y, vec2 z, vec2 p) {
   float f = 1.0;
   vec2 A = A0;
   vec2 rc_sum = C_ZERO;
-  vec2 d;
-  vec2 e;
+  vec2 d = C_ZERO;
+  vec2 e = C_ZERO;
   bool first = true;
   while (true) {
     if (!first)
@@ -262,8 +262,8 @@ vec2 RD(vec2 x, vec2 y, vec2 z) {
   float f = 1.0;
   vec2 A = A0;
   vec2 rem_sum = C_ZERO;
-  vec2 sz;
-  vec2 z_lda;
+  vec2 sz = C_ZERO;
+  vec2 z_lda = C_ZERO;
   bool first = true;
   while (true) {
     if (!first)
@@ -294,7 +294,7 @@ vec2 RD(vec2 x, vec2 y, vec2 z) {
   vec2 E4 = 3.0 * cmul(XY - ZZ, ZZ);
   vec2 E5 = cmul(XY, cmul(ZZ, Z));
 
-  vec2 res = C_FROM_REAL(24024.0) - 5148.0 * E2 + 4004.0 * E3 + 2457.0 * cmul(E2, E2) - 3276.0 * E4 - 4158.0 * cmul(E2, E3) + 2772.0 * E5;
+  vec2 res = (C_FROM_REAL(24024.0) - 5148.0 * E2 + 4004.0 * E3 + 2457.0 * cmul(E2, E2) - 3276.0 * E4 - 4158.0 * cmul(E2, E3) + 2772.0 * E5) / 24024.0;
   return f * cdiv(res, cmul(csqrt(A), A)) + 3.0 * rem_sum;
 }
 vec2 RC(vec2 x, vec2 y) {
