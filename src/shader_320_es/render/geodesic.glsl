@@ -5,8 +5,8 @@ const float bc = 1.5 * SQRT3;
 const float uc = 2.0 / 3.0;
 
 float impactParam(float u1, float u2, float phi1, float phi2);
-void phi_dphi_2pow(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy);
-void phi_dphi_ext_2pow(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy);
+void phi_dphi(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy);
+void phi_dphi_ext(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy);
 vec2 phi_plus(float u, float b, float u0, float phi0, vec2 R1, vec2 R2, vec2 R3);
 void phi_dphi_db_plus(float u, float b, float u0, float phi0, vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec2 dres);
 vec2 phi_plus_ext(float u, float b, float u0, float phi0, vec2 R1, vec2 R2, vec2 R3);
@@ -24,28 +24,32 @@ float impactParam(float u1, float u2, float phi1, float phi2) {
     if (phi2 < phi1 - psi(u1, bc2, R1, R2, R3).x) {
 
       float x = -1.0;
+      float p2x = 0.5;
       float y, dy;
       for (int i = 0; i < 5; ++i) {
-        phi_dphi_2pow(x, u1, u2, phi1, phi2, bc2, y, dy);
+        phi_dphi(p2x, u1, u2, phi1, phi2, bc2, y, dy);
         float newX = x - y / dy;
         if (newX >= 0.0)
-          x /= 2.0;
+          x *= 0.5;
         else x = newX;
+        p2x = pow(2.0, x);
       }
-      return (1.0 - pow(2.0, x)) * bc2;
+      return (1.0 - p2x) * bc2;
     }
     else {
 
       float x = -1.0;
+      float p2x = 0.5;
       float y, dy;
       for (int i = 0; i < 5; ++i) {
-        phi_dphi_ext_2pow(x, u1, u2, phi1, phi2, bc2, y, dy);
+        phi_dphi_ext(p2x, u1, u2, phi1, phi2, bc2, y, dy);
         float newX = x - y / dy;
         if (newX >= 0.0)
-          x /= 2.0;
+          x *= 0.5;
         else x = newX;
+        p2x = pow(2.0, x);
       }
-      return (bc2 - bc) * pow(2.0, x) + bc;
+      return (bc2 - bc) * p2x + bc;
     }
   }
   else {
@@ -53,25 +57,25 @@ float impactParam(float u1, float u2, float phi1, float phi2) {
   }
 }
 
-void phi_dphi_2pow(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy) {
-  float b = (1.0 - pow(2.0, x)) * bc2;
+void phi_dphi(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy) {
+  float b = (1.0 - x) * bc2;
   vec2 R1, R2, R3;
   roots(b, R1, R2, R3);
 
   vec2 res, dres;
   phi_dphi_db_plus(u2, b, u1, phi1, R1, R2, R3, res, dres);
   y = res.x - phi2;
-  dy = -dres.x * LN2 * pow(2.0, x) * bc2;
+  dy = -dres.x * LN2 * x * bc2;
 }
-void phi_dphi_ext_2pow(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy) {
-  float b = (bc2 - bc) * pow(2.0, x) + bc;
+void phi_dphi_ext(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy) {
+  float b = (bc2 - bc) * x + bc;
   vec2 R1, R2, R3;
   roots(b, R1, R2, R3);
 
   vec2 res, dres;
   phi_dphi_db_plus_ext(u2, b, u1, phi1, R1, R2, R3, res, dres);
   y = res.x - phi2;
-  dy = dres.x * LN2 * pow(2.0, x) * (bc2 - bc);
+  dy = dres.x * LN2 * x * (bc2 - bc);
 }
 
 vec2 phi_plus(float u, float b, float u0, float phi0, vec2 R1, vec2 R2, vec2 R3) {
@@ -117,7 +121,7 @@ vec2 psi(float u, float b, vec2 R1, vec2 R2, vec2 R3) {
   vec2 m = cdiv(R3_R2, R3_R1);
   vec2 F = elliptic_f(phi, m);
 
-  vec2 res = -mul_pow2(cmul_i(cdiv(F, csqrt(R3_R1))), 1);
+  vec2 res = -2.0 * cmul_i(cdiv(F, csqrt(R3_R1)));
   if (b > bc && u > R2.x && u < R3.x) {
     res = -res;
   }
@@ -145,11 +149,11 @@ void psi_dpsi(float u, float b, vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec
   vec2 S1 = cmul_i(cdiv(F, csqrt(R3_R1)));
   vec2 S2 = cmul_i(cdiv(E, csqrt(R3_R1)));
 
-  vec2 T1 = mul_pow2(cdiv(C_FROM_REAL(3.0 - 9.0 * u + mul_pow2(b2 * (u - u * u), 1)), csqrt(C_FROM_REAL(1.0 + b2 * (u - 1.0) * u * u))), 1);
+  vec2 T1 = 2.0 * cdiv(C_FROM_REAL(3.0 - 9.0 * u + 2.0 * b2 * (u - u * u)), csqrt(C_FROM_REAL(1.0 + b2 * (u - 1.0) * u * u)));
   vec2 T2 = 18.0 * S1 / b;
-  vec2 T3 = -mul_pow2(b * (cmul(R1, S1) + cmul(R3_R1, S2)), 2);
+  vec2 T3 = -4.0 * b * (cmul(R1, S1) + cmul(R3_R1, S2));
 
-  res = -mul_pow2(S1, 1);
+  res = -2.0 * S1;
   if (b > bc && u > R2.x && u < R3.x) {
     res = -res;
     T2 = -T2;

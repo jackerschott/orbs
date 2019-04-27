@@ -16,7 +16,6 @@
 #define C_FROM_IMAG(I) vec2(0.0, I)
 
 void swap(inout vec2 z1, inout vec2 z2);
-vec2 mul_pow2(vec2 z, int p);
 vec2 cmul_i(vec2 z);
 vec2 cmul(vec2 z, vec2 w);
 vec2 cdiv(vec2 z, vec2 w);
@@ -33,9 +32,6 @@ vec2 cacos(vec2 z);
 void swap(inout vec2 z1, inout vec2 z2) {
   swap(z1.x, z2.x);
   swap(z1.y, z2.y);
-}
-vec2 mul_pow2(vec2 z, int p) {
-  return vec2(mul_pow2(z.x, p), mul_pow2(z.y, p));
 }
 vec2 cmul_i(vec2 z) {
   return vec2(-z.y, z.x);
@@ -63,27 +59,27 @@ vec2 csqrt(vec2 z) {
   }
   else if (a == 0.0) {
     if (b < 0.0) {
-      float c = sqrt(mul_pow2(-b, -1));
+      float c = sqrt(-0.5 * b);
       return vec2(c, -c);
     }
     else {
-      float c = sqrt(mul_pow2(b, -1));
+      float c = sqrt(0.5 * b);
       return vec2(c, c);
     }
   }
   else {
     float r = sqrt(a * a + b * b);
     if (a >= 0.0) {
-      float u = sqrt(mul_pow2(r + a, 1));
-      return vec2(mul_pow2(u, -1), b / u);
+      float u = sqrt(2.0 * (r + a));
+      return vec2(0.5 * u, b / u);
     }
     else {
-      float u = sqrt(mul_pow2(r - a, 1));
+      float u = sqrt(2.0 * (r - a));
       if (b < 0.0) {
-        return vec2(-b / u, mul_pow2(-u, -1));
+        return vec2(-b / u, -0.5 * u);
       }
       else {
-        return vec2(b / u, mul_pow2(u, -1));
+        return vec2(b / u, 0.5 * u);
       }
     }
   }
@@ -149,7 +145,7 @@ vec2 clog(vec2 z) {
     }
   }
   else {
-    return vec2(mul_pow2(log(a * a + b * b), -1), atan(b, a));
+    return vec2(0.5 * log(a * a + b * b), atan(b, a));
   }
 
   #undef a
