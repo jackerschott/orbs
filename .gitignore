@@ -1,15 +1,13 @@
-# Ignored files created by qmake
-/.qmake.stash
-/Makefile
-/tmp
-/bin
-
 # Ignored files for Visual Studio Code
-/.vscode
+.vscode
 
-# Ignored local files for jackerschott
-/BlackHoleSimulation
-/BlackHoleSimulation-QtFork
-/make.bat
-/qtc.bat
-/.vs
+# Ignored files created by qmake
+.qmake.stash
+Makefile
+
+# Ignored build folders
+tmp
+bin
+
+# Test folder
+test

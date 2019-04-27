@@ -22,21 +22,22 @@ QMAKE_CXXFLAGS += -std=c++17
 
 HEADERS += inc/res.hpp \
            inc/tmeas.hpp \
-           inc/simulation_gl_320_es.hpp \
+           inc/simulation.hpp \
            inc/gui/mainwindow.hpp \
            inc/gui/renderwidget.hpp \
-           inc/glinc/glinc.hpp
+           inc/gl/gl.hpp
 
 SOURCES += src/main.cpp \
-           src/simulation_gl_320_es.cpp \
+           src/simulation.cpp \
            src/tmeas.cpp \
            src/gui/mainwindow.cpp \
            src/gui/renderwidget.cpp \
-           src/glinc/glinc.cpp
+           src/gl/shader.cpp \
+           src/gl/prog.cpp
 
 FORMS += gui/mainwindow.ui
 
 RESOURCES += res/mainwindow.qrc
 
-INCLUDEPATH += ./inc ./inc/gui ./inc/glinc ./tmp
+INCLUDEPATH += ./inc ./inc/gui ./inc/gl ./tmp
 LIBS += -lGLEW -lGL
