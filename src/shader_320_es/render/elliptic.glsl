@@ -1,7 +1,8 @@
 #ifndef ELLIPTIC_GLSL
 #define ELLIPTIC_GLSL
 
-const float r = 1.0e-18;
+const float r = 1.0e-7;//1.0e-18;
+const float r0 = 1.0e-7;//1.0e-10;
 
 vec2 elliptic_k(vec2 m);
 vec2 elliptic_e(vec2 m);
@@ -9,6 +10,7 @@ vec2 elliptic_pi(vec2 m, vec2 n);
 vec2 elliptic_f(vec2 phi, vec2 m);
 vec2 elliptic_e(vec2 phi, vec2 m);
 vec2 elliptic_pi(vec2 phi, vec2 m, vec2 n);
+void elliptic_fe(vec2 phi, vec2 m, out vec2 resF, out vec2 resE);
 vec2 RF(vec2 x, vec2 y, vec2 z);
 vec2 RJ(vec2 x, vec2 y, vec2 z, vec2 p);
 vec2 RD(vec2 x, vec2 y, vec2 z);
@@ -30,7 +32,7 @@ vec2 elliptic_pi(vec2 m, vec2 n) {
   return RF_xy0(y, C_ONE) + cmul(n, RJ(C_ZERO, y, C_ONE, p)) / 3.0;
 }
 vec2 elliptic_f(vec2 phi, vec2 m) {
-  int k = int(floor(0.5f * floor(floor(phi.x / PI_2) + 1.0)));
+  int k = int(floor(0.5 * floor(floor(phi.x / PI_2) + 1.0)));
   vec2 A = C_ZERO;
   if (k != 0) {
     phi = vec2(phi.x - float(k) * PI, phi.y);
@@ -62,7 +64,7 @@ vec2 elliptic_f(vec2 phi, vec2 m) {
   return cmul(s, RF(x, y, C_ONE)) + A;
 }
 vec2 elliptic_e(vec2 phi, vec2 m) {
-  int k = int(floor(0.5f * floor(floor(phi.x / PI_2) + 1.0)));
+  int k = int(floor(0.5 * floor(floor(phi.x / PI_2) + 1.0)));
   vec2 A = C_ZERO;
   if (k != 0) {
     phi = vec2(phi.x - float(k) * PI, phi.y);
@@ -96,7 +98,7 @@ vec2 elliptic_e(vec2 phi, vec2 m) {
   return cmul(s, RF(x, y, C_ONE)) - cmul(cmul(m, s3), RD(x, y, C_ONE)) / 3.0 + A;
 }
 vec2 elliptic_pi(vec2 phi, vec2 m, vec2 n) {
-  int k = int(floor(0.5f * floor(floor(phi.x / PI_2) + 1.0)));
+  int k = int(floor(0.5 * floor(floor(phi.x / PI_2) + 1.0)));
   vec2 A = C_ZERO;
   if (k != 0) {
     phi = vec2(phi.x - float(k) * PI, phi.y);
@@ -134,13 +136,61 @@ vec2 elliptic_pi(vec2 phi, vec2 m, vec2 n) {
   vec2 p = C_ONE - cmul(n, s2);
   return cmul(s, RF(x, y, C_ONE)) + cmul(cmul(n, s3), RJ(x, y, C_ONE, p)) / 3.0 + A;
 }
+void elliptic_fe(vec2 phi, vec2 m, out vec2 resF, out vec2 resE) {
+  int k = int(floor(0.5 * floor(floor(phi.x / PI_2) + 1.0)));
+  vec2 A_k = C_ZERO;
+  vec2 A_e = C_ZERO;
+  if (k != 0) {
+    float k_ = float(k);
+    float k2_ = 2.0 * k_;
+    phi = vec2(phi.x - k_ * PI, phi.y);
+    A_k = k2_ * elliptic_k(m);
+    A_e = k2_ * elliptic_e(m);
+  }
 
+  if (phi.x == PI_2) {
+    float sh = sinh(phi.y);
+    float ch = cosh(phi.y);
+    float ch2 = ch * ch;
+
+    vec2 x = C_FROM_REAL(-sh * sh);
+    vec2 y = C_ONE - ch2 * m;
+    vec2 ch_RF = ch * RF(x, y, C_ONE);
+    resF = ch_RF + A_k;
+    resE = ch_RF - cmul((ch2 * ch) * m, RD(x, y, C_ONE)) / 3.0 + A_e;
+    return;
+  }
+  else if (phi.x == -PI_2) {
+    float sh = sinh(phi.y);
+    float ch = cosh(phi.y);
+    float ch2 = ch * ch;
+
+    vec2 x = C_FROM_REAL(-sh * sh);
+    vec2 y = C_ONE - ch2 * m;
+    vec2 ch_RF = ch * RF(x, y, C_ONE);
+    vec2 F = ch_RF;
+    vec2 E = ch_RF - cmul((ch2 * ch) * m, RD(x, y, C_ONE)) / 3.0;
+    resF = vec2(-F.x, F.y) + A_k;
+    resE = vec2(-E.x, E.y) + A_e;
+    return;
+  }
+
+  vec2 s, c;
+  csincos(phi, s, c);
+  vec2 s2 = cmul(s, s);
+  vec2 s3 = cmul(s2, s);
+  vec2 x = cmul(c, c);
+  vec2 y = C_ONE - cmul(m, cmul(s, s));
+  vec2 s_RF = cmul(s, RF(x, y, C_ONE));
+  resF = s_RF + A_k;
+  resE = s_RF - cmul(cmul(m, s3), RD(x, y, C_ONE)) / 3.0 + A_e;
+}
 vec2 RF(vec2 x, vec2 y, vec2 z) {
   vec2 xn = x;
   vec2 yn = y;
   vec2 zn = z;
   vec2 A0 = (x + y + z) / 3.0;
-  float Q = pow(3.0 * r, -1.0 / 6.0) * sqrt(max(max(cabs2(A0 - x), cabs2(A0 - y)), cabs2(A0 - z)));
+  float Q2 = pow(3.0 * r, -1.0 / 3.0) * max(max(cabs2(A0 - x), cabs2(A0 - y)), cabs2(A0 - z));
 
   float f = 1.0;
   vec2 A = A0;
@@ -150,7 +200,7 @@ vec2 RF(vec2 x, vec2 y, vec2 z) {
     vec2 sz = csqrt(zn);
     vec2 lda = cmul(sx, sy + sz) + cmul(sy, sz);
     A = 0.25 * (A + lda);
-    if (f * f * Q * Q < cabs2(A))
+    if (f * f * Q2 < cabs2(A))
       break;
     xn = 0.25 * (xn + lda);
     yn = 0.25 * (yn + lda);
@@ -160,7 +210,7 @@ vec2 RF(vec2 x, vec2 y, vec2 z) {
 
   vec2 X = f * cdiv(A0 - x, A);
   vec2 Y = f * cdiv(A0 - y, A);
-  vec2 Z = -X - Y;
+  vec2 Z = -(X + Y);
 
   vec2 E_ = cmul(X, Y);
   vec2 E2 = E_ - cmul(Z, Z);
@@ -195,7 +245,7 @@ vec2 RJ(vec2 x, vec2 y, vec2 z, vec2 p) {
   vec2 pn = p;
   vec2 A0 = (x + y + z + 2.0 * p) / 5.0;
   vec2 delta = cmul(cmul(p - x, p - y), p - z);
-  float Q = pow(0.25f * r, -1.0 / 6.0) * sqrt(max(max(cabs2(A0 - x), cabs2(A0 - y)), max(cabs2(A0 - z), cabs2(A0 - p))));
+  float Q = pow(0.25 * r, -1.0 / 6.0) * sqrt(max(max(cabs2(A0 - x), cabs2(A0 - y)), max(cabs2(A0 - z), cabs2(A0 - p))));
 
   float f = 1.0;
   vec2 A = A0;
@@ -211,23 +261,23 @@ vec2 RJ(vec2 x, vec2 y, vec2 z, vec2 p) {
     vec2 sy = csqrt(yn);
     vec2 sz = csqrt(zn);
     vec2 lda = cmul(sx, sy + sz) + cmul(sy, sz);
-    A = 0.25f * (A + lda);
+    A = 0.25 * (A + lda);
     vec2 sp = csqrt(pn);
     d = cmul(cmul(sp + sx, sp + sy), sp + sz);
     e = f * f * f * cdiv(delta, cmul(d, d));
     if (f * f * Q * Q < cabs2(A))
       break;
-    xn = 0.25f * (xn + lda);
-    yn = 0.25f * (yn + lda);
-    zn = 0.25f * (zn + lda);
-    pn = 0.25f * (pn + lda);
-    f *= 0.25f;
+    xn = 0.25 * (xn + lda);
+    yn = 0.25 * (yn + lda);
+    zn = 0.25 * (zn + lda);
+    pn = 0.25 * (pn + lda);
+    f *= 0.25;
   }
 
   vec2 X = f * cdiv(A0 - x, A);
   vec2 Y = f * cdiv(A0 - y, A);
   vec2 Z = f * cdiv(A0 - z, A);
-  vec2 P = 0.5f * (-X - Y - Z);
+  vec2 P = 0.5 * (-X - Y - Z);
 
   vec2 XY = cmul(X, Y);
   vec2 XYZ = cmul(XY, Z);
@@ -250,7 +300,7 @@ vec2 RD(vec2 x, vec2 y, vec2 z) {
   vec2 yn = y;
   vec2 zn = z;
   vec2 A0 = (x + y + 3.0 * z) / 5.0;
-  float Q = pow(0.25f * r, -1.0 / 6.0) * sqrt(max(max(cabs2(A0 - x), cabs2(A0 - y)), cabs2(A0 - z)));
+  float Q2 = pow(0.25 * r, -1.0 / 3.0) * max(max(cabs2(A0 - x), cabs2(A0 - y)), cabs2(A0 - z));
 
   float f = 1.0;
   vec2 A = A0;
@@ -266,14 +316,14 @@ vec2 RD(vec2 x, vec2 y, vec2 z) {
     vec2 sy = csqrt(yn);
     sz = csqrt(zn);
     vec2 lda = cmul(sx, sy + sz) + cmul(sy, sz);
-    A = 0.25f * (A + lda);
-    if (f * f * Q * Q < cabs2(A))
+    A = 0.25 * (A + lda);
+    if (f * f * Q2 < cabs2(A))
       break;
     z_lda = zn + lda;
-    xn = 0.25f * (xn + lda);
-    yn = 0.25f * (yn + lda);
-    zn = 0.25f * z_lda;
-    f *= 0.25f;
+    xn = 0.25 * (xn + lda);
+    yn = 0.25 * (yn + lda);
+    zn = 0.25 * z_lda;
+    f *= 0.25;
   }
 
   vec2 X = f * cdiv(A0 - x, A);
@@ -311,12 +361,12 @@ vec2 RC(vec2 x, vec2 y) {
   vec2 A = A0;
   while (true) {
     vec2 lda = 2.0 * cmul(csqrt(xn), csqrt(yn)) + yn;
-    A = 0.25f * (A + lda);
-    f *= 0.25f;
+    A = 0.25 * (A + lda);
+    f *= 0.25;
     if (f * f * Q * Q < cabs2(A))
       break;
-    xn = 0.25f * (xn + lda);
-    yn = 0.25f * (yn + lda);
+    xn = 0.25 * (xn + lda);
+    yn = 0.25 * (yn + lda);
   }
   vec2 s = f * cdiv(y - A0, A);
   vec2 s2 = cmul(s, s);
@@ -334,28 +384,24 @@ vec2 RG(vec2 x, vec2 y, vec2 z) {
   vec2 t1 = cmul(z, RF(x, y, z));
   vec2 t2 = cmul(cmul(x - z, y - z), RD(x, y, z)) / 3.0;
   vec2 t3 = csqrt(cdiv(cmul(x, y), z));
-  return 0.5f * (t1 - t2 + t3);
+  return 0.5 * (t1 - t2 + t3);
 }
 
 vec2 RF_xy0(vec2 x, vec2 y) {
-  const float r = 1.0e-10;
-
   x = csqrt(x);
   y = csqrt(y);
 
   while (true) {
     vec2 x_ = x;
-    x = 0.5f * (x_ + y);
+    x = 0.5 * (x_ + y);
     y = csqrt(cmul(x_, y));
-    if (cabs2(x - y) < 7.29 * r * cabs2(x))
+    if (cabs2(x - y) < 7.29 * r0 * cabs2(x))
       break;
   }
 
   return cdiv(C_FROM_REAL(PI), x + y);
 }
 vec2 RG_xy0(vec2 x, vec2 y) {
-  const float r = 1.0e-10;
-
   vec2 x0 = csqrt(x);
   vec2 y0 = csqrt(y);
   x = x0;
@@ -369,21 +415,19 @@ vec2 RG_xy0(vec2 x, vec2 y) {
       sum += f * cmul(x_y, x_y);
     else first = false;
     vec2 x_ = x;
-    x = 0.5f * (x_ + y);
+    x = 0.5 * (x_ + y);
     y = csqrt(cmul(x_, y));
     x_y = x - y;
-    if (cabs2(x_y) < 7.29 * r * cabs2(x))
+    if (cabs2(x_y) < 7.29 * r0 * cabs2(x))
       break;
     f *= 2.0;
   }
 
-  vec2 m = 0.5f * (x0 + y0);
+  vec2 m = 0.5 * (x0 + y0);
   vec2 res = cmul(m, m) - sum;
-  return 0.5f * PI * cdiv(res, x + y);
+  return 0.5 * PI * cdiv(res, x + y);
 }
 vec2 RD_0yz(vec2 y, vec2 z) {
-  const float r = 1.0e-10;
-
   vec2 yo = y;
   vec2 zo = z;
   vec2 y0 = csqrt(y);
@@ -399,18 +443,18 @@ vec2 RD_0yz(vec2 y, vec2 z) {
       sum += f * cmul(y_z, y_z);
     else first = false;
     vec2 y_ = y;
-    y = 0.5f * (y_ + z);
+    y = 0.5 * (y_ + z);
     z = csqrt(cmul(y_, z));
     y_z = y - z;
-    if (cabs2(y_z) < 7.29 * r * cabs2(y))
+    if (cabs2(y_z) < 7.29 * r0 * cabs2(y))
       break;
     f = 2.0;
   }
 
-  vec2 m = 0.5f * (y0 + z0);
+  vec2 m = 0.5 * (y0 + z0);
   vec2 RF = cdiv(C_FROM_REAL(PI), y + z);
   vec2 RG = cmul(m, m) - sum;
-  RG = 0.5f * cmul(RG, RF);
+  RG = 0.5 * cmul(RG, RF);
   return 3.0 * cdiv(2.0 * RG - cmul(zo, RF), cmul(zo, yo - zo));
 }
 
