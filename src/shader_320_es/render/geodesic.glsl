@@ -5,6 +5,7 @@ const float bc = 1.5 * SQRT3;
 const float uc = 2.0 / 3.0;
 
 float impactParam(float u1, float u2, float phi1, float phi2);
+vec2 initVector(float b, float u1, float phi1);
 void phi_dphi(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy);
 void phi_dphi_ext(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy);
 vec2 phi_plus(float u, float b, float u0, float phi0, vec2 R1, vec2 R2, vec2 R3);
@@ -55,6 +56,13 @@ float impactParam(float u1, float u2, float phi1, float phi2) {
   else {
 
   }
+}
+vec2 initVector(float b, float u1, float phi1) {
+  float s_phi1 = sin(phi1);
+  float c_phi1 = cos(phi1);
+  float ud1 = sqrt(1.0 / (b * b) + u1 * u1 * (u1 - 1.0));
+  vec2 v = vec2(-u1 * s_phi1 - ud1 * c_phi1, u1 * c_phi1 - ud1 * s_phi1);
+  return normalize(v);
 }
 
 void phi_dphi(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy) {
@@ -139,12 +147,12 @@ void psi_dpsi(float u, float b, vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec
 
   vec2 R3_R1 = R3 - R1;
   vec2 R3_R2 = R3 - R2;
-  vec2 R3_uc = R3 - u_;
+  vec2 R3_u = R3 - u_;
 
-  vec2 phi = casin(csqrt(cdiv(R3_uc, R3_R2)));
+  vec2 phi = casin(csqrt(cdiv(R3_u, R3_R2)));
   vec2 m = cdiv(R3_R2, R3_R1);
-  vec2 F = elliptic_f(phi, m);
-  vec2 E = elliptic_e(phi, m);
+  vec2 F, E;
+  elliptic_fe(phi, m, F, E);
 
   vec2 S1 = cmul_i(cdiv(F, csqrt(R3_R1)));
   vec2 S2 = cmul_i(cdiv(E, csqrt(R3_R1)));
