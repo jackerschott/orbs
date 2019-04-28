@@ -322,6 +322,8 @@ namespace sl {
     // throw;
     /// TEST
     
+    std::cout << "Compute cluster... ";
+
     glFinish();
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     
@@ -442,6 +444,7 @@ namespace sl {
     float dt1 = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() * 1.0e-9;
     float dt2 = std::chrono::duration_cast<std::chrono::nanoseconds>(t3 - t2).count() * 1.0e-9;
     float dt = std::chrono::duration_cast<std::chrono::nanoseconds>(t3 - t1).count() * 1.0e-9;
+    std::cout << "Done" << std::endl;
     std::cout << "Sample computation time for " << nParticles << " particles: " << dt1 << " s" << std::endl;
     std::cout << "Cluster computation time for " << nParticles << " particles: " << dt2 << " s" << std::endl;
     std::cout << "Total computation time for " << nParticles << " particles: " << dt << " s" << std::endl;
@@ -585,7 +588,21 @@ namespace sl {
     glUseProgram(prog_renderCluster->id);
     for (int i = 0; i < (int)glClusterVerts.size(); i++) {
       glBindVertexArray(glClusterVerts[i]);
+
+      glUniform1i(5, 0);
+      glUniform1ui(6, 0);
       glDrawArrays(GL_POINTS, 0, (int)(nClusterVerts[i]));
+
+      glUniform1ui(6, 1);
+      glDrawArrays(GL_POINTS, 0, (int)(nClusterVerts[i]));
+
+      glUniform1ui(5, 1);
+      glUniform1ui(6, 0);
+      glDrawArrays(GL_POINTS, 0, (int)(nClusterVerts[i]));
+
+      glUniform1ui(6, 1);
+      glDrawArrays(GL_POINTS, 0, (int)(nClusterVerts[i]));
+
       glBindVertexArray(0);
     }
     glUseProgram(0);
