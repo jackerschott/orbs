@@ -34,30 +34,28 @@ renderWidget::~renderWidget() {
 }
 
 void renderWidget::initializeGL() {
-  float rs = 1.0f;
-
   double phi = 0.0;
   double theta = M_PI_2;
   double r = 30.0;
-  observer.pos = {
+
+  glm::vec3 pos = {
     r * sin(theta) * cos(phi),
     r * sin(theta) * sin(phi),
     r * cos(theta)
   };
-  // observer.pos = { 0.0f, 0.0f, 30.0f };
-  observer.lookDir = -observer.pos;
-  observer.upDir = { 0.0f, 1.0f, 0.0f };
-  observer.fov = glm::radians(60.0f);
-  observer.aspect = float(width()) / float(height());
-  observer.zNear = 0.1f;
-  observer.zFar = 100.0f;
+  glm::vec3 upDir = { 0.0f, 0.0f, 1.0f };
+  float aspect = float(width()) / float(height());
 
   QImage bgTex = QImage(":/textures/star_space_map_e.jpg");
+  std::vector<char> bgTexData(bgTex.bits(), bgTex.bits() + bgTex.sizeInBytes());
 
-  sl::init(rs);
-  sl::setBackgroundTex(bgTex.sizeInBytes(), bgTex.bits(), bgTex.width(), bgTex.height(), bgTex.pixelFormat().bitsPerPixel() / 8);
-  sl::setObserverCamera(observer);
-  
+  sl::init();
+  sl::setBackgroundTex(bgTex.width(), bgTex.height(), &bgTexData);
+  sl::setCamera(pos, -pos, upDir, glm::radians(60.0f), aspect, 0.1f, 100.0f);
+
+  sl::updateBackgroundTex();
+  sl::updateCamera();
+
   timer = new QTimer();
   timer->setInterval(10);
   connect(timer, &QTimer::timeout, this, &renderWidget::updateObjects);
@@ -71,7 +69,8 @@ void renderWidget::initializeGL() {
 }
 
 void renderWidget::resizeGL(int w, int h) {
-  sl::setObserverCameraAspect(float(w) / float(h));
+  sl::setCameraAspect(float(w) / float(h));
+  sl::updateCamera();
 }
 void renderWidget::paintGL() {
   setTimeMeasPoint();
@@ -93,15 +92,15 @@ void renderWidget::updateObjects() {
   double phi = 2.0 * M_PI * t / T;
   double theta = M_PI_2 + sin(2.0 * M_PI * 2.0 * t / T);
   double r = 30.0;
-  observer.pos = {
+  glm::vec3 pos = {
     r * sin(theta) * cos(phi),
     r * sin(theta) * sin(phi),
     r * cos(theta)
   };
-  observer.lookDir = -observer.pos;
-  observer.upDir = glm::vec3(0.0, 0.0, 1.0);
 
-  sl::moveObserverCamera(observer.pos, observer.lookDir, observer.upDir);
+  sl::setCameraPos(pos);
+  sl::setCameraLookDir(-pos);
+  sl::updateCameraView();
 
   update();
 }

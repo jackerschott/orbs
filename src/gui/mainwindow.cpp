@@ -48,7 +48,7 @@ mainWindow::~mainWindow() {
   delete ui;
 }
 void mainWindow::onWglRenderInitialized() {
-  uint nParticles = 1000000;
+  uint nParticles = 250000;
   float a = 20.0f;
   float b = 15.0f;
   float nx = 1.0f;
@@ -58,15 +58,17 @@ void mainWindow::onWglRenderInitialized() {
   float dz = 0.5f;
 
   glm::vec3 n = { nx, ny, nz };
-  color palette[] = {
-    { 1.00f, 0.50f, 0.00f, 0.1f }
+  std::vector<glm::vec4> palette = {
+    { 1.00f, 0.30f, 0.00f, 0.1f }
   };
-  float blurSizes[] = {
+  std::vector<float> blurSizes = {
     1.00f
   };
 
   ui->wglRender->makeCurrent();
-  sl::createEllipticCluster(nParticles, a, b, n, dr, dz, 1, palette, blurSizes);
+  sl::createEllipticCluster(nParticles, a, b, n, dr, dz, palette, blurSizes);
+
+  ui->wglRender->showFullScreen();
 }
 
 // World Property Slots
@@ -109,16 +111,16 @@ void mainWindow::onPbGenClusterClicked() {
   }
 
   glm::vec3 n = { nx, ny, nz };
-  color palette[] = {
+  std::vector<glm::vec4> palette = {
     { clusterColor.red() / float(CHAR_MAX),
     clusterColor.green() / float(CHAR_MAX),
     clusterColor.blue() / float(CHAR_MAX),
     clusterColor.alpha() / float(CHAR_MAX) }
   };
-  float blurSizes[] = {
+  std::vector<float> blurSizes = {
     1.00f
   };
 
   ui->wglRender->makeCurrent();
-  sl::createEllipticCluster(nParticles, a, b, n, dr, dz, 1, palette, blurSizes);
+  sl::createEllipticCluster(nParticles, a, b, n, dr, dz, palette, blurSizes);
 }
