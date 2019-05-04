@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/textures">
-        <file>star_space_map_e.jpg</file>
+        <file>bg1.jpg</file>
     </qresource>
     <qresource prefix="/styles">
         <file>mainwindow.qss</file>
