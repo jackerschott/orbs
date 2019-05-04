@@ -5,7 +5,8 @@ const float bc = 1.5 * SQRT3;
 const float uc = 2.0 / 3.0;
 
 float impactParam(float u1, float u2, float phi1, float phi2);
-vec2 initVector(float b, float u1, float phi1);
+vec2 b2v(float b, float u1, float phi1);
+float v2b(vec2 v, float u1, float phi1);
 void phi_dphi(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy);
 void phi_dphi_ext(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy);
 vec2 phi_plus(float u, float b, float u0, float phi0, vec2 R1, vec2 R2, vec2 R3);
@@ -23,7 +24,6 @@ float impactParam(float u1, float u2, float phi1, float phi2) {
 
   if (u2 < uc) {
     if (phi2 < phi1 - psi(u1, bc2, R1, R2, R3).x) {
-
       float x = -1.0;
       float p2x = 0.5;
       float y, dy;
@@ -38,7 +38,6 @@ float impactParam(float u1, float u2, float phi1, float phi2) {
       return (1.0 - p2x) * bc2;
     }
     else {
-
       float x = -1.0;
       float p2x = 0.5;
       float y, dy;
@@ -57,12 +56,18 @@ float impactParam(float u1, float u2, float phi1, float phi2) {
 
   }
 }
-vec2 initVector(float b, float u1, float phi1) {
+vec2 b2v(float b, float u1, float phi1) {
   float s_phi1 = sin(phi1);
   float c_phi1 = cos(phi1);
   float ud1 = sqrt(1.0 / (b * b) + u1 * u1 * (u1 - 1.0));
   vec2 v = vec2(-u1 * s_phi1 - ud1 * c_phi1, u1 * c_phi1 - ud1 * s_phi1);
   return normalize(v);
+}
+float v2b(vec2 v, float u1, float phi1) {
+  float s_phi1 = sin(phi1);
+  float c_phi1 = cos(phi1);
+  float ud1 = u1 * (s_phi1 * v.y + c_phi1 * v.x) / (c_phi1 * v.y - s_phi1 * v.x);
+  return 1.0 / sqrt(ud1 * ud1 + u1 * u1 * (1.0 - u1));
 }
 
 void phi_dphi(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy) {
