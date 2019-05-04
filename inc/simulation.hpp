@@ -10,9 +10,7 @@
 #include "res.hpp"
 
 DEF_STANDARD_TYPES
-typedef glm::vec3 vector;
 
-struct color;
 struct camera;
 
 namespace sl {
@@ -21,17 +19,32 @@ namespace sl {
   bool isClosed();
   void setObserverCameraAspect(float aspect);
 
-  void init(float _rs);
+  void init();
 
-  void createEllipticCluster(uint nParticles, float a, float b, vector n, float dr, float dz,
-    uint nColors, color* palette, float* blurSizes);
+  void createEllipticCluster(uint nParticles, float a, float b, glm::vec3 n, float dr, float dz,
+    std::vector<glm::vec4> palette, std::vector<float> blurSizes);
   void clearClusters();
   void selectCluster(int index);
   void deselectClusters();
 
-  void setObserverCamera(camera _observer);
-  void setBackgroundTex(uint sData, byte* data, uint width, uint height, uint bpp);
-  void moveObserverCamera(vector pos, vector lookDir, vector upDir);
+  void setCamera(glm::vec3 pos, glm::vec3 lookDir, glm::vec3 upDir,
+    float fov, float aspect, float zNear, float zFar);
+  void setCameraView(glm::vec3 pos, glm::vec3 lookDir, glm::vec3 upDir);
+  void setCameraPos(glm::vec3 pos);
+  void setCameraLookDir(glm::vec3 lookDir);
+  void setCameraUpDir(glm::vec3 upDir);
+  void setCameraFov(float fov);
+  void setCameraAspect(float aspect);
+  void setCameraZNear(float zNear);
+  void setCameraZFar(float zFar);
+  void updateCamera();
+  void updateCameraView();
+
+  void setBackgroundTex(uint width, uint height, std::vector<char>* data);
+  void setBackgroundTexSize(uint width, uint height);
+  void setBackgroundTexData(std::vector<char>* data);
+  void updateBackgroundTex();
+  void updateBackgroundTexData();
 
   void updateParticlesClassic(float time);
   void updateParticlesRelativistic(float time);
@@ -41,16 +54,10 @@ namespace sl {
   void close();
 }
 
-struct color {
-  float r;
-  float g;
-  float b;
-  float a;
-};
 struct camera {
-  vector pos;
-  vector lookDir;
-  vector upDir;
+  glm::vec3 pos;
+  glm::vec3 lookDir;
+  glm::vec3 upDir;
   float fov;
   float aspect;
   float zNear;
@@ -58,13 +65,10 @@ struct camera {
 };
 
 enum slConfig {
-  CONFIG_CLOSED = 0b000001,
-  CONFIG_INIT = 0b000010,
-  CONFIG_HAS_CAMERA = 0b000100,
-  CONFIG_HAS_BG_TEX = 0b001000,
-  CONFIG_RENDERING = 0b010000,
-
-  CONFIG_INIT_FOR_RENDER = 0b001110
+  CONFIG_CLOSED       = 0b000,
+  CONFIG_INIT         = 0b001,
+  CONFIG_HAS_CAM      = 0b010,
+  CONFIG_HAS_BG_TEX   = 0b100
 };
 
 
