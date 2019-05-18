@@ -5,58 +5,42 @@
 #include "elliptic.glsl"
 #include "geodesic.glsl"
 
-#include "transf.glsl"
-
 precision mediump float;
 
-layout(location = 0) uniform vec4 cPos;
-layout(location = 1) uniform mat4 PV;
+layout(location = 0) uniform mat4 PV;
+layout(location = 1) uniform vec4 c;
 layout(location = 2) uniform bool invert;
 layout(location = 3) uniform uint nLoops;
 
-in vec4 pos;
-in vec4 color;
+in vec4 p;
+in vec4 color_vs;
 
-out vec4 color_;
+out vec4 color_fs;
 out flat int outOfRange;
 
 void main() {
-  // Create rotation matrices to reduce the computations to the xy-plane
-  // R  : Inverse of R_I
-  // R_I : Rotates cPos and pos to the xy-plane
-  mat4 R_I = red_xy(cPos.xyz, pos.xyz, invert);
-  mat4 R = transpose(R_I);
-
-  // Get the xy-plane coordinates
-  vec2 p1 = (R_I * cPos).xy;
-  vec2 p2 = (R_I * pos).xy;
-
-  float r1 = length(p1);
-  float r2 = length(p2);
-  // Do not render points inside the critical radius r/rs = 3/2
+  float r1 = length(c.xyz);
+  float r2 = length(p.xyz);
   if (r1 < 1.5 || r2 < 1.5) {
     outOfRange = 1;
     return;
   }
   float u1 = 1.0 / r1;
   float u2 = 1.0 / r2;
-  float phi1 = atan(p1.y, p1.x);
-  float phi2 = atan(p2.y, p2.x);
+  float phi = acos(dot(c.xyz, p.xyz) * u1 * u2);
+  if (invert)
+    phi = 2.0 * PI - phi;
+  phi += 2.0 * PI * float(nLoops);
 
-  // Make sure phi2 >= phi1 while taking the number of loops into account
-  if (phi1 > phi2) {
-    phi2 += float(nLoops + 1u) * PI2;
-  }
-  else {
-    phi2 += float(nLoops) * PI2;
-  }
+  float b = impactParam(u1, u2, phi);
+  vec2 v = b2v(b, u1, 0.0);
+  if (invert)
+    v = vec2(v.x, -v.y);
   
-  // Compute the characterizing parameter of the geodesic
-  float b = impactParam(u1, u2, phi1, phi2);
-  vec2 v = b2v(b, u1, phi1);
-
-  // Position the output point in front of the camera in the direction of v, rotate it back and apply the projection
-  gl_Position = PV * R * vec4(p1 + v, 0.0, 1.0);
-  color_ = color;
+  vec3 e1 = normalize(c.xyz);
+  vec3 e2 = normalize(p.xyz - dot(p.xyz, e1) * e1);
+  vec3 look = v.x * e1 + v.y * e2;
+  gl_Position = PV * vec4(c.xyz + look, 1.0);
+  color_fs = color_vs;
   outOfRange = 0;
 }
