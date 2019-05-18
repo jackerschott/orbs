@@ -4,31 +4,31 @@
 const float bc = 1.5 * SQRT3;
 const float uc = 2.0 / 3.0;
 
-float impactParam(float u1, float u2, float phi1, float phi2);
+float impactParam(float u1, float u2, float dphi);
 vec2 b2v(float b, float u1, float phi1);
 float v2b(vec2 v, float u1, float phi1);
-void phi_dphi(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy);
-void phi_dphi_ext(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy);
-vec2 phi_plus(float u, float b, float u0, float phi0, vec2 R1, vec2 R2, vec2 R3);
-void phi_dphi_db_plus(float u, float b, float u0, float phi0, vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec2 dres);
-vec2 phi_plus_ext(float u, float b, float u0, float phi0, vec2 R1, vec2 R2, vec2 R3);
-void phi_dphi_db_plus_ext(float u, float b, float u0, float phi0, vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec2 dres);
+void phi_phid(float x, float u1, float u2, float dphi, float bc2, out float y, out float dy);
+void phi_phid_ext(float x, float u1, float u2, float dphi, float bc2, out float y, out float dy);
+vec2 phi_plus(float u, float b, float u0, vec2 R1, vec2 R2, vec2 R3);
+void phi_phid_bd_plus(float u, float b, float u0, vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec2 dres);
+vec2 phi_plus_ext(float u, float b, float u0, vec2 R1, vec2 R2, vec2 R3);
+void phi_phid_bd_plus_ext(float u, float b, float u0, vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec2 dres);
 vec2 psi(float u, float b, vec2 R1, vec2 R2, vec2 R3);
-void psi_dpsi(float u, float b, vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec2 dres);
+void psi_psid(float u, float b, vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec2 dres);
 void roots(float b, out vec2 R1, out vec2 R2, out vec2 R3);
 
-float impactParam(float u1, float u2, float phi1, float phi2) {
+float impactParam(float u1, float u2, float dphi) {
   float bc2 = 1.0 / sqrt(u2 * u2 * (1.0 - u2));
   vec2 R1, R2, R3;
   roots(bc2, R1, R2, R3);
 
   if (u2 < uc) {
-    if (phi2 < phi1 - psi(u1, bc2, R1, R2, R3).x) {
+    if (dphi < -psi(u1, bc2, R1, R2, R3).x) {
       float x = -1.0;
       float p2x = 0.5;
       float y, dy;
       for (int i = 0; i < 5; ++i) {
-        phi_dphi(p2x, u1, u2, phi1, phi2, bc2, y, dy);
+        phi_phid(p2x, u1, u2, dphi, bc2, y, dy);
         float newX = x - y / dy;
         if (newX >= 0.0)
           x *= 0.5;
@@ -42,7 +42,7 @@ float impactParam(float u1, float u2, float phi1, float phi2) {
       float p2x = 0.5;
       float y, dy;
       for (int i = 0; i < 5; ++i) {
-        phi_dphi_ext(p2x, u1, u2, phi1, phi2, bc2, y, dy);
+        phi_phid_ext(p2x, u1, u2, dphi, bc2, y, dy);
         float newX = x - y / dy;
         if (newX >= 0.0)
           x *= 0.5;
@@ -70,53 +70,53 @@ float v2b(vec2 v, float u1, float phi1) {
   return 1.0 / sqrt(ud1 * ud1 + u1 * u1 * (1.0 - u1));
 }
 
-void phi_dphi(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy) {
+void phi_phid(float x, float u1, float u2, float dphi, float bc2, out float y, out float dy) {
   float b = (1.0 - x) * bc2;
   vec2 R1, R2, R3;
   roots(b, R1, R2, R3);
 
   vec2 res, dres;
-  phi_dphi_db_plus(u2, b, u1, phi1, R1, R2, R3, res, dres);
-  y = res.x - phi2;
+  phi_phid_bd_plus(u2, b, u1, R1, R2, R3, res, dres);
+  y = res.x - dphi;
   dy = -dres.x * LN2 * x * bc2;
 }
-void phi_dphi_ext(float x, float u1, float u2, float phi1, float phi2, float bc2, out float y, out float dy) {
+void phi_phid_ext(float x, float u1, float u2, float dphi, float bc2, out float y, out float dy) {
   float b = (bc2 - bc) * x + bc;
   vec2 R1, R2, R3;
   roots(b, R1, R2, R3);
 
   vec2 res, dres;
-  phi_dphi_db_plus_ext(u2, b, u1, phi1, R1, R2, R3, res, dres);
-  y = res.x - phi2;
+  phi_phid_bd_plus_ext(u2, b, u1, R1, R2, R3, res, dres);
+  y = res.x - dphi;
   dy = dres.x * LN2 * x * (bc2 - bc);
 }
 
 vec2 phi_plus(float u, float b, float u0, float phi0, vec2 R1, vec2 R2, vec2 R3) {
-  return phi0 + psi(u, b, R1, R2, R3) - psi(u0, b, R1, R2, R3);
+  return psi(u, b, R1, R2, R3) - psi(u0, b, R1, R2, R3);
 }
-void phi_dphi_db_plus(float u, float b, float u0, float phi0, vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec2 dres) {
+void phi_phid_bd_plus(float u, float b, float u0, vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec2 dres) {
   if (b == 0.0) {
-    res = C_FROM_REAL(phi0);
+    res = C_ZERO;
     dres = C_ZERO;
     return;
   }
   vec2 psi1, dpsi1, psi2, dpsi2;
-  psi_dpsi(u0, b, R1, R2, R3, psi1, dpsi1);
-  psi_dpsi(u, b, R1, R2, R3, psi2, dpsi2);
+  psi_psid(u0, b, R1, R2, R3, psi1, dpsi1);
+  psi_psid(u, b, R1, R2, R3, psi2, dpsi2);
   
-  res = phi0 + psi2 - psi1;
+  res = psi2 - psi1;
   dres = dpsi2 - dpsi1;
 }
-vec2 phi_plus_ext(float u, float b, float u0, float phi0, vec2 R1, vec2 R2, vec2 R3) {
-  return phi0 - psi(u0, b, R1, R2, R3) - psi(u, b, R1, R2, R3);
+vec2 phi_plus_ext(float u, float b, float u0, vec2 R1, vec2 R2, vec2 R3) {
+  return -psi(u0, b, R1, R2, R3) - psi(u, b, R1, R2, R3);
 }
-void phi_dphi_db_plus_ext(float u, float b, float u0, float phi0,
+void phi_phid_bd_plus_ext(float u, float b, float u0,
   vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec2 dres) {
   vec2 psi1, dpsi1, psi2, dpsi2;
-  psi_dpsi(u0, b, R1, R2, R3, psi1, dpsi1);
-  psi_dpsi(u, b, R1, R2, R3, psi2, dpsi2);
+  psi_psid(u0, b, R1, R2, R3, psi1, dpsi1);
+  psi_psid(u, b, R1, R2, R3, psi2, dpsi2);
   
-  res = phi0 - psi1 - psi2;
+  res = -psi1 - psi2;
   dres = -dpsi1 - dpsi2;
 }
 
@@ -140,7 +140,7 @@ vec2 psi(float u, float b, vec2 R1, vec2 R2, vec2 R3) {
   }
   return res;
 }
-void psi_dpsi(float u, float b, vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec2 dres) {
+void psi_psid(float u, float b, vec2 R1, vec2 R2, vec2 R3, out vec2 res, out vec2 dres) {
   if (b == 0.0) {
     res = C_ZERO;
     dres = vec2(-1.0 / 0.0, -1.0 / 0.0);
