@@ -5,11 +5,9 @@
 #include <iostream>
 #include <string>
 
-#include "tmeas.hpp"
 #include "renderwidget.hpp"
 
 RenderWidget::RenderWidget(QWidget* parent) : QOpenGLWidget(parent) {
-  // format.setRenderableType(QSurfaceFormat::RenderableType::OpenGLES);
   format.setVersion(3, 2);
   format.setProfile(QSurfaceFormat::CoreProfile);
   format.setDepthBufferSize(24);

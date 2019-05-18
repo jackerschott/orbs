@@ -24,9 +24,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::winMai
   clusterColorFill->fill(clusterColor);
   ui->lbEcColorDisplay->setPixmap(*clusterColorFill);
 
-  //std::string styleSheetSrc;
-  //loadFile(INSTALL_PATH "res/mainwindow.qss", &styleSheetSrc);
-  //setStyleSheet(QString(styleSheetSrc.c_str()));
+  // std::string styleSheetSrc;
+  // loadFile(INSTALL_PATH "res/mainwindow.qss", &styleSheetSrc);
+  // setStyleSheet(QString(styleSheetSrc.c_str()));
 
   QPixmap thumbnail1 = QPixmap(":/textures/bg1.jpg");
   ui->lbBgPreset1->setPixmap(thumbnail1.scaled(ui->lbBgPreset1->width(), ui->lbBgPreset1->height(), Qt::KeepAspectRatioByExpanding));
