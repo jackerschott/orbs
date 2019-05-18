@@ -18,19 +18,15 @@
 // This improvisational install path is only working if the binary is executed from workspace/project folder!
 #define INSTALL_PATH "./"
 #define SHADER_PATH INSTALL_PATH "src/shader/"
-#define TMP_PATH INSTALL_PATH "tmp/"
 
 namespace sl {
   // GPU Programs
-  gl::program* prog_bgmesh;
   gl::program* prog_rngUniform;
   gl::program* prog_rngGauss;
   gl::program* prog_clusterpos;
   gl::program* prog_clustercol;
-  gl::program* prog_genBgTex;
   gl::program* prog_renderBg;
   gl::program* prog_renderCluster;
-  gl::program* prog_test;
 
   // Cluster data
   int sCluster = -1;
@@ -124,19 +120,14 @@ namespace sl {
     vs_renderCluster.setIncludeSrc("complex.glsl", SHADER_PATH "geodesic/complex.glsl");
     vs_renderCluster.setIncludeSrc("elliptic.glsl", SHADER_PATH "geodesic/elliptic.glsl");
     vs_renderCluster.setIncludeSrc("geodesic.glsl", SHADER_PATH "geodesic/geodesic.glsl");
-    vs_renderCluster.setIncludeSrc("transf.glsl", SHADER_PATH "lib/transf.glsl");
     gl::shader fs_renderCluster(GL_FRAGMENT_SHADER, SHADER_PATH "cluster/cluster.frag");
-    gl::shader cs_genBgTex(GL_COMPUTE_SHADER, SHADER_PATH "bg/bg.comp");
-    cs_genBgTex.setIncludeSrc("math.glsl", SHADER_PATH "lib/math.glsl");
-    cs_genBgTex.setIncludeSrc("complex.glsl", SHADER_PATH "geodesic/complex.glsl");
-    cs_genBgTex.setIncludeSrc("elliptic.glsl", SHADER_PATH "geodesic/elliptic.glsl");
-    cs_genBgTex.setIncludeSrc("geodesic.glsl", SHADER_PATH "geodesic/geodesic.glsl");
-    cs_genBgTex.setIncludeSrc("transf.glsl", SHADER_PATH "lib/transf.glsl");
     gl::shader vs_renderBg(GL_VERTEX_SHADER, SHADER_PATH "bg/bg.vert");
     gl::shader fs_renderBg(GL_FRAGMENT_SHADER, SHADER_PATH "bg/bg.frag");
-
-    // // Test shader
-    // gl::shader cs_test(GL_COMPUTE_SHADER, SHADER_PATH "test/test.comp");
+    fs_renderBg.setIncludeSrc("math.glsl", SHADER_PATH "lib/math.glsl");
+    fs_renderBg.setIncludeSrc("complex.glsl", SHADER_PATH "geodesic/complex.glsl");
+    fs_renderBg.setIncludeSrc("elliptic.glsl", SHADER_PATH "geodesic/elliptic.glsl");
+    fs_renderBg.setIncludeSrc("geodesic.glsl", SHADER_PATH "geodesic/geodesic.glsl");
+    fs_renderBg.setIncludeSrc("transf.glsl", SHADER_PATH "lib/transf.glsl");
 
     // Build programs
     std::string log;
@@ -186,14 +177,6 @@ namespace sl {
       std::cerr << log << std::endl;
       throw;
     }
-    prog_genBgTex = new gl::program();
-    prog_genBgTex->attachShader(cs_genBgTex);
-    if (!prog_genBgTex->build(&log)) {
-      std::cerr << "Background texture generation program" << std::endl;
-      std::cerr << "═════════════════════════════════════" << std::endl;
-      std::cerr << log << std::endl;
-      throw;
-    }
     prog_renderBg = new gl::program();
     prog_renderBg->attachShader(vs_renderBg);
     prog_renderBg->attachShader(fs_renderBg);
@@ -203,15 +186,6 @@ namespace sl {
       std::cerr << log << std::endl;
       throw;
     }
-
-    // // Test program
-    // prog_test = new gl::program();
-    // prog_test->attachShader(cs_test);
-    // if (!prog_test->build(&log)) {
-    //   std::cerr << "Test program" << std::endl;
-    //   std::cerr << log << std::endl;
-    //   throw;
-    // }
 
     // Initialize Background rendering Buffers
     glGenVertexArrays(1, &glBgVerts);
@@ -248,16 +222,31 @@ namespace sl {
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glGenTextures(1, &glBgRenderTex);
-    glBindTexture(GL_TEXTURE_2D, glBgRenderTex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
     config = CONFIG_INIT;
   }
 
+  glm::vec3 getCameraPos() {
+    assert(isInit());
+    return cam.pos;
+  }
+  glm::vec3 getCameraLookDir() {
+    return cam.lookDir;
+  }
+  glm::vec3 getCameraUpDir() {
+    return cam.upDir;
+  }
+  float getCameraFov() {
+    return cam.fov;
+  }
+  float getCameraAspect() {
+    return cam.aspect;
+  }
+  float getCameraZNear() {
+    return cam.zNear;
+  }
+  float getCameraZFar() {
+    return cam.zFar;
+  }
   void setCamera(glm::vec3 pos, glm::vec3 lookDir, glm::vec3 upDir,
     float fov, float aspect, float zNear, float zFar) {
     assert(isInit());
@@ -269,11 +258,10 @@ namespace sl {
     setCameraZNear(zNear);
     setCameraZFar(zFar);
   }
-  void setCameraView(glm::vec3 pos, glm::vec3 lookDir, glm::vec3 upDir) {
+  void setCameraView(glm::vec3 pos, glm::vec3 lookDir) {
     assert(isInit());
     setCameraPos(pos);
     setCameraLookDir(lookDir);
-    setCameraUpDir(upDir);
   }
   void setCameraPos(glm::vec3 pos) {
     assert(isInit());
@@ -321,15 +309,15 @@ namespace sl {
     V = glm::lookAt(cam.pos, cam.pos + cam.lookDir, cam.upDir);
     glm::mat4 PV = P * V;
 
-    glUseProgram(prog_genBgTex->id);
+    glUseProgram(prog_renderBg->id);
     glUniform4fv(0, 1, &cam.pos[0]);
     glUniformMatrix2fv(1, 1, false, &P_I[0][0]);
     glUniformMatrix4fv(2, 1, true, &V[0][0]);
     glUseProgram(0);
 
     glUseProgram(prog_renderCluster->id);
-    glUniform4fv(0, 1, &cam.pos[0]);
-    glUniformMatrix4fv(1, 1, false, &PV[0][0]);
+    glUniformMatrix4fv(0, 1, false, &PV[0][0]);
+    glUniform4fv(1, 1, &cam.pos[0]);
     glUseProgram(0);
 
     if (!hasCamera())
@@ -356,9 +344,6 @@ namespace sl {
     // Set background texture to passed image
     glBindTexture(GL_TEXTURE_2D, glBgTex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, bgTexWidth, bgTexHeight, 0, GL_BGRA, GL_UNSIGNED_BYTE, bgTexData->data());
-    
-    glBindTexture(GL_TEXTURE_2D, glBgRenderTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1920, 1080, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
     config = (slConfig)(config | CONFIG_HAS_BG_TEX);
   }
@@ -373,22 +358,11 @@ namespace sl {
   void renderClassic() {
     assert(isInit() && hasCamera() && hasBgTex());
 
-    // Generate texture to render
-    glUseProgram(prog_genBgTex->id);
-    glUniform2ui(3, bgTexWidth, bgTexHeight);
-    glUniform1i(4, 0);
-    glBindImageTexture(0, glBgTex, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glUniform1i(5, 1);
-    glBindImageTexture(1, glBgRenderTex, 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-    glDispatchCompute(1920 / 8, 1080 / 8, 1);
-    glMemoryBarrier(GL_ALL_BARRIER_BITS);
-    glUseProgram(0);
-
     glUseProgram(prog_renderBg->id);
     glBindVertexArray(glBgVerts);
     
     // Bind texture
-    glBindTexture(GL_TEXTURE_2D, glBgRenderTex);
+    glBindTexture(GL_TEXTURE_2D, glBgTex);
 
     // Render Background
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
@@ -420,99 +394,10 @@ namespace sl {
 
     glFinish();
   }
-  void renderRelativistic() {
-
-  }
-
-  void updateParticlebgTexWidthsic(UNUSED float time) {
-
-  }
-  void updateParticlebgTexWidthtivistic(UNUSED float time) {
-    
-  }
 
   void createEllipticCluster(uint nParticles, float a, float b, glm::vec3 n, float dr, float dz,
     std::vector<glm::vec4> palette, std::vector<float> blurSizes) {
-    
-    /// TEST
-    // #define N 1000
-    // float bVals[N];
-    // for (int i = 0; i < N; ++i) {
-    //   bVals[i] = 0.001f + (10.0f - 0.001f) * float(i) / float(N - 1);
-    // }
-
-    // GLuint bBuf;
-    // GLuint phi1Buf;
-    // GLuint dphi1Buf;
-    // GLuint phi2Buf;
-    // GLuint dphi2Buf;
-    // glGenBuffers(1, &bBuf);
-    // glGenBuffers(1, &phi1Buf);
-    // glGenBuffers(1, &dphi1Buf);
-    // glGenBuffers(1, &phi2Buf);
-    // glGenBuffers(1, &dphi2Buf);
-    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, bBuf);
-    // glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(bVals), bVals, GL_STREAM_READ);
-    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, phi1Buf);
-    // glBufferData(GL_SHADER_STORAGE_BUFFER, N * sizeof(glm::vec2), NULL, GL_STREAM_READ);
-    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, dphi1Buf);
-    // glBufferData(GL_SHADER_STORAGE_BUFFER, N * sizeof(glm::vec2), NULL, GL_STREAM_READ);
-    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, phi2Buf);
-    // glBufferData(GL_SHADER_STORAGE_BUFFER, N * sizeof(glm::vec2), NULL, GL_STREAM_READ);
-    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, dphi2Buf);
-    // glBufferData(GL_SHADER_STORAGE_BUFFER, N * sizeof(glm::vec2), NULL, GL_STREAM_READ);
-
-    // glUseProgram(test_prog);
-    // glUniform1f(0, 0.0f);
-    // glUniform1f(1, 0.25f);
-    // glUniform1f(2, 0.0f);
-    // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bBuf);
-    // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, phi1Buf);
-    // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, dphi1Buf);
-    // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, phi2Buf);
-    // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, dphi2Buf);
-    // glDispatchCompute(N, 1, 1);
-    // glUseProgram(0);
-
-    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, phi1Buf);
-    // glm::vec2* phi1 = (glm::vec2*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, N * sizeof(glm::vec2), GL_MAP_READ_BIT);
-    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, dphi1Buf);
-    // glm::vec2* dphi1 = (glm::vec2*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, N * sizeof(glm::vec2), GL_MAP_READ_BIT);
-    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, phi2Buf);
-    // glm::vec2* phi2 = (glm::vec2*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, N * sizeof(glm::vec2), GL_MAP_READ_BIT);
-    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, dphi2Buf);
-    // glm::vec2* dphi2 = (glm::vec2*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, N * sizeof(glm::vec2), GL_MAP_READ_BIT);
-
-    // std::ofstream out1;
-    // out1.open("test/samples1.txt");
-    // if (!out1.is_open()) throw;
-    // std::ofstream out2;
-    // out2.open("test/samples2.txt");
-    // if (!out2.is_open()) throw;
-
-    // for (int i = 0; i < N; ++i) {
-    //   out1 << phi1[i].x << "," << phi1[i].y << ";" << dphi1[i].x << "," << dphi1[i].y << std::endl;
-    //   out2 << phi2[i].x << "," << phi2[i].y << ";" << dphi2[i].x << "," << dphi2[i].y << std::endl;
-    // }
-    // throw;
-
-    // GLuint resBuf;
-    // glGenBuffers(1, &resBuf);
-    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, resBuf);
-    // glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::vec2), NULL, GL_STREAM_READ);
-
-    // glUseProgram(test_prog);
-    // glUniform2f(0, float(M_PI_2), 0.4f);
-    // glUniform2f(1, 0.5f, 0.0f);
-    // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, resBuf);
-    // glDispatchCompute(1, 1, 1);
-    // glUseProgram(0);
-
-    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, resBuf);
-    // glm::vec2* res = (glm::vec2*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::vec2), GL_MAP_READ_BIT);
-    // std::cout << res[0].x << " + " << res[0].y << "j" << std::endl;
-    // throw;
-    /// TEST
+    assert(isInit());
     
     std::cout << "Compute cluster... ";
 
