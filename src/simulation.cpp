@@ -127,7 +127,6 @@ namespace sl {
     fs_renderBg.setIncludeSrc("complex.glsl", SHADER_PATH "geodesic/complex.glsl");
     fs_renderBg.setIncludeSrc("elliptic.glsl", SHADER_PATH "geodesic/elliptic.glsl");
     fs_renderBg.setIncludeSrc("geodesic.glsl", SHADER_PATH "geodesic/geodesic.glsl");
-    fs_renderBg.setIncludeSrc("transf.glsl", SHADER_PATH "lib/transf.glsl");
 
     // Build programs
     std::string log;

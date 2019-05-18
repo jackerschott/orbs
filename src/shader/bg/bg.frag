@@ -7,8 +7,6 @@ precision mediump float;
 #include "elliptic.glsl"
 #include "geodesic.glsl"
 
-#include "transf.glsl"
-
 layout(location = 0) uniform vec4 c;
 layout(location = 1) uniform mat2 P_I;
 layout(location = 2) uniform mat4 V_I;
