@@ -17,13 +17,14 @@ public:
   virtual ~RenderWidget();
 
   bool isCameraMoving();
-  QPoint getCameraGrabPoint();
+  QPoint getCameraPin();
 
 signals:
   void glInitialized();
 
-public slots:
+public:
   void cameraMove(QPoint mouseVector);
+  void cameraUpdatePin(QPoint pos);
 
 protected:
   void mousePressEvent(QMouseEvent* event) override;
@@ -40,8 +41,9 @@ private:
   const float dotsPerTurn = 2000.0f;
   const float facPerTurn = 10.0f;
   bool cameraIsMoving;
-  QPoint cameraGrabPoint;
-  glm::vec3 cameraGrabPos;
+  QPoint cameraPin;
+  glm::vec3 cameraPinPos;
+  bool cameraIsUpright = true;
 };
 
 #endif
