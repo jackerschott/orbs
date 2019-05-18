@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/textures">
-        <file>bg1.jpg</file>
+        <file>bg2.jpg</file>
     </qresource>
     <qresource prefix="/styles">
         <file>mainwindow.qss</file>
