@@ -17,7 +17,6 @@ namespace sl {
   bool isInit();
   bool isRendering();
   bool isClosed();
-  void setObserverCameraAspect(float aspect);
 
   void init();
 
@@ -27,9 +26,16 @@ namespace sl {
   void selectCluster(int index);
   void deselectClusters();
 
+  glm::vec3 getCameraPos();
+  glm::vec3 getCameraLookDir();
+  glm::vec3 getCameraUpDir();
+  float getCameraFov();
+  float getCameraAspect();
+  float getCameraZNear();
+  float getCameraZFar();
   void setCamera(glm::vec3 pos, glm::vec3 lookDir, glm::vec3 upDir,
     float fov, float aspect, float zNear, float zFar);
-  void setCameraView(glm::vec3 pos, glm::vec3 lookDir, glm::vec3 upDir);
+  void setCameraView(glm::vec3 pos, glm::vec3 lookDir);
   void setCameraPos(glm::vec3 pos);
   void setCameraLookDir(glm::vec3 lookDir);
   void setCameraUpDir(glm::vec3 upDir);
@@ -46,10 +52,7 @@ namespace sl {
   void updateBackgroundTex();
   void updateBackgroundTexData();
 
-  void updateParticlesClassic(float time);
-  void updateParticlesRelativistic(float time);
   void renderClassic();
-  void renderRelativistic();
 
   void close();
 }
