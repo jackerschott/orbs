@@ -2,11 +2,11 @@
 
 precision mediump float;
 
-in vec2 pos;
+in vec2 p;
 
-out vec2 texCoord;
+out vec2 px;
 
 void main() {
-  gl_Position = vec4(pos, 0.0, 1.0);
-  texCoord = 0.5 * (pos + 1.0);
+  gl_Position = vec4(p, 0.0, 1.0);
+  px = p;
 }
