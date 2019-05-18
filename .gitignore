@@ -1,13 +1,16 @@
-# Ignored files for Visual Studio Code
-.vscode
-
-# Ignored files created by qmake
-.qmake.stash
-Makefile
-
-# Ignored build folders
-tmp
+# binaries
 bin
 
-# Test folder
+# objects
+obj
+
+# qmake
+qt
+Makefile
+.qmake.stash
+
+# vs code
+.vscode
+
+# test folder
 test

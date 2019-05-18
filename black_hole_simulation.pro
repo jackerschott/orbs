@@ -8,11 +8,11 @@ CONFIG += debug
 unix:CONFIG += x11
 DEFINES += _DEBUG
 
-DESTDIR = ./bin
-UI_DIR = ./tmp
-MOC_DIR = ./tmp
-RCC_DIR = ./tmp
-OBJECTS_DIR = ./tmp
+DESTDIR = bin
+UI_DIR = qt/ui
+MOC_DIR = qt/moc
+RCC_DIR = qt/rcc
+OBJECTS_DIR = obj
 
 unix:TARGET = black_hole_simulation
 
