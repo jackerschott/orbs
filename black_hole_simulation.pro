@@ -23,15 +23,15 @@ QMAKE_CXXFLAGS += -std=c++17
 HEADERS += inc/res.hpp \
            inc/tmeas.hpp \
            inc/simulation.hpp \
-           inc/gui/mainwindow.hpp \
-           inc/gui/renderwidget.hpp \
+           inc/mainwindow.hpp \
+           inc/renderwidget.hpp \
            inc/gl/gl.hpp
 
 SOURCES += src/main.cpp \
            src/simulation.cpp \
            src/tmeas.cpp \
-           src/gui/mainwindow.cpp \
-           src/gui/renderwidget.cpp \
+           src/mainwindow.cpp \
+           src/renderwidget.cpp \
            src/gl/shader.cpp \
            src/gl/prog.cpp
 
