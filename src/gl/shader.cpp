@@ -100,7 +100,7 @@ namespace gl {
     char log_[0x400];
 
     std::string src_ = insertIncludes(src);
-    writeShaderSrc(("tmp/" + fileName).c_str(), src_);
+    writeShaderSrc(("obj/" + fileName).c_str(), src_);
 
     const char* src__ = src_.c_str();
     int len__ = src_.length();
