@@ -5,6 +5,14 @@
   <property name="windowModality">
    <enum>Qt::ApplicationModal</enum>
   </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>225</width>
+    <height>541</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string>Black hole simulation</string>
   </property>
@@ -25,16 +33,7 @@
     <property name="sizeConstraint">
      <enum>QLayout::SetNoConstraint</enum>
     </property>
-    <property name="leftMargin">
-     <number>0</number>
-    </property>
-    <property name="topMargin">
-     <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>0</number>
-    </property>
-    <property name="bottomMargin">
+    <property name="margin">
      <number>0</number>
     </property>
     <item row="2" column="1">
@@ -52,16 +51,7 @@
        </size>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_7">
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
+       <property name="margin">
         <number>0</number>
        </property>
        <item>
@@ -90,8 +80,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>224</width>
-                <height>452</height>
+                <width>145</width>
+                <height>268</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -230,8 +220,8 @@
                    <rect>
                     <x>0</x>
                     <y>0</y>
-                    <width>224</width>
-                    <height>443</height>
+                    <width>185</width>
+                    <height>531</height>
                    </rect>
                   </property>
                   <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -261,16 +251,7 @@
                       <property name="verticalSpacing">
                        <number>0</number>
                       </property>
-                      <property name="leftMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="rightMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
+                      <property name="margin">
                        <number>0</number>
                       </property>
                       <item row="1" column="0">
@@ -404,7 +385,7 @@
      </widget>
     </item>
     <item row="2" column="0">
-     <widget class="renderWidget" name="wglRender"/>
+     <widget class="RenderWidget" name="wglRender" native="true"/>
     </item>
    </layout>
   </widget>
@@ -413,8 +394,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>687</width>
-     <height>21</height>
+     <width>225</width>
+     <height>31</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -451,8 +432,8 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>renderWidget</class>
-   <extends>QOpenGLWidget</extends>
+   <class>RenderWidget</class>
+   <extends>QWidget</extends>
    <header>../inc/gui/renderwidget.hpp</header>
   </customwidget>
  </customwidgets>
