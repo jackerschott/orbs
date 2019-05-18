@@ -28,7 +28,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::winMai
   // loadFile(INSTALL_PATH "res/mainwindow.qss", &styleSheetSrc);
   // setStyleSheet(QString(styleSheetSrc.c_str()));
 
-  QPixmap thumbnail1 = QPixmap(":/textures/bg1.jpg");
+  QPixmap thumbnail1 = QPixmap(":/textures/bg2.jpg");
   ui->lbBgPreset1->setPixmap(thumbnail1.scaled(ui->lbBgPreset1->width(), ui->lbBgPreset1->height(), Qt::KeepAspectRatioByExpanding));
 
   ui->wBgFromFile->setEnabled(false);
@@ -120,19 +120,13 @@ void MainWindow::mouseMoveEvent(QMouseEvent* event) {
     pos.setX(MOD(pos.x(), viewRect.width()));
     pos.setY(MOD(pos.y(), viewRect.height()));
     cursor().setPos(ui->wglRender->mapToGlobal(pos));
+    ui->wglRender->cameraUpdatePin(pos);
   }
-  ui->wglRender->cameraMove(pos - ui->wglRender->getCameraGrabPoint());
+  ui->wglRender->cameraMove(pos - ui->wglRender->getCameraPin());
 }
 void MainWindow::keyPressEvent(QKeyEvent* event) {
   if (event->key() == Qt::Key_F11) {
-    if (isFullScreen()) {
-      // ui->wglRender->setWindowFlag(Qt::Window, false);
-      // ui->wglRender->show();
-    }
-    else {
-      // ui->wglRender->setWindowFlag(Qt::Window);
-      // ui->wglRender->showFullScreen();
-    }
+    
   }
 }
 

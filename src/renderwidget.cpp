@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <string>
 
 #include "renderwidget.hpp"
@@ -21,15 +22,14 @@ RenderWidget::~RenderWidget() {
 bool RenderWidget::isCameraMoving() {
   return cameraIsMoving;
 }
-QPoint RenderWidget::getCameraGrabPoint() {
-  return cameraGrabPoint;
+QPoint RenderWidget::getCameraPin() {
+  return cameraPin;
 }
 
 // Signals
 void RenderWidget::mousePressEvent(QMouseEvent* event) {
   if (event->button() == Qt::MiddleButton) {
-    cameraGrabPoint = event->pos();
-    cameraGrabPos = sl::getCameraPos();
+    cameraUpdatePin(event->pos());
     cameraIsMoving = true;
   }
 }
@@ -46,17 +46,39 @@ void RenderWidget::wheelEvent(QWheelEvent* event) {
   update();
 }
 
-// Slots
 void RenderWidget::cameraMove(QPoint mouseVector) {
   if (!cameraIsMoving)
     return;
 
-  float r = glm::length(cameraGrabPos);
-  float theta = acosf(cameraGrabPos.z / r);
-  float phi = atan2f(cameraGrabPos.y, cameraGrabPos.x);
+  float r = glm::length(cameraPinPos);
+  float theta = acosf(cameraPinPos.z / r);
+  float phi = atan2f(cameraPinPos.y, cameraPinPos.x);
 
-  theta += -2.0f * M_PIf32 * mouseVector.y() / dotsPerTurn;
-  phi += -2.0f * M_PIf32 * mouseVector.x() / dotsPerTurn;
+  if (cameraIsUpright) {
+    theta += -2.0f * M_PIf32 * mouseVector.y() / dotsPerTurn;
+    phi += -2.0f * M_PIf32 * mouseVector.x() / dotsPerTurn;
+  }
+  else {
+    theta += 2.0f * M_PIf32 * mouseVector.y() / dotsPerTurn;
+    phi += 2.0f * M_PIf32 * mouseVector.x() / dotsPerTurn;
+  }
+
+  #define EPS std::numeric_limits<float>::epsilon()
+  bool thetaOverflow = theta < 0.0f || theta > M_PIf32;
+  if (thetaOverflow) {
+    if (theta < 0.0f)
+      theta = -theta;
+    else if (theta > M_PIf32) {
+      theta = 2.0f * M_PIf32 - theta;
+    }
+    phi += M_PIf32;
+    sl::setCameraUpDir(-sl::getCameraUpDir());
+    cameraIsUpright = sl::getCameraUpDir().z > 0.0;
+  }
+  else {
+    theta = std::clamp(theta, EPS, M_PIf32 - EPS);
+  }
+  
   glm::vec3 pos = {
     r * sinf(theta) * cosf(phi),
     r * sinf(theta) * sinf(phi),
@@ -65,6 +87,13 @@ void RenderWidget::cameraMove(QPoint mouseVector) {
   sl::setCameraView(pos, -pos);
   sl::updateCameraView();
   update();
+
+  if (thetaOverflow)
+    cameraUpdatePin(cameraPin + mouseVector);
+}
+void RenderWidget::cameraUpdatePin(QPoint pos) {
+  cameraPin = pos;
+  cameraPinPos = sl::getCameraPos();
 }
 
 // Events
@@ -74,7 +103,7 @@ void RenderWidget::initializeGL() {
   sl::init();
   
   // Set background
-  QImage bgTex = QImage(":/textures/bg1.jpg");
+  QImage bgTex = QImage(":/textures/bg2.jpg");
   std::vector<char> bgTexData(bgTex.bits(), bgTex.bits() + bgTex.sizeInBytes());
   sl::setBackgroundTex((uint)bgTex.width(), (uint)bgTex.height(), &bgTexData);
 
