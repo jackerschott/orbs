@@ -1,6 +1,7 @@
-#include <QtWidgets/qcolordialog.h>
-#include <QtWidgets/qmessagebox.h>
-#include <QtWidgets/qstyle.h>
+#include <QtGui/QtEvents>
+#include <QtWidgets/QColorDialog>
+#include <QtWidgets/QMessageBox>
+#include <QtWidgets/QStyle>
 
 #include "mainwindow.hpp"
 
@@ -11,9 +12,11 @@ QColor clusterColor = QColor(255, 128, 0, 26);
 QPixmap* clusterColorFill;
 
 // Initialize
-mainWindow::mainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::winMain()) {
+MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::winMain()) {
   ui->setupUi(this);
   setWindowState(Qt::WindowState::WindowMaximized);
+  QApplication::instance()->installEventFilter(this);
+  setMouseTracking(true);
 
   int w = ui->lbEcColorDisplay->width();
   int h = ui->lbEcColorDisplay->height();
@@ -25,65 +28,45 @@ mainWindow::mainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::winMai
   //loadFile(INSTALL_PATH "res/mainwindow.qss", &styleSheetSrc);
   //setStyleSheet(QString(styleSheetSrc.c_str()));
 
-  QPixmap thumbnail1 = QPixmap(":/textures/star_space_map_e.jpg");
+  QPixmap thumbnail1 = QPixmap(":/textures/bg1.jpg");
   ui->lbBgPreset1->setPixmap(thumbnail1.scaled(ui->lbBgPreset1->width(), ui->lbBgPreset1->height(), Qt::KeepAspectRatioByExpanding));
 
   ui->wBgFromFile->setEnabled(false);
 
-  connect(ui->wglRender, &renderWidget::initialized, this, &mainWindow::onWglRenderInitialized);
-  connect(ui->ledRS, &QLineEdit::textEdited, this, &mainWindow::onLedRSTextEdited);
-  connect(ui->rbBgFromPreset, &QRadioButton::toggled, this, &mainWindow::onRbBgFromPresetToggled);
-  connect(ui->rbBgFromFile, &QRadioButton::toggled, this, &mainWindow::onRbBgFromFileToggled);
-  connect(ui->pbEcChooseColor, &QPushButton::clicked, this, &mainWindow::onPbEcChooseColorClicked);
-  connect(ui->pbGenCluster, &QPushButton::clicked, this, &mainWindow::onPbGenClusterClicked);
+  connect(ui->wglRender, &RenderWidget::glInitialized, this, &MainWindow::onWglRenderGlInitialized);
+  connect(ui->ledRS, &QLineEdit::textEdited, this, &MainWindow::onLedRSTextEdited);
+  connect(ui->rbBgFromPreset, &QRadioButton::toggled, this, &MainWindow::onRbBgFromPresetToggled);
+  connect(ui->rbBgFromFile, &QRadioButton::toggled, this, &MainWindow::onRbBgFromFileToggled);
+  connect(ui->pbEcChooseColor, &QPushButton::clicked, this, &MainWindow::onPbEcChooseColorClicked);
+  connect(ui->pbGenCluster, &QPushButton::clicked, this, &MainWindow::onPbGenClusterClicked);
 }
-mainWindow::~mainWindow() {
-  disconnect(ui->pbGenCluster, &QPushButton::clicked, this, &mainWindow::onPbGenClusterClicked);
-  disconnect(ui->rbBgFromFile, &QRadioButton::toggled, this, &mainWindow::onRbBgFromFileToggled);
-  disconnect(ui->rbBgFromPreset, &QRadioButton::toggled, this, &mainWindow::onRbBgFromPresetToggled);
-  disconnect(ui->ledRS, &QLineEdit::textEdited, this, &mainWindow::onLedRSTextEdited);
-  disconnect(ui->wglRender, &renderWidget::initialized, this, &mainWindow::onWglRenderInitialized);
+MainWindow::~MainWindow() {
+  disconnect(ui->pbGenCluster, &QPushButton::clicked, this, &MainWindow::onPbGenClusterClicked);
+  disconnect(ui->rbBgFromFile, &QRadioButton::toggled, this, &MainWindow::onRbBgFromFileToggled);
+  disconnect(ui->rbBgFromPreset, &QRadioButton::toggled, this, &MainWindow::onRbBgFromPresetToggled);
+  disconnect(ui->ledRS, &QLineEdit::textEdited, this, &MainWindow::onLedRSTextEdited);
+  disconnect(ui->wglRender, &RenderWidget::glInitialized, this, &MainWindow::onWglRenderGlInitialized);
 
   delete clusterColorFill;
   delete ui;
 }
-void mainWindow::onWglRenderInitialized() {
-  uint nParticles = 250000;
-  float a = 20.0f;
-  float b = 15.0f;
-  float nx = 1.0f;
-  float ny = -1.0f;
-  float nz = 1.0f;
-  float dr = 1.0f;
-  float dz = 0.5f;
-
-  glm::vec3 n = { nx, ny, nz };
-  std::vector<glm::vec4> palette = {
-    { 1.00f, 0.30f, 0.00f, 0.1f }
-  };
-  std::vector<float> blurSizes = {
-    1.00f
-  };
-
-  ui->wglRender->makeCurrent();
-  sl::createEllipticCluster(nParticles, a, b, n, dr, dz, palette, blurSizes);
-
-  ui->wglRender->showFullScreen();
+void MainWindow::onWglRenderGlInitialized() {
+  
 }
 
 // World Property Slots
-void mainWindow::onLedRSTextEdited(UNUSED const QString& text) {
+void MainWindow::onLedRSTextEdited(UNUSED const QString& text) {
 
 }
-void mainWindow::onRbBgFromPresetToggled(bool checked) {
+void MainWindow::onRbBgFromPresetToggled(bool checked) {
   ui->lbBgPreset1->setEnabled(checked);
 }
-void mainWindow::onRbBgFromFileToggled(bool checked) {
+void MainWindow::onRbBgFromFileToggled(bool checked) {
   ui->wBgFromFile->setEnabled(checked);
 }
 
 // Cluster Property Slots
-void mainWindow::onPbEcChooseColorClicked() {
+void MainWindow::onPbEcChooseColorClicked() {
   clusterColor = QColorDialog::getColor(clusterColor, this, this->windowTitle(),
     QColorDialog::ColorDialogOption::ShowAlphaChannel);
   int w = ui->lbEcColorDisplay->width();
@@ -92,7 +75,7 @@ void mainWindow::onPbEcChooseColorClicked() {
   clusterColorFill->fill(clusterColor);
   ui->lbEcColorDisplay->setPixmap(*clusterColorFill);
 }
-void mainWindow::onPbGenClusterClicked() {
+void MainWindow::onPbGenClusterClicked() {
   bool success;
   QMessageBox errMsgBox(QMessageBox::Icon::Warning, this->windowTitle(), "Error while parsing.", QMessageBox::Ok);
 
@@ -123,4 +106,39 @@ void mainWindow::onPbGenClusterClicked() {
 
   ui->wglRender->makeCurrent();
   sl::createEllipticCluster(nParticles, a, b, n, dr, dz, palette, blurSizes);
+}
+
+void MainWindow::mouseMoveEvent(QMouseEvent* event) {
+  if (!ui->wglRender->isCameraMoving())
+    return;
+
+  QPoint pos = ui->wglRender->mapFromGlobal(event->globalPos());
+  QRect viewRect = ui->wglRender->geometry();
+  viewRect.moveTopLeft(QPoint());
+  if (!ui->wglRender->geometry().contains(pos)) {
+    #define MOD(a, b) (((a) < 0) ? (((a) % (b)) + (b)) : ((a) % (b)))
+    pos.setX(MOD(pos.x(), viewRect.width()));
+    pos.setY(MOD(pos.y(), viewRect.height()));
+    cursor().setPos(ui->wglRender->mapToGlobal(pos));
+  }
+  ui->wglRender->cameraMove(pos - ui->wglRender->getCameraGrabPoint());
+}
+void MainWindow::keyPressEvent(QKeyEvent* event) {
+  if (event->key() == Qt::Key_F11) {
+    if (isFullScreen()) {
+      // ui->wglRender->setWindowFlag(Qt::Window, false);
+      // ui->wglRender->show();
+    }
+    else {
+      // ui->wglRender->setWindowFlag(Qt::Window);
+      // ui->wglRender->showFullScreen();
+    }
+  }
+}
+
+bool MainWindow::eventFilter(UNUSED QObject* object, QEvent* event) {
+  if (event->type() == QEvent::MouseMove) {
+    mouseMoveEvent(static_cast<QMouseEvent*>(event));
+  }
+  return false;
 }
