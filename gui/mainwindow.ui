@@ -434,7 +434,7 @@
   <customwidget>
    <class>RenderWidget</class>
    <extends>QWidget</extends>
-   <header>../inc/gui/renderwidget.hpp</header>
+   <header>renderwidget.hpp</header>
   </customwidget>
  </customwidgets>
  <tabstops>

@@ -21,7 +21,6 @@ unix:QMAKE_LINKER = g++
 QMAKE_CXXFLAGS += -std=c++17
 
 HEADERS += inc/res.hpp \
-           inc/tmeas.hpp \
            inc/simulation.hpp \
            inc/mainwindow.hpp \
            inc/renderwidget.hpp \
@@ -29,7 +28,6 @@ HEADERS += inc/res.hpp \
 
 SOURCES += src/main.cpp \
            src/simulation.cpp \
-           src/tmeas.cpp \
            src/mainwindow.cpp \
            src/renderwidget.cpp \
            src/gl/shader.cpp \
@@ -39,5 +37,5 @@ FORMS += gui/mainwindow.ui
 
 RESOURCES += res/mainwindow.qrc
 
-INCLUDEPATH += ./inc ./inc/gui ./inc/gl ./tmp
+INCLUDEPATH += inc inc/gl tmp
 LIBS += -lGLEW -lGL
