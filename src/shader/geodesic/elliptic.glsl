@@ -3,7 +3,7 @@
 
 #define N_LOOPS_MAX 100
 
-const float r = 1.0e-7; // 1.0e-18;
+const float r = 1.0e-7; // 1.0e-18; // 1.0e-7;
 const float r0 = 1.0e-7; // 1.0e-10;
 
 vec2 elliptic_k(vec2 m);
