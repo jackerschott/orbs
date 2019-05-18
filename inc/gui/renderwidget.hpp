@@ -2,39 +2,46 @@
 #define RENDERWIDGET_HPP
 
 #include <GL/glew.h>
-#include <QtWidgets/qopenglwidget.h> 
-#include <QtCore/qtimer.h>
+
+#include <QtGui/QtEvents>
+#include <QtCore/QTimer>
+#include <QtWidgets/QOpenGLWidget> 
 
 #include "simulation.hpp"
 
-class renderWidget : public QOpenGLWidget {
+class RenderWidget : public QOpenGLWidget {
   Q_OBJECT
 
-private:
-  camera observer;
-  std::chrono::high_resolution_clock::time_point initTime;
-  std::chrono::high_resolution_clock::time_point currTime;
-
-  QSurfaceFormat format;
-  QOpenGLContext* glMainContext;
-
 public:
-  QTimer* timer;
+  RenderWidget(QWidget* parent = Q_NULLPTR);
+  virtual ~RenderWidget();
 
-public:
-  renderWidget(QWidget* parent = Q_NULLPTR);
-  virtual ~renderWidget();
+  bool isCameraMoving();
+  QPoint getCameraGrabPoint();
+
+signals:
+  void glInitialized();
+
+public slots:
+  void cameraMove(QPoint mouseVector);
 
 protected:
+  void mousePressEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override;
+  void wheelEvent(QWheelEvent* event) override;
+
   void initializeGL() override;
   void resizeGL(int w, int h) override;
   void paintGL() override;
 
-public slots:
-  void updateObjects();
+private:
+  QSurfaceFormat format;
 
-signals:
-  void initialized();
+  const float dotsPerTurn = 2000.0f;
+  const float facPerTurn = 10.0f;
+  bool cameraIsMoving;
+  QPoint cameraGrabPoint;
+  glm::vec3 cameraGrabPos;
 };
 
 #endif

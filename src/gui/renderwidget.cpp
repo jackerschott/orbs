@@ -8,99 +8,112 @@
 #include "tmeas.hpp"
 #include "renderwidget.hpp"
 
-std::vector<double> renderTime;
-
-renderWidget::renderWidget(QWidget* parent) : QOpenGLWidget(parent) {
-  format.setDepthBufferSize(32);
-  format.setStencilBufferSize(8);
-  format.setVersion(3, 1);
+RenderWidget::RenderWidget(QWidget* parent) : QOpenGLWidget(parent) {
+  // format.setRenderableType(QSurfaceFormat::RenderableType::OpenGLES);
+  format.setVersion(3, 2);
   format.setProfile(QSurfaceFormat::CoreProfile);
+  format.setDepthBufferSize(24);
+  format.setStencilBufferSize(8);
   setFormat(format);
 }
-renderWidget::~renderWidget() {
-  glMainContext = context();
-
-  std::vector<double> meanRenderTime;
-  std::vector<double> stdDevMeanRenderTime;
-  evalTimeMeas(&meanRenderTime, &stdDevMeanRenderTime);
-  std::cout << std::endl;
-  std::cout << "Render time: " << meanRenderTime[0] << " +- "
-    << stdDevMeanRenderTime[0] << " s," << "\t\t"
-    << "Frame rate: " << 1.0 / meanRenderTime[0] << " +- "
-    << stdDevMeanRenderTime[0] / (meanRenderTime[0] * meanRenderTime[0]) << " fps" << std::endl;
-  
-  delete timer;
+RenderWidget::~RenderWidget() {
   sl::close();
 }
 
-void renderWidget::initializeGL() {
-  double phi = 0.0;
-  double theta = M_PI_2;
-  double r = 30.0;
-
-  glm::vec3 pos = {
-    r * sin(theta) * cos(phi),
-    r * sin(theta) * sin(phi),
-    r * cos(theta)
-  };
-  glm::vec3 upDir = { 0.0f, 0.0f, 1.0f };
-  float aspect = float(width()) / float(height());
-
-  QImage bgTex = QImage(":/textures/star_space_map_e.jpg");
-  std::vector<char> bgTexData(bgTex.bits(), bgTex.bits() + bgTex.sizeInBytes());
-
-  sl::init();
-  sl::setBackgroundTex(bgTex.width(), bgTex.height(), &bgTexData);
-  sl::setCamera(pos, -pos, upDir, glm::radians(60.0f), aspect, 0.1f, 100.0f);
-
-  sl::updateBackgroundTex();
-  sl::updateCamera();
-
-  timer = new QTimer();
-  timer->setInterval(10);
-  connect(timer, &QTimer::timeout, this, &renderWidget::updateObjects);
-  timer->start();
-  
-  initTimeMeas(true, 2.0);
-
-  initTime = std::chrono::high_resolution_clock::now();
-
-  emit initialized();
+bool RenderWidget::isCameraMoving() {
+  return cameraIsMoving;
+}
+QPoint RenderWidget::getCameraGrabPoint() {
+  return cameraGrabPoint;
 }
 
-void renderWidget::resizeGL(int w, int h) {
+// Signals
+void RenderWidget::mousePressEvent(QMouseEvent* event) {
+  if (event->button() == Qt::MiddleButton) {
+    cameraGrabPoint = event->pos();
+    cameraGrabPos = sl::getCameraPos();
+    cameraIsMoving = true;
+  }
+}
+void RenderWidget::mouseReleaseEvent(QMouseEvent* event) {
+  if (event->button() == Qt::MiddleButton) {
+    cameraIsMoving = false;
+  }
+}
+void RenderWidget::wheelEvent(QWheelEvent* event) {
+  glm::vec3 pos = sl::getCameraPos(); 
+  pos *= powf(facPerTurn, -event->delta() / 2880.0f );
+  sl::setCameraPos(pos);
+  sl::updateCameraView();
+  update();
+}
+
+// Slots
+void RenderWidget::cameraMove(QPoint mouseVector) {
+  if (!cameraIsMoving)
+    return;
+
+  float r = glm::length(cameraGrabPos);
+  float theta = acosf(cameraGrabPos.z / r);
+  float phi = atan2f(cameraGrabPos.y, cameraGrabPos.x);
+
+  theta += -2.0f * M_PIf32 * mouseVector.y() / dotsPerTurn;
+  phi += -2.0f * M_PIf32 * mouseVector.x() / dotsPerTurn;
+  glm::vec3 pos = {
+    r * sinf(theta) * cosf(phi),
+    r * sinf(theta) * sinf(phi),
+    r * cosf(theta)
+  };
+  sl::setCameraView(pos, -pos);
+  sl::updateCameraView();
+  update();
+}
+
+// Events
+void RenderWidget::initializeGL() {
+  makeCurrent();
+
+  sl::init();
+  
+  // Set background
+  QImage bgTex = QImage(":/textures/bg1.jpg");
+  std::vector<char> bgTexData(bgTex.bits(), bgTex.bits() + bgTex.sizeInBytes());
+  sl::setBackgroundTex((uint)bgTex.width(), (uint)bgTex.height(), &bgTexData);
+
+  // Generate cluster
+  uint nParticles = 250000;
+  float a = 20.0f;
+  float b = 15.0f;
+  float nx = 1.0f;
+  float ny = -1.0f;
+  float nz = 1.0f;
+  float dr = 1.0f;
+  float dz = 0.5f;
+  glm::vec3 n = { nx, ny, nz };
+  std::vector<glm::vec4> palette = { { 1.00f, 0.30f, 0.00f, 0.1f } };
+  std::vector<float> blurSizes = { 1.00f };
+  sl::createEllipticCluster(nParticles, a, b, n, dr, dz, palette, blurSizes);
+
+  // Set camera
+  glm::vec3 pos = { 30.0f, 0.0f, 0.0f };
+  glm::vec3 upDir = { 0.0f, 0.0f, 1.0f };
+  float fov = glm::radians(60.0f);
+  float aspect = float(width()) / float(height());
+  float zNear = 0.1f;
+  float zFar = 100.0f;
+  sl::setCamera(pos, -pos, upDir, fov, aspect, zNear, zFar);
+
+  // Update data
+  sl::updateBackgroundTex();
+  sl::updateCamera();
+  update();
+
+  emit glInitialized();
+}
+void RenderWidget::resizeGL(int w, int h) {
   sl::setCameraAspect(float(w) / float(h));
   sl::updateCamera();
 }
-void renderWidget::paintGL() {
-  setTimeMeasPoint();
+void RenderWidget::paintGL() {
   sl::renderClassic();
-  setTimeMeasPoint();
-
-  if (evalLap(&renderTime)) {
-    std::cout << "Render time: " << renderTime[0] << " s," << "\t\t"
-      << "Frame rate: " << 1.0 / renderTime[0] << " fps" << std::endl;
-    renderTime.clear();
-  }
-}
-void renderWidget::updateObjects() {
-  currTime = std::chrono::high_resolution_clock::now();
-  double t = std::chrono::duration_cast<std::chrono::nanoseconds>(currTime - initTime).count() / 1.0e9;
-  // TODO: Use t
-
-  double T = 60.0;
-  double phi = 2.0 * M_PI * t / T;
-  double theta = M_PI_2 + sin(2.0 * M_PI * 2.0 * t / T);
-  double r = 30.0;
-  glm::vec3 pos = {
-    r * sin(theta) * cos(phi),
-    r * sin(theta) * sin(phi),
-    r * cos(theta)
-  };
-
-  sl::setCameraPos(pos);
-  sl::setCameraLookDir(-pos);
-  sl::updateCameraView();
-
-  update();
 }
