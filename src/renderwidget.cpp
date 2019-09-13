@@ -1,12 +1,13 @@
 #define _USE_MATH_DEFINES
 
-#include <chrono>
 #include <cmath>
 #include <iostream>
 #include <limits>
 #include <string>
 
 #include "renderwidget.hpp"
+
+const float c = 303069264.0;
 
 RenderWidget::RenderWidget(QWidget* parent) : QOpenGLWidget(parent) {
   format.setVersion(3, 2);
@@ -16,6 +17,7 @@ RenderWidget::RenderWidget(QWidget* parent) : QOpenGLWidget(parent) {
   setFormat(format);
 }
 RenderWidget::~RenderWidget() {
+  delete timer;
   sl::close();
 }
 
@@ -108,7 +110,7 @@ void RenderWidget::initializeGL() {
   sl::setBackgroundTex((uint)bgTex.width(), (uint)bgTex.height(), &bgTexData);
 
   // Generate cluster
-  uint nParticles = 250000;
+  uint nParticles = 200000;
   float a = 20.0f;
   float b = 15.0f;
   float nx = 1.0f;
@@ -135,6 +137,13 @@ void RenderWidget::initializeGL() {
   sl::updateCamera();
   update();
 
+  // Set Timer
+  timer = new QTimer();
+  timer->setInterval(33);
+  connect(timer, &QTimer::timeout, this, &RenderWidget::timeTick);
+  t0 = std::chrono::high_resolution_clock::now();
+  timer->start();
+
   emit glInitialized();
 }
 void RenderWidget::resizeGL(int w, int h) {
@@ -142,5 +151,16 @@ void RenderWidget::resizeGL(int w, int h) {
   sl::updateCamera();
 }
 void RenderWidget::paintGL() {
+  mutex.lock();
   sl::renderClassic();
+  mutex.unlock();
+}
+void RenderWidget::timeTick() {
+  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+  float globalTime = 0.001 * std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+  
+  mutex.lock();
+  sl::translateGlobalTime(globalTime);
+  mutex.unlock();
+  update();
 }

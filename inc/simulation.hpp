@@ -53,6 +53,7 @@ namespace sl {
   void updateBackgroundTexData();
 
   void renderClassic();
+  void translateGlobalTime(float t);
 
   void close();
 }

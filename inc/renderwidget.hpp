@@ -6,6 +6,9 @@
 #include <QtGui/QtEvents>
 #include <QtCore/QTimer>
 #include <QtWidgets/QOpenGLWidget> 
+#include <QtCore/QMutex>
+
+#include <chrono>
 
 #include "simulation.hpp"
 
@@ -36,6 +39,8 @@ protected:
   void paintGL() override;
 
 private:
+  void timeTick();
+
   QSurfaceFormat format;
 
   const float dotsPerTurn = 2000.0f;
@@ -44,6 +49,10 @@ private:
   QPoint cameraPin;
   glm::vec3 cameraPinPos;
   bool cameraIsUpright = true;
+
+  QTimer* timer;
+  QMutex mutex;
+  std::chrono::high_resolution_clock::time_point t0;
 };
 
 #endif

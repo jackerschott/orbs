@@ -25,6 +25,7 @@ namespace sl {
   gl::program* prog_rngGauss;
   gl::program* prog_clusterpos;
   gl::program* prog_clustercol;
+  gl::program* prog_clusterdyn;
   gl::program* prog_renderBg;
   gl::program* prog_renderCluster;
 
@@ -35,6 +36,9 @@ namespace sl {
   std::vector<GLuint> glClusterVerts;
   std::vector<GLuint> glClusterPosBufs;
   std::vector<GLuint> glClusterColBufs;
+  std::vector<GLuint> glClusterVelBufs;
+  std::vector<GLuint> glClusterLBufs;
+  std::vector<GLuint> glClusterEBufs;
   GLuint glSelPts;
 
   // Camera data
@@ -56,6 +60,9 @@ namespace sl {
 
   // Organisation Details
   slConfig config;
+
+  // Physical data
+  float globalTime;
 
   void buildTestProg();
 
@@ -92,10 +99,10 @@ namespace sl {
 
     // Initialize OpenGL
     glewInit();
-    #if _DEBUG
+    // #if _DEBUG
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(msgCallback, 0);
-    #endif
+    // #endif
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -113,6 +120,9 @@ namespace sl {
     cs_rngGauss.setIncludeSrc("rng_tables.glsl", SHADER_PATH "rng/rng_tables.glsl");
     gl::shader cs_clusterpos(GL_COMPUTE_SHADER, SHADER_PATH "cluster_gen/clusterpos.comp");
     gl::shader cs_clustercol(GL_COMPUTE_SHADER, SHADER_PATH "cluster_gen/clustercol.comp");
+
+    // Cluster dynamik shaders
+    gl::shader cs_clusterDyn(GL_COMPUTE_SHADER, SHADER_PATH "cluster/clusterdyn.comp");
 
     // Render shaders
     gl::shader vs_renderCluster(GL_VERTEX_SHADER, SHADER_PATH "cluster/cluster.vert");
@@ -162,6 +172,16 @@ namespace sl {
     if (!prog_clustercol->build(&log)) {
       std::cerr << "Cluster color program" << std::endl;
       std::cerr << "═════════════════════" << std::endl;
+      std::cerr << log << std::endl;
+      throw;
+    }
+
+    // Cluster dynamik programs
+    prog_clusterdyn = new gl::program();
+    prog_clusterdyn->attachShader(cs_clusterDyn);
+    if (!prog_clusterdyn->build(&log)) {
+      std::cerr << "Cluster dynamik program" << std::endl;
+      std::cerr << "═══════════════════════" << std::endl;
       std::cerr << log << std::endl;
       throw;
     }
@@ -356,6 +376,7 @@ namespace sl {
 
   void renderClassic() {
     assert(isInit() && hasCamera() && hasBgTex());
+    glFinish();
 
     glUseProgram(prog_renderBg->id);
     glBindVertexArray(glBgVerts);
@@ -368,19 +389,27 @@ namespace sl {
     glBindVertexArray(0);
     glUseProgram(0);
 
+    glFinish();
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
     // Render Particles
     glUseProgram(prog_renderCluster->id);
+    glMemoryBarrier(GL_UNIFORM_BARRIER_BIT);
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
     for (int i = 0; i < (int)glClusterVerts.size(); i++) {
       glBindVertexArray(glClusterVerts[i]);
+      glFinish();
 
-      glUniform1i(2, 0);
+      // glPointSize(3.0);
+
+      glUniform1i(2, 1);
       glUniform1ui(3, 0);
       glDrawArrays(GL_POINTS, 0, (int)(nClusterVerts[i]));
 
       glUniform1ui(3, 1);
       glDrawArrays(GL_POINTS, 0, (int)(nClusterVerts[i]));
 
-      glUniform1ui(2, 1);
+      glUniform1ui(2, 0);
       glUniform1ui(3, 0);
       glDrawArrays(GL_POINTS, 0, (int)(nClusterVerts[i]));
 
@@ -390,8 +419,29 @@ namespace sl {
       glBindVertexArray(0);
     }
     glUseProgram(0);
+  }
+  void translateGlobalTime(float t) {
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(msgCallback, 0);
 
     glFinish();
+
+    float dt = t - globalTime;
+    glUseProgram(prog_clusterdyn->id);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    for (uint i = 0; i < glClusterVerts.size(); ++i) {
+      glUniform1ui(0, nClusterVerts[i]);
+      glUniform1f(1, dt);
+      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, glClusterPosBufs[i]);
+      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, glClusterVelBufs[i]);
+      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, glClusterLBufs[i]);
+      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, glClusterEBufs[i]);
+      glFinish();
+
+      glDispatchCompute(0x10 / 4, 0x10 / 4, 0x10 / 4);
+    }
+    glUseProgram(0);
+    globalTime = t;
   }
 
   void createEllipticCluster(uint nParticles, float a, float b, glm::vec3 n, float dr, float dz,
@@ -407,6 +457,9 @@ namespace sl {
     GLuint clusterVerts;
     GLuint posBuf;
     GLuint colorBuf;
+    GLuint velBuf;
+    GLuint LBuf;
+    GLuint EBuf;
     glGenVertexArrays(1, &clusterVerts);
     glGenBuffers(1, &posBuf);
     glGenBuffers(1, &colorBuf);
@@ -423,25 +476,33 @@ namespace sl {
     glVertexAttribPointer(1, 4, GL_FLOAT, false, 0, (void*)0);
     glBindVertexArray(0);
 
+    glGenBuffers(1, &velBuf);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, velBuf);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, nParticles * sizeof(glm::vec4), NULL, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &LBuf);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, LBuf);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, nParticles * sizeof(float), NULL, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &EBuf);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, EBuf);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, nParticles * sizeof(float), NULL, GL_STATIC_DRAW);
+
     // Initialize buffers
-    GLuint uSamples1Buf;
-    GLuint uSamples2Buf;
-    GLuint nSamples1Buf;
-    GLuint nSamples2Buf;
+    GLuint uPosSamplesBuf;
+    GLuint uColSamplesBuf;
+    GLuint nPosSamplesBuf;
     GLuint paletteBuf;
     GLuint blurSizesBuf;
-    glGenBuffers(1, &uSamples1Buf);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uSamples1Buf);
+    glGenBuffers(1, &uPosSamplesBuf);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uPosSamplesBuf);
     glBufferData(GL_SHADER_STORAGE_BUFFER, nParticles * sizeof(float), NULL, GL_STREAM_READ);
-    glGenBuffers(1, &uSamples2Buf);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uSamples2Buf);
+    glGenBuffers(1, &uColSamplesBuf);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uColSamplesBuf);
     glBufferData(GL_SHADER_STORAGE_BUFFER, nParticles * sizeof(float), NULL, GL_STREAM_READ);
-    glGenBuffers(1, &nSamples1Buf);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, nSamples1Buf);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, nParticles * sizeof(float), NULL, GL_STREAM_READ);
-    glGenBuffers(1, &nSamples2Buf);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, nSamples2Buf);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, nParticles * sizeof(float), NULL, GL_STREAM_READ);
+    glGenBuffers(1, &nPosSamplesBuf);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, nPosSamplesBuf);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 5 * nParticles * sizeof(float), NULL, GL_STREAM_READ);
     glGenBuffers(1, &paletteBuf);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paletteBuf);
     glBufferData(GL_SHADER_STORAGE_BUFFER, palette.size() * sizeof(glm::vec4), palette.data(), GL_STREAM_READ);
@@ -455,13 +516,13 @@ namespace sl {
     glUseProgram(prog_rngUniform->id);
     glUniform1ui(0, nParticles);
     glUniform2ui(1, off.x, off.y);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, uSamples1Buf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, uPosSamplesBuf);
     glDispatchCompute(0x10 / 4, 0x10 / 4, 0x10 / 4);
 
     off_ = getRngOff();
     off = glm::uvec2((uint)((off_ >> 8 * sizeof(uint)) & UINT_MAX), (uint)(off_ & UINT_MAX));
     glUniform2ui(1, off.x, off.y);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, uSamples2Buf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, uColSamplesBuf);
     glDispatchCompute(0x10 / 4, 0x10 / 4, 0x10 / 4);
     glUseProgram(0);
 
@@ -469,15 +530,9 @@ namespace sl {
     off_ = getRngOff();
     off = glm::uvec2((uint)((off_ >> 8 * sizeof(uint)) & UINT_MAX), (uint)(off_ & UINT_MAX));
     glUseProgram(prog_rngGauss->id);
-    glUniform1ui(0, nParticles);
+    glUniform1ui(0, 5 * nParticles);
     glUniform2ui(1, off.x, off.y);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, nSamples1Buf);
-    glDispatchCompute(0x10 / 4, 0x10 / 4, 0x10 / 4);
-
-    off_ = getRngOff();
-    off = glm::uvec2((uint)((off_ >> 8 * sizeof(uint)) & UINT_MAX), (uint)(off_ & UINT_MAX));
-    glUniform2ui(1, off.x, off.y);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, nSamples2Buf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, nPosSamplesBuf);
     glDispatchCompute(0x10 / 4, 0x10 / 4, 0x10 / 4);
     glUseProgram(0);
 
@@ -493,10 +548,12 @@ namespace sl {
     glUniformMatrix4fv(3, 1, false, &rot[0][0]);
     glUniform1f(4, dr);
     glUniform1f(5, dz);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, uSamples1Buf);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, nSamples1Buf);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, nSamples2Buf);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, posBuf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, uPosSamplesBuf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, nPosSamplesBuf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, posBuf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, velBuf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, LBuf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, EBuf);
     glDispatchCompute(0x10 / 4, 0x10 / 4, 0x10 / 4);
     glUseProgram(0);
 
@@ -505,7 +562,7 @@ namespace sl {
     glUniform1ui(1, palette.size());
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, paletteBuf);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, blurSizesBuf);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, uSamples2Buf);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, uColSamplesBuf);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, colorBuf);
     glDispatchCompute(0x10 / 4, 0x10 / 4, 0x10 / 4);
     glUseProgram(0);
@@ -514,6 +571,9 @@ namespace sl {
     glClusterVerts.push_back(clusterVerts);
     glClusterPosBufs.push_back(posBuf);
     glClusterColBufs.push_back(colorBuf);
+    glClusterVelBufs.push_back(velBuf);
+    glClusterLBufs.push_back(LBuf);
+    glClusterEBufs.push_back(EBuf);
 
     glFinish();
     std::chrono::high_resolution_clock::time_point t3 = std::chrono::high_resolution_clock::now();
