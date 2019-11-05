@@ -4,6 +4,9 @@ bin
 # objects
 obj
 
+# ycm
+.ycm_extra_conf.py
+
 # qmake
 qt
 Makefile
@@ -12,5 +15,3 @@ Makefile
 # vs code
 .vscode
 
-# test folder
-test
