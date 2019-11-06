@@ -7,7 +7,7 @@
 
 #include "renderwidget.hpp"
 
-const float c = 303069264.0;
+const float c = 299792458.0;
 
 RenderWidget::RenderWidget(QWidget* parent) : QOpenGLWidget(parent) {
   format.setVersion(3, 2);

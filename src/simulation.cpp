@@ -6,7 +6,6 @@
 #include <string>
 #include <time.h>
 #include <utility>
-#include <vector>
 
 #include "gl.hpp"
 #include "simulation.hpp"
