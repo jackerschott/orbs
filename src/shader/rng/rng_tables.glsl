@@ -1,6 +1,3 @@
-#ifndef RNG_TABLES_GLSL
-#define RNG_TABLES_GLSL
-
 #define INT_MAX 0x7FFFFFFF
 #define UINT_MAX 0xFFFFFFFFU
 
@@ -401,5 +398,3 @@ const int ixRatio[] = int[](
   1611602771,
   0000000000
 );
-
-#endif

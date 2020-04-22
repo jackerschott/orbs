@@ -1,9 +1,9 @@
 #version 320 es
 
-#include "math.glsl"
-#include "complex.glsl"
-#include "elliptic.glsl"
-#include "geodesic.glsl"
+#include "lib/math.glsl"
+#include "geodesic/complex.glsl"
+#include "geodesic/elliptic.glsl"
+#include "geodesic/geodesic.glsl"
 
 precision mediump float;
 

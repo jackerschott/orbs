@@ -1,6 +1,3 @@
-#ifndef COMPLEX_GLSL
-#define COMPLEX_GLSL
-
 #define C_ONE   vec2(1.0, 0.0)
 #define C_MONE  vec2(-1.0, 0.0)
 #define C_I     vec2(0.0, 1.0)
@@ -216,5 +213,3 @@ vec2 cacos(vec2 z) {
   #undef a
   #undef b
 }
-
-#endif

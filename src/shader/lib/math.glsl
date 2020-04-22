@@ -1,6 +1,3 @@
-#ifndef MATH_GLSL
-#define MATH_GLSL
-
 #define PI      3.14159265358979323846
 #define PI2     6.28318530717958647693
 #define PI_2    1.57079632679489661923
@@ -16,5 +13,3 @@ void swap(inout float f1, inout float f2) {
   f1 = uintBitsToFloat(i1);
   f2 = uintBitsToFloat(i2);
 }
-
-#endif

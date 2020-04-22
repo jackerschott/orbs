@@ -2,10 +2,10 @@
 
 precision mediump float;
 
-#include "math.glsl"
-#include "complex.glsl"
-#include "elliptic.glsl"
-#include "geodesic.glsl"
+$include "lib/math.glsl"
+$include "geodesic/complex.glsl"
+$include "geodesic/elliptic.glsl"
+$include "geodesic/geodesic.glsl"
 
 layout(location = 0) uniform vec4 c;
 layout(location = 1) uniform mat2 P_I;

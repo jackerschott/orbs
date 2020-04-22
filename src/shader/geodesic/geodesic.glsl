@@ -1,6 +1,3 @@
-#ifndef GEODESIC_GLSL
-#define GEODESIC_GLSL
-
 const float bc = 1.5 * SQRT3;
 const float uc = 2.0 / 3.0;
 
@@ -198,5 +195,3 @@ void roots(float b, out vec2 R1, out vec2 R2, out vec2 R3) {
     R1.y = 0.0;
   }
 }
-
-#endif

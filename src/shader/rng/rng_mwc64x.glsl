@@ -1,6 +1,3 @@
-#ifndef RNG_MWC64X_GLSL
-#define RNG_MWC64X_GLSL
-
 #define MWC64X_A 4294883355U
 // long representation: 18446383549859758079
 #define MWC64X_M uvec2(4294967295U, 4294883354U)
@@ -34,5 +31,3 @@ uint MWC64X_NextUint(inout uvec2 s) {
   MWC64X_Step(s);
   return res;
 }
-
-#endif

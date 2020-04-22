@@ -1,8 +1,0 @@
-<RCC>
-    <qresource prefix="/textures">
-        <file>bg2.jpg</file>
-    </qresource>
-    <qresource prefix="/styles">
-        <file>mainwindow.qss</file>
-    </qresource>
-</RCC>

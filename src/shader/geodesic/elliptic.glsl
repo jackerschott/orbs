@@ -1,6 +1,3 @@
-#ifndef ELLIPTIC_GLSL
-#define ELLIPTIC_GLSL
-
 #define N_LOOPS_MAX 100
 
 const float r = 1.0e-7; // 1.0e-18; // 1.0e-7;
@@ -459,5 +456,3 @@ vec2 RD_0yz(vec2 y, vec2 z) {
   RG = 0.5 * cmul(RG, RF);
   return 3.0 * cdiv(2.0 * RG - cmul(zo, RF), cmul(zo, yo - zo));
 }
-
-#endif

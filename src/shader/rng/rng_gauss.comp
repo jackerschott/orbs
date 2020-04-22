@@ -1,9 +1,9 @@
 #version 320 es
 
-#include "uint64.glsl"
-#include "rng_mwc_skip.glsl"
-#include "rng_mwc64x.glsl"
-#include "rng_tables.glsl"
+$include "lib/uint64.glsl"
+$include "rng/rng_mwc_skip.glsl"
+$include "rng/rng_mwc64x.glsl"
+$include "rng/rng_tables.glsl"
 
 layout(location = 0) uniform uint nSamples;
 layout(location = 1) uniform uvec2 off;
