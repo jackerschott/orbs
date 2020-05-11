@@ -31,12 +31,17 @@ function extract_incfile() {
         exit
     }
     # Get filename from string in between two quotation marks
-    res = "src/shader/" substr(rem, 1, i-1)
-    if (system("test -f " res) != 0) {
-        print res " not found"
-        exit
+    fname = substr(rem, 1, i-1)
+    res = "core/shader/" fname
+    if (system("test -f " res) == 0) {
+        return res
     }
-    return res
+    res = "lib/shader/" fname
+    if (system("test -f " res) == 0) {
+        return res
+    }
+    print res " not found"
+    exit
 }
 
 function print_include_contents(incf) {

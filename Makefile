@@ -1,42 +1,50 @@
 TARGET = orbs
-INCS = -Iinc
-LIBS = -lX11 -lGL -lGLEW -lm
-SHADERFS = \
-	src/shader/cluster/cluster.vert \
-	src/shader/cluster/cluster.frag \
-	src/shader/cluster/clusterdyn.comp \
-	src/shader/rng/rng_gauss.comp \
-	src/shader/rng/rng_uniform.comp \
-	src/shader/cluster_gen/clustercol.comp \
-	src/shader/cluster_gen/clusterpos.comp \
-	src/shader/bg/bg.frag \
-	src/shader/bg/bg.vert
-SHADER_SRC_H = inc/shadersrc.h
+INCS = -Iinclude
+LIBS = -lX11 -lGL -lGLEW -lm -lpthread
+SHADERFS = 													\
+	core/shader/cluster/cluster.vert 						\
+	core/shader/cluster/cluster.frag 						\
+	core/shader/cluster/evolve_cluster.comp 				\
+	core/shader/cluster/gen_elliptic_cluster_pos.comp 		\
+	core/shader/cluster/gen_elliptic_cluster_colors.comp 	\
+	core/shader/firmament/firmament.vert 					\
+	core/shader/firmament/firmament.frag 					\
+	core/shader/rng/gen_uniform_samples.comp 				\
+	core/shader/rng/gen_gaussian_samples.comp
+SHADER_SRC_HEADER = include/shadersrc.h
 
 first: target
 
-target: objdir shader main.o simulation.o sc.o
-	tcc -o $(TARGET) obj/main.o obj/simulation.o obj/sc.o $(LIBS)
+target: objdir shader main.o visual.o orbs.o sc.o
+	gcc -o $(TARGET) 				\
+		obj/main.o 					\
+		obj/visual.o 				\
+		obj/orbs.o 					\
+		obj/shader_compilation.o 	\
+		$(LIBS)
  
 objdir:
 	mkdir -p obj
 
 shader:
-	rm -f $(SHADER_SRC_H)
+	rm -f $(SHADER_SRC_HEADER)
 	for shaderf in $(SHADERFS); do \
-		awk -f genshadersrc.awk $$shaderf >> $(SHADER_SRC_H); \
+		awk -f genshadersrc.awk $$shaderf >> $(SHADER_SRC_HEADER); \
 	done
 
-main.o: src/main.c
-	tcc -c -g -o obj/main.o src/main.c $(INCS)
+main.o: gui/main.c
+	gcc -g -c -o obj/main.o gui/main.c $(INCS)
 
-simulation.o: src/simulation.c
-	tcc -c -g -o obj/simulation.o src/simulation.c $(INCS)
+visual.o: gui/visual.c
+	gcc -g -c -o obj/visual.o gui/visual.c $(INCS)
 
-sc.o: src/sc.c
-	tcc -c -g -o obj/sc.o src/sc.c $(INCS)
+orbs.o: core/orbs.c
+	gcc -g -c -o obj/orbs.o core/orbs.c $(INCS)
+
+sc.o: core/shader_compilation.c
+	gcc -g -c -o obj/shader_compilation.o core/shader_compilation.c $(INCS)
 
 clean:
-	rm -f ./orbs
-	rm -f ./obj/*
-	rmdir ./obj
+	rm -f orbs
+	rm -rf obj/*
+	rmdir obj
