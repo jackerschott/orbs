@@ -1,6 +1,6 @@
 #version 320 es
 
-$include "lib/uint64.glsl"
+$include "rng/uint64.glsl"
 $include "rng/rng_mwc_skip.glsl"
 $include "rng/rng_mwc64x.glsl"
 $include "rng/rng_tables.glsl"

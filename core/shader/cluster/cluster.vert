@@ -1,22 +1,25 @@
 #version 320 es
 
-$include "lib/math.glsl"
-$include "geodesic/complex.glsl"
-$include "geodesic/elliptic.glsl"
-$include "geodesic/geodesic.glsl"
-
 precision mediump float;
 
 layout(location = 0) uniform mat4 PV;
 layout(location = 1) uniform vec4 c;
 layout(location = 2) uniform bool invert;
-layout(location = 3) uniform uint nLoops;
+layout(location = 3) uniform uint n_loops;
+layout(location = 4) uniform int geodesic_iterations;
 
 in vec4 p;
 in vec4 color_vs;
 
 out vec4 color_fs;
 out flat int outOfRange;
+
+#define GEODESIC_ITERATIONS geodesic_iterations
+
+$include "math/math.glsl"
+$include "math/complex.glsl"
+$include "math/elliptic.glsl"
+$include "geodesic.glsl"
 
 vec3 hsv2rgb(vec3 c) {
 	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
@@ -36,7 +39,7 @@ void main() {
 	float phi = acos(dot(c.xyz, p.xyz) * u1 * u2);
 	if (invert)
 		phi = 2.0 * PI - phi;
-	phi += 2.0 * PI * float(nLoops);
+	phi += 2.0 * PI * float(n_loops);
 
 	float b = impactParam(u1, u2, phi);
 	vec2 v = b2v(b, u1, 0.0);
@@ -51,24 +54,7 @@ void main() {
 	outOfRange = 0;
 
 	//gl_Position = PV * vec4(p.xyz, 1.0);
-	//if (abs(p.x) < 1.0) {
-	//	color_fs = vec4(0.0, 1.0, 0.0, 1.0);
-	//}
-	//else {
-	//	color_fs = vec4(1.0, 0.0, 0.0, 1.0);
-	//}
-	//if (r1 < 1.5 && r2 < 1.5) {
-	//	color_fs = vec4(1.0, 0.0, 0.0, 1.0);
-	//}
-	//else if (r1 < 1.5 && r2 >= 1.5) {
-	//	color_fs = vec4(0.0, 1.0, 0.0, 1.0);
-	//}
-	//else if (r1 >= 1.5 && r2 < 1.5) {
-	//	color_fs = vec4(0.0, 0.0, 1.0, 1.0);
-	//}
-	//else {
-	//	color_fs = vec4(1.0, 1.0, 1.0, 1.0);	
-	//}
-	//gl_Position = vec4(p.xy / 100.0, 0.0, 1.0);
+	//color_fs = vec4(color_vs.xyz, 1.0);
+	//outOfRange = 0;
 }
 
