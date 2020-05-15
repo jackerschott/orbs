@@ -50,7 +50,7 @@ void main() {
 	vec3 e2 = normalize(p.xyz - dot(p.xyz, e1) * e1);
 	vec3 look = v.x * e1 + v.y * e2;
 	gl_Position = PV * vec4(c.xyz + look, 1.0);
-	color_fs = vec4(color_vs.xyz, 1.0);
+	color_fs = color_vs;
 	outOfRange = 0;
 
 	//gl_Position = PV * vec4(p.xyz, 1.0);

@@ -4,10 +4,12 @@
 void vis_setup();
 void vis_cleanup();
 
-void vis_set_aspect(float aspect);
+void vis_scale_observer(float fac);
 
 void vis_pin_observer(float x, float y);
 void vis_move_pinned_observer(float x, float y);
+
+void vis_set_aspect(float aspect);
 
 void vis_update();
 

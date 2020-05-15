@@ -1,5 +1,6 @@
 #include <math.h>
 
+#include "load_textures.h"
 #include "orbs.h"
 #include "visual.h"
 
@@ -11,6 +12,7 @@
 vec2 pin_screen_point;
 struct Observer observer;
 struct Observer pin_observer;
+struct Firmament firmament;
 
 /* Get axis and angle for a rotation around the origin, characterized by a shift
  * vector, which specifies horizontal and vertical rotation (in units of 360
@@ -61,15 +63,25 @@ void vis_setup()
 	orbs_set_observer(&observer);
 	orbs_update_observer();
 
-	//slSetBackgroundTex()
+	unsigned char *tex_data;
+	unsigned int tex_width;
+	unsigned int tex_height;
+	load_jpeg_texture_image("Resources/bg2.jpg",
+			&tex_width, &tex_height, &tex_data);
 
-	unsigned int n_particles = 250000;
+	firmament.imgdata = tex_data;
+	firmament.imgwidth = tex_width;
+	firmament.imgheight = tex_height;
+	orbs_set_firmament(&firmament);
+	orbs_update_firmament();
+
+	unsigned int n_particles = 75000;
 	float a = 20.0f;
 	float b = 15.0f;
 	vec3 n = { 1.0f, -1.0f, 1.0f };
 	float dr = 1.0f;
 	float dz = 0.5f;
-	vec4 palette[] = { { 1.00f, 0.30f, 0.00f, 0.1f } };
+	vec4 palette[] = { { 1.00f, 0.30f, 0.00f, 0.5f } };
 	float blurSizes[] = { 2.00f };
 	orbs_create_elliptic_cluster(n_particles,
 			a, b, n, dr, dz,
@@ -78,6 +90,18 @@ void vis_setup()
 void vis_cleanup()
 {
 	orbs_close();
+	free(firmament.imgdata);
+}
+
+/* Scale distance of observer from r = 1 (schwarzschild radius) with fac */
+void vis_scale_observer(float fac)
+{
+	orbs_get_observer(&observer);
+	float distance_rs = glm_vec3_norm(observer.pos) - 1.0f;
+	float fac_r = (fac * distance_rs + 1.0f) / (distance_rs + 1.0f);
+	glm_vec3_scale(observer.pos, fac_r, observer.pos);
+	orbs_set_observer(&observer);
+	orbs_update_observer_vectors();
 }
 
 /* Set starting point (pin) for pointer camera movement */

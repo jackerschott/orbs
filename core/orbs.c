@@ -120,9 +120,9 @@ void GLAPIENTRY msg_callback(GLenum source, GLenum type,
 		fprintf(stderr, "%s\t %s, type: %s, source: %s\n",
 		get_err_severity(severity), message, get_err_type(type), get_err_source(source));
 	}
-}
+} 
 
-void init_background()
+void init_firmament()
 {
 	float pos[][2] = {
 		{ -1.0f, -1.0f },
@@ -326,11 +326,11 @@ void orbs_init()
 		return;
 	}
 
-	init_background();
+	init_firmament();
 	clusters = malloc(CLUSTER_CAPACITY * sizeof(struct ptcluster));
 
 	glUseProgram(programs.render_cluster);
-	glUniform1i(4, 3);
+	glUniform1i(4, 5);
 	glUseProgram(0);
 
 	state = STATE_INIT;
@@ -610,9 +610,9 @@ void orbs_update_firmament()
 	}
 
 	glBindTexture(GL_TEXTURE_2D, glBgTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F,
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
 			firmament.imgwidth, firmament.imgheight,
-			0, GL_BGRA, GL_UNSIGNED_BYTE, firmament.imgdata);
+			0, GL_RGB, GL_UNSIGNED_BYTE, firmament.imgdata);
 
 	state = state | STATE_HAS_BG_TEXTURE;
 }
@@ -626,7 +626,7 @@ void orbs_update_firmament_imgdata()
 	glBindTexture(GL_TEXTURE_2D, glBgTex);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
 			firmament.imgwidth, firmament.imgheight,
-			GL_RGBA, GL_UNSIGNED_BYTE, firmament.imgdata);
+			GL_RGB, GL_UNSIGNED_BYTE, firmament.imgdata);
 }
 
 void orbs_render()
@@ -639,19 +639,19 @@ void orbs_render()
 	glClear(GL_COLOR_BUFFER_BIT);
 	glFinish(); /* Why? */
 
-	//glUseProgram(programs.render_firmament);
-	//glBindVertexArray(glBgVerts);
-  	//glBindTexture(GL_TEXTURE_2D, glBgTex);
-	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
-	//glBindVertexArray(0);
-	//glUseProgram(0);
+	glUseProgram(programs.render_firmament);
+	glBindVertexArray(glBgVerts);
+  	glBindTexture(GL_TEXTURE_2D, glBgTex);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+	glBindVertexArray(0);
+	glUseProgram(0);
 
-	//glFinish(); /* Why? */
-	//glMemoryBarrier(GL_ALL_BARRIER_BITS); /* Why? */
+	glFinish(); /* Why? */
+	glMemoryBarrier(GL_ALL_BARRIER_BITS); /* Why? */
 
 	glUseProgram(programs.render_cluster);
-	//glMemoryBarrier(GL_UNIFORM_BARRIER_BIT); /* Why? */
-	//glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT); /* Why? */
+	glMemoryBarrier(GL_UNIFORM_BARRIER_BIT); /* Why? */
+	glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT); /* Why? */
 	for (int i = 0; i < nClusters; i++) {
 		glBindVertexArray(clusters[i].vert_array);
 		glFinish(); /* Why? */

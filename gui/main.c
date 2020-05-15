@@ -13,6 +13,7 @@
 #include "visual.h"
 
 #define DOTS_PER_TURN 2000
+#define SCALEFAC_PER_WHEELINC 1.20f
 
 Display *dpy;
 XVisualInfo *vi;
@@ -32,43 +33,75 @@ GLint att[] = {
 
 pthread_t render_thread = 0;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int visual_update_completed = 1;
+int viewport_update_completed = 1;
 
-void *visual_update(void* args) {
+void *viewport_update(void* args)
+{
 	glXMakeCurrent(dpy, winMain, glc);
 	vis_update();
 	glXSwapBuffers(dpy, winMain);
 
 	pthread_mutex_lock(&mutex);
-	visual_update_completed = 1;
+	viewport_update_completed = 1;
 	pthread_mutex_unlock(&mutex);
 
 	return NULL;
 }
+int viewport_update_running()
+{
+	pthread_mutex_lock(&mutex);
+	int retval = !viewport_update_completed;
+	pthread_mutex_unlock(&mutex);
+	return retval;
+}
+void viewport_update_start()
+{
+	viewport_update_completed = 0;
+	pthread_create(&render_thread, NULL, viewport_update, NULL);
+}
+void viewport_update_finish()
+{
+	pthread_join(render_thread, NULL);
+}
 
-void on_buttonpress(XButtonEvent* e) {
+void on_button1press(XButtonEvent* e)
+{
 	vis_pin_observer((float)e->x / DOTS_PER_TURN,
 			 (float)e->y / DOTS_PER_TURN);
 }
-void on_buttonrelease(XButtonEvent* e) {
-	pthread_join(render_thread, NULL);
-	glXSwapBuffers(dpy, winMain);
+void on_button1release(XButtonEvent* e)
+{
+	//viewport_update_finish();
 }
-void on_motion(XMotionEvent* e) {
+void on_motion(XMotionEvent* e)
+{
+	if (viewport_update_running())
+		return;
 
-	pthread_mutex_lock(&mutex);
-	int start_new_update = visual_update_completed;
-	pthread_mutex_unlock(&mutex);
-
-	if (start_new_update) {
-		vis_move_pinned_observer((float)e->x / DOTS_PER_TURN,
-					 (float)e->y / DOTS_PER_TURN);
-
-		visual_update_completed = 0;
-		pthread_create(&render_thread, NULL, visual_update, NULL);
-	}
+	vis_move_pinned_observer((float)e->x / DOTS_PER_TURN,
+				 (float)e->y / DOTS_PER_TURN);
+	viewport_update_start();
 }
-void on_keypress(XKeyEvent* e) {
+
+void on_button4press(XButtonEvent* e)
+{
+	if (viewport_update_running())
+		return;
+
+	vis_scale_observer(1.0f / SCALEFAC_PER_WHEELINC);
+	viewport_update_start();
+}
+void on_button5press(XButtonEvent* e)
+{
+	if (viewport_update_running())
+		return;
+
+	vis_scale_observer(SCALEFAC_PER_WHEELINC);
+	viewport_update_start();
+}
+
+void on_keypress(XKeyEvent* e)
+{
 	char c;
 	KeySym ksym;
 	XLookupString(e, &c, 2, &ksym, NULL);
@@ -78,7 +111,8 @@ void on_keypress(XKeyEvent* e) {
 	}
 }
 
-void setup(Display *dpy, XVisualInfo* vi, Window* winMain) {
+void setup(Display *dpy, XVisualInfo* vi, Window* winMain)
+{
 	Window root, w;
 	Colormap cmap;
 	XSetWindowAttributes swa;
@@ -93,7 +127,7 @@ void setup(Display *dpy, XVisualInfo* vi, Window* winMain) {
 		Button1MotionMask;
 
 	w = XCreateWindow(dpy, root,
-			0, 0, 800, 800, 0,
+			0, 0, 1920, 1080, 0,
 			vi->depth,
 			InputOutput,
 			vi->visual,
@@ -105,13 +139,51 @@ void setup(Display *dpy, XVisualInfo* vi, Window* winMain) {
 	*winMain = w;
 }
 
-void cleanup() {
+void cleanup()
+{
 	XDestroyWindow(dpy, winMain);
 	XCloseDisplay(dpy);
 }
 
-int main(int argc, char* argv[]) {
+int loop_main()
+{
+	XEvent e;
+	while (!quit) {
+		XNextEvent(dpy, &e);
 
+		if (e.type == Expose) {
+			XGetWindowAttributes(dpy, e.xany.window, &gwa);
+			glViewport(0, 0, gwa.width, gwa.height);
+
+			vis_set_aspect((float)gwa.width / gwa.height);
+			vis_update();
+
+			glXSwapBuffers(dpy, winMain);
+		}
+		else if (e.type == ButtonPress && e.xbutton.button == 1) {
+			on_button1press(&e.xbutton);
+		}
+		else if (e.type == MotionNotify) {
+			on_motion(&e.xmotion);
+		}
+		else if (e.type == ButtonRelease && e.xbutton.button == 1) {
+			on_button1release(&e.xbutton);
+		}
+		else if (e.type == ButtonPress && e.xbutton.button == 4) {
+			on_button4press(&e.xbutton);
+		}
+		else if (e.type == ButtonPress && e.xbutton.button == 5) {
+			on_button5press(&e.xbutton);
+		}
+		else if (e.type == KeyPress) {
+			on_keypress(&e.xkey);
+		}
+	}
+	return 0;
+}
+
+int main(int argc, char* argv[])
+{
 	XInitThreads();
 	dpy = XOpenDisplay(NULL);
 	if (dpy == NULL) {
@@ -132,37 +204,12 @@ int main(int argc, char* argv[]) {
 	glXMakeCurrent(dpy, winMain, glc);
 	vis_setup();
 	
-	XEvent e;
-	while (!quit) {
-		XNextEvent(dpy, &e);
-
-		if (e.type == Expose) {
-			XGetWindowAttributes(dpy, e.xany.window, &gwa);
-			glViewport(0, 0, gwa.width, gwa.height);
-
-			vis_set_aspect((float)gwa.width / gwa.height);
-			vis_update();
-
-			glXSwapBuffers(dpy, winMain);
-		}
-		else if (e.type == ButtonPress) {
-			on_buttonpress(&e.xbutton);
-		}
-		else if (e.type == MotionNotify) {
-			on_motion(&e.xmotion);
-		}
-		else if (e.type == ButtonRelease) {
-			on_buttonrelease(&e.xbutton);
-		}
-		else if (e.type == KeyPress) {
-			on_keypress(&e.xkey);
-		}
-	}
+	int retval = loop_main();
 
 	vis_cleanup();
 	glXMakeCurrent(dpy, None, NULL);
 	glXDestroyContext(dpy, glc);
 
 	cleanup();
-	return 0;
+	return retval;
 }
