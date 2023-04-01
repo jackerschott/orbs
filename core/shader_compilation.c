@@ -12,7 +12,7 @@ const char* prog_names[] = {
 	"evolve_cluster",
 	"gen_elliptic_cluster_pos",
 	"gen_elliptic_cluster_colors",
-	"render_firmament",
+	"render_celestial_sphere",
 	"gen_uniform_samples",
 	"gen_gaussian_samples",
 };
@@ -104,39 +104,54 @@ void handle_shader_compile_errors(int _n_shaders, GLuint *shaders,
 		if (successes[i])
 			continue;
 
+		fprintf(stderr,"Internal error: Shader %s failed to compile:\n",
+				shader_names[i]);
+
 		GLint log_length;
 		glGetShaderiv(shaders[i], GL_INFO_LOG_LENGTH, &log_length);
+		if (log_length == 0) {
+			fprintf(stderr, "%s\n", "No log");
+			continue;
+		}
 
 		GLchar *log = malloc(log_length);
 		glGetShaderInfoLog(shaders[i], log_length, NULL, log);
 
-		fprintf(stderr,"Internal error: Shader %s failed to compile:\n",
-				shader_names[i]);
 		fprintf(stderr, "%s\n", log);
 	}
 }
 void handle_program_link_error(GLuint prog, const char *prog_name)
 {
+	fprintf(stderr, "Internal error: Program %s failed to link:\n",
+			prog_name);
+
 	GLint log_length;
 	glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &log_length);
+	if (log_length == 0) {
+		fprintf(stderr, "%s\n", "No log");
+		return;
+	}
 
 	GLchar *log = malloc(log_length);
 	glGetProgramInfoLog(prog, log_length, NULL, log);
 
-	fprintf(stderr, "Internal error: Program %s failed to link:\n",
-			prog_name);
 	fprintf(stderr, "%s\n", log);
 }
 void handle_program_validate_error(GLuint prog, const char *prog_name)
 {
+	fprintf(stderr, "Internal error: Program %s could not be validated:\n",
+			prog_name);
+
 	GLint log_length;
 	glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &log_length);
+	if (log_length == 0) {
+		fprintf(stderr, "%s\n", "No log");
+		return;
+	}
 
 	GLchar *log = malloc(log_length);
 	glGetProgramInfoLog(prog, log_length, NULL, log);
 
-	fprintf(stderr, "Internal error: Program %s could not be validated:\n",
-			prog_name);
 	fprintf(stderr, "%s\n", log);
 }
 

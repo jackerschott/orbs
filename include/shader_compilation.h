@@ -16,7 +16,7 @@ union gl_programs {
 		GLuint evolve_cluster;
 		GLuint gen_elliptic_cluster_pos;
 		GLuint gen_elliptic_cluster_colors;
-		GLuint render_firmament;
+		GLuint render_celestial_sphere;
 		GLuint gen_uniform_samples;
 		GLuint gen_gaussian_samples;
 	};

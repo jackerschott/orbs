@@ -10,9 +10,9 @@
 
 /* variables for pointer camera movement */
 vec2 pin_screen_point;
-struct Observer observer;
+static struct Observer observer;
 struct Observer pin_observer;
-struct Firmament firmament;
+static struct CelestialSphere celestial_sphere;
 
 /* Get axis and angle for a rotation around the origin, characterized by a shift
  * vector, which specifies horizontal and vertical rotation (in units of 360
@@ -69,11 +69,11 @@ void vis_setup()
 	load_jpeg_texture_image("Resources/bg2.jpg",
 			&tex_width, &tex_height, &tex_data);
 
-	firmament.imgdata = tex_data;
-	firmament.imgwidth = tex_width;
-	firmament.imgheight = tex_height;
-	orbs_set_firmament(&firmament);
-	orbs_update_firmament();
+	celestial_sphere.imgdata = tex_data;
+	celestial_sphere.imgwidth = tex_width;
+	celestial_sphere.imgheight = tex_height;
+	orbs_set_celestial_sphere(&celestial_sphere);
+	orbs_update_celestial_sphere();
 
 	unsigned int n_particles = 75000;
 	float a = 20.0f;
@@ -90,7 +90,7 @@ void vis_setup()
 void vis_cleanup()
 {
 	orbs_close();
-	free(firmament.imgdata);
+	free(celestial_sphere.imgdata);
 }
 
 /* Scale distance of observer from r = 1 (schwarzschild radius) with fac */

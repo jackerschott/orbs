@@ -52,13 +52,13 @@ struct ptcluster *clusters;
 float globalTime;
 
 /* Camera */
-struct Observer observer;
+static struct Observer observer;
 mat4 P; /* Projection matrix */
 mat2 P_I; /* 'inverse' of P, needed for bg rendering */
 mat4 V; /* View rotation matrix */
 
 /* Background rendering */
-struct Firmament firmament;
+static struct CelestialSphere celestial_sphere;
 
 GLuint glBgVerts;
 GLuint glBgPosBuf;
@@ -122,7 +122,7 @@ void GLAPIENTRY msg_callback(GLenum source, GLenum type,
 	}
 } 
 
-void init_firmament()
+void init_celestial_sphere()
 {
 	float pos[][2] = {
 		{ -1.0f, -1.0f },
@@ -189,7 +189,7 @@ void gen_uniform_samples(int n_samples, GLuint *_sample_buf)
 	glBufferData(GL_SHADER_STORAGE_BUFFER,
 			n_samples * sizeof(float),
 			NULL,
-			GL_STREAM_READ);
+			GL_STATIC_DRAW);
 
 	unsigned int seed1, seed2;
 	gen_rng_seed(&seed1, &seed2);
@@ -213,7 +213,7 @@ void gen_gaussian_samples(int n_samples, GLuint *_sample_buf)
 	glBufferData(GL_SHADER_STORAGE_BUFFER,
 			n_samples * sizeof(float),
 			NULL,
-			GL_STREAM_READ);
+			GL_STATIC_DRAW);
 
 	unsigned int seed1, seed2;
 	gen_rng_seed(&seed1, &seed2);
@@ -244,16 +244,16 @@ void elliptic_cluster_compute_pos(struct ptcluster *cluster,
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, cluster->position_buf);
 	glBufferData(GL_SHADER_STORAGE_BUFFER,
-			cluster->n_verts * sizeof(vec4), NULL, GL_STREAM_READ);
+			cluster->n_verts * sizeof(vec4), NULL, GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, cluster->velocity_buf);
 	glBufferData(GL_SHADER_STORAGE_BUFFER,
-			cluster->n_verts * sizeof(vec4), NULL, GL_STREAM_READ);
+			cluster->n_verts * sizeof(vec4), NULL, GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, cluster->angmomentum_buf);
 	glBufferData(GL_SHADER_STORAGE_BUFFER,
-			cluster->n_verts * sizeof(float), NULL, GL_STREAM_READ);
+			cluster->n_verts * sizeof(float), NULL, GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, cluster->energy_buf);
 	glBufferData(GL_SHADER_STORAGE_BUFFER,
-			cluster->n_verts * sizeof(float), NULL, GL_STREAM_READ);
+			cluster->n_verts * sizeof(float), NULL, GL_STATIC_DRAW);
 
 	glUseProgram(programs.gen_elliptic_cluster_pos);
 	glUniform1ui(0, cluster->n_verts);
@@ -280,17 +280,17 @@ void elliptic_cluster_compute_colors(struct ptcluster *cluster,
 	glGenBuffers(1, &cluster->color_buf);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, cluster->color_buf);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, cluster->n_verts * sizeof(vec4),
-			NULL, GL_STREAM_READ);
+			NULL, GL_STATIC_DRAW);
 
 	GLuint paletteBuf, blurSizesBuf;
 	glGenBuffers(1, &paletteBuf);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, paletteBuf);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, nBlurs * sizeof(vec4),
-			palette, GL_STREAM_READ);
+			palette, GL_STATIC_DRAW);
 	glGenBuffers(1, &blurSizesBuf);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, blurSizesBuf);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, nBlurs * sizeof(float),
-			blurSizes, GL_STREAM_READ);
+			blurSizes, GL_STATIC_DRAW);
 
 	glUseProgram(programs.gen_elliptic_cluster_colors);
 	glUniform1ui(0, cluster->n_verts);
@@ -326,7 +326,17 @@ void orbs_init()
 		return;
 	}
 
-	init_firmament();
+	printf("programs:\n");
+	printf(".render_cluster: %u\n", programs.render_cluster);
+	printf(".evolve_cluster: %u\n", programs.evolve_cluster);
+	printf(".gen_elliptic_cluster_pos: %u\n", programs.gen_elliptic_cluster_pos);
+	printf(".gen_elliptic_cluster_colors: %u\n", programs.gen_elliptic_cluster_colors);
+	printf(".render_celestial_sphere: %u\n", programs.render_celestial_sphere);
+	printf(".gen_uniform_samples: %u\n", programs.gen_uniform_samples);
+	printf(".gen_gaussian_samples: %u\n", programs.gen_gaussian_samples);
+	printf("\n");
+
+	init_celestial_sphere();
 	clusters = malloc(CLUSTER_CAPACITY * sizeof(struct ptcluster));
 
 	glUseProgram(programs.render_cluster);
@@ -361,112 +371,6 @@ int orbs_get_last_error()
 	return errLast;
 }
 
-/*
-void orbs_get_camera_pos(vec3 pos) {
-	if ((state & SL_STATE_INIT) == 0) {
-		errLast = SL_ERR_WRONG_STATE;
-		return;
-	}
-	memcpy(pos, cam.pos, sizeof(vec3));
-}
-void orbs_get_camera_look_dir(vec3 lookDir) {
-	if ((state & SL_STATE_INIT) == 0) {
-		errLast = SL_ERR_WRONG_STATE;
-		return;
-	}
-	memcpy(lookDir, cam.lookDir, sizeof(vec3));
-}
-void orbs_get_camera_up_dir(vec3 upDir) {
-	if ((state & SL_STATE_INIT) == 0) {
-		errLast = SL_ERR_WRONG_STATE;
-		return;
-	}
-	memcpy(upDir, cam.upDir, sizeof(vec3));
-}
-float orbs_get_camera_fov() {
-	return cam.fov;
-}
-float orbs_get_camera_aspect() {
-	return cam.aspect;
-}
-float orbs_get_camera_znear() {
-	return cam.zNear;
-}
-float orbs_get_camera_zfar() {
-	return cam.zFar;
-}
-void orbs_set_camera(vec3 pos, vec3 lookDir, vec3 upDir,
-		float fov, float aspect, float zNear, float zFar) {
-	if ((state & SL_STATE_INIT) == 0) {
-		errLast = SL_ERR_WRONG_STATE;
-		return;
-	}
-	memcpy(cam.pos, pos, sizeof(vec3));
-	memcpy(cam.lookDir, lookDir, sizeof(vec3));
-	memcpy(cam.upDir, upDir, sizeof(vec3));
-	cam.fov = fov;
-	cam.aspect = aspect;
-	cam.zNear = zNear;
-	cam.zFar = zFar;
-}
-void orbs_set_camera_view(vec3 pos, vec3 lookDir) {
-	if ((state & SL_STATE_INIT) == 0) {
-		errLast = SL_ERR_WRONG_STATE;
-		return;
-	}
-	memcpy(cam.pos, pos, sizeof(vec3));
-	memcpy(cam.lookDir, lookDir, sizeof(vec3));
-}
-void orbs_set_camera_pos(vec3 pos) {
-	if ((state & SL_STATE_INIT) == 0) {
-		errLast = SL_ERR_WRONG_STATE;
-		return;
-	}
-	memcpy(cam.pos, pos, sizeof(vec3));
-}
-void orbs_set_camera_look_dir(vec3 lookDir) {
-	if ((state & SL_STATE_INIT) == 0) {
-		errLast = SL_ERR_WRONG_STATE;
-		return;
-	}
-	memcpy(cam.lookDir, lookDir, sizeof(vec3));
-}
-void orbs_set_camera_up_dir(vec3 upDir) {
-	if ((state & SL_STATE_INIT) == 0) {
-		errLast = SL_ERR_WRONG_STATE;
-		return;
-	}
-	memcpy(cam.upDir, upDir, sizeof(vec3));
-}
-void orbs_set_camera_fov(float fov) {
-	if ((state & SL_STATE_INIT) == 0) {
-		errLast = SL_ERR_WRONG_STATE;
-		return;
-	}
-	cam.fov = fov;
-}
-void orbs_set_camera_aspect(float aspect) {
-	if ((state & SL_STATE_INIT) == 0) {
-		errLast = SL_ERR_WRONG_STATE;
-		return;
-	}
-	cam.aspect = aspect;
-}
-void orbs_set_camera_znear(float zNear) {
-	if ((state & SL_STATE_INIT) == 0) {
-		errLast = SL_ERR_WRONG_STATE;
-		return;
-	}
-	cam.zNear = zNear;
-}
-void orbs_set_camera_zfar(float zFar) {
-	if ((state & SL_STATE_INIT) == 0) {
-		errLast = SL_ERR_WRONG_STATE;
-		return;
-	}
-	cam.zFar = zFar;
-}
-*/
 void orbs_set_observer(struct Observer* obs)
 {
 	observer = *obs;
@@ -511,7 +415,7 @@ void orbs_update_observer_vectors()
 	mat4 PV;
 	glm_mat4_mul(P, V, PV);
 
-	glUseProgram(programs.render_firmament);
+	glUseProgram(programs.render_celestial_sphere);
 	glUniform4fv(0, 1, &observer.pos[0]);
 	glUniformMatrix2fv(1, 1, GL_FALSE, &P_I[0][0]);
 	glUniformMatrix4fv(2, 1, GL_TRUE, &V[0][0]);
@@ -523,86 +427,15 @@ void orbs_update_observer_vectors()
 	glUseProgram(0);
 }
 
-/*void orbs_set_background_tex(int width, int height, char* data)
+void orbs_set_celestial_sphere(struct CelestialSphere* csphere)
 {
-	if ((state & STATE_INIT) == 0) {
-		errLast = ERR_WRONG_STATE;
-		return;
-	}
-	slSetBackgroundTexSize(width, height);
-	slSetBackgroundTexData(data);
+	celestial_sphere = *csphere;
 }
-void orbs_set_background_tex_size(int width, int height)
+void orbs_get_celestial_sphere(struct CelestialSphere* csphere)
 {
-	if ((state & STATE_INIT) == 0) {
-		errLast = ERR_WRONG_STATE;
-		return;
-	}
-	bgTexWidth = width;
-	bgTexHeight = height;
+	*csphere = celestial_sphere;
 }
-void orbs_set_background_tex_data(char* data)
-{
-	if ((state & STATE_INIT) == 0) {
-		errLast = ERR_WRONG_STATE;
-		return;
-	}
-	bgTexData = data;
-}
-void orbs_update_background_tex()
-{
-	if ((state & STATE_INIT) == 0) {
-		errLast = ERR_WRONG_STATE;
-		return;
-	}
-
-	GLint levelDetail = 0;
-	GLint internalformat = GL_RGBA32F;
-	GLint border = 0;
-	GLint format = GL_BGRA;
-	GLenum type = GL_UNSIGNED_BYTE;
-
-	glBindTexture(GL_TEXTURE_2D, glBgTex);
-	glTexImage2D(GL_TEXTURE_2D,
-			levelDetail, internalformat,
-			bgTexWidth, bgTexHeight,
-			border, format,
-			type, bgTexData);
-
-	state = state | STATE_HAS_BG_TEXTURE;
-}
-void orbs_update_background_tex_data()
-{
-	if ((state & (STATE_INIT | STATE_HAS_BG_TEXTURE)) == 0) {
-		errLast = ERR_WRONG_STATE;
-		return;
-	}
-
-	GLint levelDetail = 0;
-	GLint xoffset = 0;
-	GLint yoffset = 0;
-	GLint format = GL_RGBA;
-	GLint border = 0;
-	GLenum type = GL_UNSIGNED_BYTE;
-
-	glBindTexture(GL_TEXTURE_2D, glBgTex);
-	glTexSubImage2D(GL_TEXTURE_2D,
-			levelDetail,
-			xoffset, yoffset,
-			bgTexWidth, bgTexHeight,
-			format,
-			type, bgTexData);
-}
-*/
-void orbs_set_firmament(struct Firmament* firm)
-{
-	firmament = *firm;
-}
-void orbs_get_firmament(struct Firmament* firm)
-{
-	*firm = firmament;
-}
-void orbs_update_firmament()
+void orbs_update_celestial_sphere()
 {
 	if ((state & STATE_INIT) == 0) {
 		errLast = ERR_WRONG_STATE;
@@ -611,12 +444,12 @@ void orbs_update_firmament()
 
 	glBindTexture(GL_TEXTURE_2D, glBgTex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-			firmament.imgwidth, firmament.imgheight,
-			0, GL_RGB, GL_UNSIGNED_BYTE, firmament.imgdata);
+			celestial_sphere.imgwidth, celestial_sphere.imgheight,
+			0, GL_RGB, GL_UNSIGNED_BYTE, celestial_sphere.imgdata);
 
 	state = state | STATE_HAS_BG_TEXTURE;
 }
-void orbs_update_firmament_imgdata()
+void orbs_update_celesital_sphere_imgdata()
 {
 	if ((state & (STATE_INIT | STATE_HAS_BG_TEXTURE)) == 0) {
 		errLast = ERR_WRONG_STATE;
@@ -625,36 +458,51 @@ void orbs_update_firmament_imgdata()
 
 	glBindTexture(GL_TEXTURE_2D, glBgTex);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-			firmament.imgwidth, firmament.imgheight,
-			GL_RGB, GL_UNSIGNED_BYTE, firmament.imgdata);
+			celestial_sphere.imgwidth, celestial_sphere.imgheight,
+			GL_RGB, GL_UNSIGNED_BYTE, celestial_sphere.imgdata);
 }
 
 void orbs_render()
 {
+	struct timespec t0 = {0, 0};
+	struct timespec t1 = {0, 0};
+	struct timespec t2 = {0, 0};
+	struct timespec t3 = {0, 0};
+	struct timespec t4 = {0, 0};
+	struct timespec t5 = {0, 0};
+
+	clock_gettime(CLOCK_MONOTONIC, &t0);
+
 	if ((state & STATE_INIT) == 0) {
 		errLast = ERR_WRONG_STATE;
 		return;
 	}
 
-	glClear(GL_COLOR_BUFFER_BIT);
-	glFinish(); /* Why? */
+	clock_gettime(CLOCK_MONOTONIC, &t1);
 
-	glUseProgram(programs.render_firmament);
+	//glClear(GL_COLOR_BUFFER_BIT);
+	//glFinish(); /* Why? */
+
+	glUseProgram(programs.render_celestial_sphere);
 	glBindVertexArray(glBgVerts);
   	glBindTexture(GL_TEXTURE_2D, glBgTex);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 	glBindVertexArray(0);
 	glUseProgram(0);
 
-	glFinish(); /* Why? */
-	glMemoryBarrier(GL_ALL_BARRIER_BITS); /* Why? */
+	clock_gettime(CLOCK_MONOTONIC, &t2);
+
+	//glFinish(); /* Why? */
+	//glMemoryBarrier(GL_ALL_BARRIER_BITS); /* Why? */
 
 	glUseProgram(programs.render_cluster);
-	glMemoryBarrier(GL_UNIFORM_BARRIER_BIT); /* Why? */
-	glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT); /* Why? */
+	//glMemoryBarrier(GL_UNIFORM_BARRIER_BIT); /* Why? */
+	//glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT); /* Why? */
 	for (int i = 0; i < nClusters; i++) {
 		glBindVertexArray(clusters[i].vert_array);
-		glFinish(); /* Why? */
+		//glFinish(); /* Why? */
+
+		clock_gettime(CLOCK_MONOTONIC, &t3);
 
 		glUniform1i(2, 1);
 		glUniform1ui(3, 0);
@@ -670,9 +518,30 @@ void orbs_render()
 		glUniform1ui(3, 1);
 		glDrawArrays(GL_POINTS, 0, clusters[i].n_verts);
 
+		clock_gettime(CLOCK_MONOTONIC, &t4);
+
 		glBindVertexArray(0);
 	}
 	glUseProgram(0);
+
+	clock_gettime(CLOCK_MONOTONIC, &t5);
+
+	double dt1 = ((double)t1.tv_sec + 1e-9 * t1.tv_nsec)
+		- ((double)t0.tv_sec + 1e-9 * t0.tv_nsec);
+	double dt2 = ((double)t2.tv_sec + 1e-9 * t2.tv_nsec)
+		- ((double)t1.tv_sec + 1e-9 * t1.tv_nsec);
+	double dt3 = ((double)t3.tv_sec + 1e-9 * t3.tv_nsec)
+		- ((double)t2.tv_sec + 1e-9 * t2.tv_nsec);
+	double dt4 = ((double)t4.tv_sec + 1e-9 * t4.tv_nsec)
+		- ((double)t3.tv_sec + 1e-9 * t3.tv_nsec);
+	double dt5 = ((double)t5.tv_sec + 1e-9 * t5.tv_nsec)
+		- ((double)t4.tv_sec + 1e-9 * t4.tv_nsec);
+	//printf("dt1 = %.10f s\n", dt1);
+	//printf("dt2 = %.10f s\n", dt1);
+	//printf("dt3 = %.10f s\n", dt1);
+	//printf("dt4 = %.10f s\n", dt1);
+	//printf("dt5 = %.10f s\n", dt1);
+	//printf("\n");
 }
 void orbs_update_global_time(float t)
 {
