@@ -1,0 +1,29 @@
+#version 320 es
+
+#define UINT_MAX 0xFFFFFFFFU
+
+$include "rng/uint64.glsl"
+$include "rng/rng_mwc_skip.glsl"
+$include "rng/rng_mwc64x.glsl"
+
+layout(location = 0) uniform uint nSamples;
+layout(location = 1) uniform uvec2 off;
+
+layout(binding = 0) buffer samplesBuf { float samples[]; };
+
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+void main() {
+  uint g = gl_GlobalInvocationID.x
+    + gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_GlobalInvocationID.y
+    + gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_NumWorkGroups.y * gl_WorkGroupSize.y * gl_GlobalInvocationID.z;
+  uint gsize = gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_NumWorkGroups.y * gl_WorkGroupSize.y * gl_NumWorkGroups.z * gl_WorkGroupSize.z;
+  uint perInv = nSamples / gsize + uint(nSamples % gsize != 0U);
+
+  uvec2 rng;
+  MWC64X_SeedStreams(rng, off, uint64_fromUint(perInv), g);
+  for (uint i = g * perInv; i < (g + 1U) * perInv; ++i) {
+    if (i >= nSamples)
+      continue;
+    samples[i] = float(MWC64X_NextUint(rng)) / float(UINT_MAX);
+  }
+}
