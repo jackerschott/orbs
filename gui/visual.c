@@ -66,7 +66,7 @@ void vis_setup()
 	unsigned char *tex_data;
 	unsigned int tex_width;
 	unsigned int tex_height;
-	load_jpeg_texture_image("Resources/bg2.jpg",
+	load_jpeg_texture_image("resources/background.jpg",
 			&tex_width, &tex_height, &tex_data);
 
 	celestial_sphere.imgdata = tex_data;
