@@ -50,5 +50,5 @@ shader_compilation.o: core/shader_compilation.c
 
 clean:
 	rm -f orbs
-	rm -rf obj/*
-	rmdir obj
+	rm -rf obj/
+	rm -f include/shadersrc.h
